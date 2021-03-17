@@ -15,28 +15,28 @@ average			   =      true		          # do we average in the 3rd dimension?
 fullfilm	     =      true		          # if film, full or partial film?
 
 # [streamlines]
-streamlines    =      true              # do we compute streamlines around the planet location?
-streamtype     =      "lic"           # do we compute random streams ("random"), fixed streams ("fixed") or lic ("lic")?
+streamlines    =      false              # do we compute streamlines around the planet location?
+streamtype     =      "random"           # do we compute random streams ("random"), fixed streams ("fixed") or lic ("lic")?
 rminStream     =      0.7               # min radius for streamlines computation
 rmaxStream     =      1.3               # max radius for streamlines computation
 nstream        =      30                # how many streamlines are computed
 
 # [option]
-progressBar    =      true             # do we display the progress (loading+plotting)
+progressBar    =      false             # do we display the progress (loading+plotting)
 writeField     =      false             # if 1d profile, do we write it in file?
 
 # [grid]
 grid			     =      false		          # do we display the grid?
-cartesian		   =      false		          # cartesian or polar coordinates
+cartesian		   =      true		          # cartesian or polar coordinates
 isPlanet		   =      true    		      # is there a planet in the grid?
 corotate		   =      true		          # do the grid rotate with the planet?
 
 # [multiprocessing]
-parallel		   =      true             # load and plot field in serie or parallel
-nbcpu          =      10                # number of cpus if parallel
+parallel		   =      false             # load and plot field in serie or parallel
+nbcpu          =      4                # number of cpus if parallel
 
 # [plot]
-fontsize		   =      10		            # fontsize for graphs
+fontsize		   =      16		            # fontsize for graphs
 cmap           =      "RdYlBu_r"        # choice of colormap
 # cmap           =      "binary"          # choice of colormap
 
