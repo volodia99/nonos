@@ -39,8 +39,3 @@ nbcpu          =      4                # number of cpus if parallel
 fontsize		   =      10		            # fontsize for graphs
 cmap           =      "RdYlBu_r"        # choice of colormap
 # cmap           =      "binary"          # choice of colormap
-
-# [comparison]
-idir            =      "/home/wafflarg/Documents/idefix/setups/ViscousDiskPlanet/2dtest1_q1em3_idfx_9_3_2021"              # pluto working directory if mode='3c_...'
-pdir            =      "/home/wafflarg/idefix/test/Pluto/HD/PlanetDisk/2dtest1_q1em3_pluto_9_3_2021"              # idefix working directory if mode='3c_...'
-fdir            =      "/home/wafflarg/Documents/fargo3d-2.0/2dtest1_q1em3_f3d_9_3_2021"              # fargo3d working directory if mode='3c_...'
