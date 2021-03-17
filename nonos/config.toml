@@ -1,0 +1,46 @@
+# [data]
+# mode			     =      "display" 		   # mode can be display, film
+field			     =      "RHO"		         # which field?
+profile        =      "2d"             # 1D axisymmetric porfile or 2D field
+onStart	       =      14		           # first 'on' if partial film, only 'on' if display
+onEnd		       =      15		           # last 'on' if partial film
+
+# [properties]
+diff			     =      true		          # perturbation of field
+log			       =      false		          # field in log
+vmin           =      -0.5              # default min field when diff
+vmax           =      0.5               # default max field when diff
+midplane		   =      true		          # if midplane: (R,phi), else: (R,z)
+average			   =      true		          # do we average in the 3rd dimension?
+fullfilm	     =      true		          # if film, full or partial film?
+
+# [streamlines]
+streamlines    =      true              # do we compute streamlines around the planet location?
+streamtype     =      "lic"           # do we compute random streams ("random"), fixed streams ("fixed") or lic ("lic")?
+rminStream     =      0.7               # min radius for streamlines computation
+rmaxStream     =      1.3               # max radius for streamlines computation
+nstream        =      30                # how many streamlines are computed
+
+# [option]
+progressBar    =      true             # do we display the progress (loading+plotting)
+writeField     =      false             # if 1d profile, do we write it in file?
+
+# [grid]
+grid			     =      false		          # do we display the grid?
+cartesian		   =      false		          # cartesian or polar coordinates
+isPlanet		   =      true    		      # is there a planet in the grid?
+corotate		   =      true		          # do the grid rotate with the planet?
+
+# [multiprocessing]
+parallel		   =      true             # load and plot field in serie or parallel
+nbcpu          =      10                # number of cpus if parallel
+
+# [plot]
+fontsize		   =      10		            # fontsize for graphs
+cmap           =      "RdYlBu_r"        # choice of colormap
+# cmap           =      "binary"          # choice of colormap
+
+# [comparison]
+idir            =      "/home/wafflarg/Documents/idefix/setups/ViscousDiskPlanet/2dtest1_q1em3_idfx_9_3_2021"              # pluto working directory if mode='3c_...'
+pdir            =      "/home/wafflarg/idefix/test/Pluto/HD/PlanetDisk/2dtest1_q1em3_pluto_9_3_2021"              # idefix working directory if mode='3c_...'
+fdir            =      "/home/wafflarg/Documents/fargo3d-2.0/2dtest1_q1em3_f3d_9_3_2021"              # fargo3d working directory if mode='3c_...'
