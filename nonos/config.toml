@@ -36,7 +36,7 @@ parallel		   =      false             # load and plot field in serie or parallel
 nbcpu          =      4                # number of cpus if parallel
 
 # [plot]
-fontsize		   =      16		            # fontsize for graphs
+fontsize		   =      10		            # fontsize for graphs
 cmap           =      "RdYlBu_r"        # choice of colormap
 # cmap           =      "binary"          # choice of colormap
 

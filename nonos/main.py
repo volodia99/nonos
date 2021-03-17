@@ -518,9 +518,8 @@ class PlotNonos(FieldNonos):
                     ax.plot(r,t,c='k',linewidth=0.07)
                     ax.plot(r.transpose(),t.transpose(),c='k',linewidth=0.07)
 
-        ax.set_xlim(0.5,1.5)
-        ax.set_ylim(-0.8,0.8)
-
+        # ax.set_xlim(0.5,1.5)
+        # ax.set_ylim(-0.8,0.8)
         ax.tick_params('both', labelsize=self.config['fontsize'])
         ax.xaxis.set_minor_locator(AutoMinorLocator(5))
         ax.yaxis.set_minor_locator(AutoMinorLocator(5))
