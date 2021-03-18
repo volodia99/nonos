@@ -1025,7 +1025,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument('-cpu', type=int, default=pconfig['nbcpu'])
     args = parser.parse_args(argv)
 
-    args.f=arg.f.upper()
+    args.f=args.f.upper()
     print(args.f)
     # plt.close('all')
 
