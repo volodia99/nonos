@@ -23,6 +23,7 @@ from typing import List, Optional
 import argparse
 
 # TODO: check in 3D
+# TODO: adapt config['midplane'] as an arg when 3D
 # TODO: check in plot function if corotate=True works for all vtk and dpl (initial planet location) -> computation to calculate the grid rotation speed
 # TODO: compute gas surface density and not just gas volume density : something like self.data*=np.sqrt(2*np.pi)*self.aspectratio*self.y
 # TODO: check how to generalize the path of the directory (.toml file)
@@ -189,7 +190,9 @@ class Parameters():
     Class for reading the simulation parameters.
     input: string -> name of the parfile, normally *.ini
     """
-    def __init__(self, config, directory="", paramfile=None):
+    def __init__(self, config, directory="", paramfile=None, corotate=None):
+        if corotate is None:
+            corotate=self.config['corotate']
         if paramfile is None:
             try:
                 paramfile = "idefix.ini"
@@ -221,10 +224,10 @@ class Parameters():
                 self.qpl = self.iniconfig["Planet"]["qpl"]
                 self.dpl = self.iniconfig["Planet"]["dpl"]
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
-                if config['corotate']:
+                if corotate:
                     self.omegagrid = self.omegaplanet
             else:
-                if config['corotate']:
+                if corotate:
                     self.omegagrid = 0.0
 
         elif self.code=='pluto':
@@ -234,10 +237,10 @@ class Parameters():
                 print_warn("Initial distance not defined in pluto.ini.\nBy default, dpl=1.0 for the computation of omegaP\n")
                 self.dpl = 1.0
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
-                if config['corotate']:
+                if corotate:
                     self.omegagrid = self.omegaplanet
             else:
-                if config['corotate']:
+                if corotate:
                     self.omegagrid = 0.0
 
         elif self.code=='fargo3d':
@@ -253,10 +256,10 @@ class Parameters():
                 self.qpl = self.cfgconfig[list(self.cfgconfig)[0]][1]
                 self.dpl = self.cfgconfig[list(self.cfgconfig)[0]][0]
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
-                if config['corotate']:
+                if corotate:
                     self.omegagrid = self.omegaplanet
             else:
-                if config['corotate']:
+                if corotate:
                     self.omegagrid = 0.0
 
 class AnalysisNonos(Parameters):
@@ -419,10 +422,10 @@ class FieldNonos(Mesh,Parameters):
     Input: field [string] -> filename of the field
            directory='' [string] -> where filename is
     """
-    def __init__(self, config, directory="", field=None, on=None, paramfile=None, diff=None, log=None):
+    def __init__(self, config, directory="", field=None, on=None, paramfile=None, diff=None, log=None, corotate=None):
         self.config = config
         Mesh.__init__(self, config=self.config, directory=directory, paramfile=paramfile)       #All the Mesh attributes inside Field
-        Parameters.__init__(self, config=self.config, directory=directory, paramfile=paramfile) #All the Parameters attributes inside Field
+        Parameters.__init__(self, config=self.config, directory=directory, paramfile=paramfile, corotate=corotate) #All the Parameters attributes inside Field
 
         if field is None:
             field=self.config['field']
@@ -432,6 +435,8 @@ class FieldNonos(Mesh,Parameters):
             diff=self.config['diff']
         if log is None:
             log=self.config['log']
+        if corotate is None:
+            corotate=self.config['corotate']
 
         self.on = on
         self.diff=diff
@@ -489,7 +494,7 @@ class FieldNonos(Mesh,Parameters):
         impossible to perform the following calculation (try/except)
         we therefore don't move the grid if the rotation speed is null
         """
-        if (self.config['corotate'] and self.on*self.vtk*self.omegagrid!=0.0):
+        if (corotate and self.on*self.vtk*self.omegagrid!=0.0):
             P,R = np.meshgrid(self.y,self.x)
             Prot=P-(self.on*self.vtk*self.omegagrid)%(2*np.pi)
             try:
@@ -503,8 +508,8 @@ class PlotNonos(FieldNonos):
     """
     Plot class which uses Field to compute different graphs.
     """
-    def __init__(self, config, directory="", field=None, on=None, diff=None, log=None):
-        FieldNonos.__init__(self,config=config,field=field,on=on,directory=directory, diff=diff, log=log) #All the Parameters attributes inside Field
+    def __init__(self, config, directory="", field=None, on=None, diff=None, log=None, corotate=None):
+        FieldNonos.__init__(self,config=config,field=field,on=on,directory=directory, diff=diff, log=log, corotate=corotate) #All the Parameters attributes inside Field
 
     def axiplot(self, ax, vmin=None, vmax=None, fontsize=None, **karg):
         dataProfile=np.mean(np.mean(self.data,axis=1),axis=1)
@@ -937,48 +942,48 @@ def print_err(message):
 
 # process function for parallisation purpose with progress bar
 counter = Value('i', 0) # initialization of a counter
-def process_field(on, config, vmin, vmax, directory):
-    ploton=PlotNonos(config, on=on, directory=directory)
-    if config['streamlines']:
-        streamon=StreamNonos(config, on=on, directory=directory)
-        vx1on = FieldNonos(config, field='VX1', on=on, diff=False, log=False, directory=directory)
-        vx2on = FieldNonos(config, field='VX2', on=on, diff=False, log=False, directory=directory)
+def process_field(on, profile, field, cart, diff, log, corotate, streamlines, stype, srmin, srmax, nstream, config, vmin, vmax, isPlanet, pbar, parallel, directory):
+    ploton=PlotNonos(config, field=field, on=on, diff=diff, log=log, corotate=corotate, directory=directory)
+    if streamlines:
+        streamon=StreamNonos(config, field=field, on=on, directory=directory)
+        vx1on = FieldNonos(config, field='VX1', on=on, diff=False, log=False, corotate=False, directory=directory)
+        vx2on = FieldNonos(config, field='VX2', on=on, diff=False, log=False, corotate=False, directory=directory)
     fig, ax=plt.subplots(figsize=(9,8))#, sharex=True, sharey=True)
     plt.subplots_adjust(left=0.1, right=0.87, top=0.95, bottom=0.1)
     plt.ioff()
 
     # plot the field
-    if config['profile']=="2d":
+    if profile=="2d":
         ploton.plot(ax, vmin=vmin, vmax=vmax)
-        if config['streamlines']:
+        if streamlines:
             vr = vx1on.data
             vphi = vx2on.data
-            if config['isPlanet']:
+            if isPlanet:
                 vphi -= vx2on.omegaplanet*vx2on.xmed[:,None,None]
-            if config['streamtype']=="lic":
+            if stype=="lic":
                 streams=streamon.get_lic_streams(vr,vphi)
-                streamon.plot_lic(ax,streams,cartesian=config['cartesian'], cmap='gray', alpha=0.3)
-            elif config['streamtype']=="random":
-                streams=streamon.get_random_streams(vr,vphi,xmin=config['rminStream'],xmax=config['rmaxStream'], n=config['nstream'])
-                streamon.plot_streams(ax,streams,cartesian=config['cartesian'],color='k', linewidth=2, alpha=0.5)
-            elif config['streamtype']=="fixed":
-                streams=streamon.get_fixed_streams(vr,vphi,xmin=config['rminStream'],xmax=config['rmaxStream'], n=config['nstream'])
-                streamon.plot_streams(ax,streams,cartesian=config['cartesian'],color='k', linewidth=2, alpha=0.5)
+                streamon.plot_lic(ax,streams,cartesian=cart, cmap='gray', alpha=0.3)
+            elif stype=="random":
+                streams=streamon.get_random_streams(vr,vphi,xmin=srmin,xmax=srmax, n=nstream)
+                streamon.plot_streams(ax,streams,cartesian=cart,color='k', linewidth=2, alpha=0.5)
+            elif stype=="fixed":
+                streams=streamon.get_fixed_streams(vr,vphi,xmin=srmin,xmax=srmax, n=nstream)
+                streamon.plot_streams(ax,streams,cartesian=cart,color='k', linewidth=2, alpha=0.5)
 
         if config['midplane']:
-            plt.savefig("sRphi_log%s_c%s%04d.png"%(config['log'],config['cartesian'],on))
+            plt.savefig("sRphi_log%s_c%s%04d.png"%(log,cart,on))
         else:
-            plt.savefig("sRz_log%s_c%s%04d.png"%(config['log'],config['cartesian'],on))
+            plt.savefig("sRz_log%s_c%s%04d.png"%(log,cart,on))
 
     # plot the 1D profile
-    if config['profile']=="1d":
+    if profile=="1d":
         ploton.axiplot(ax, vmin=vmin, vmax=vmax)
-        plt.savefig("saxi_log%s%04d.png"%(config['log'],on))
+        plt.savefig("saxi_log%s%04d.png"%(log,on))
 
     plt.close()
 
-    if config['progressBar']:
-        if config['parallel']:
+    if pbar:
+        if parallel:
             global counter
             printProgressBar(counter.value, len(config['onarray'])-1, prefix = 'Progress:', suffix = 'Complete', length = 50) # progress bar when parallelization is included
             with counter.get_lock():
@@ -990,7 +995,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('-dir', action="store", dest="dir", default="")
     parser.add_argument('-mod', action="store", dest="mod", default="display")
-    args = parser.parse_args(argv)
 
     # read the .toml file
     analysis = AnalysisNonos(directory=args.dir)
@@ -999,40 +1003,61 @@ def main(argv: Optional[List[str]] = None) -> int:
     n_file=analysis.n_file
     diran=analysis.directory
 
+    parser.add_argument('-on', type=int, default=pconfig['onStart'])
+    parser.add_argument('-f', type=str, default=pconfig['field'])
+    parser.add_argument('-onend', type=int, default=pconfig['onEnd'])
+    parser.add_argument('-diff', type=bool, default=pconfig['diff'])
+    parser.add_argument('-log', type=bool, default=pconfig['log'])
+    parser.add_argument('-cor', type=bool, default=pconfig['corotate'])
+    parser.add_argument('-s', type=bool, default=pconfig['streamlines'])
+    parser.add_argument('-stype', type=str, default=pconfig['streamtype'])
+    parser.add_argument('-srmin', type=float, default=pconfig['rminStream'])
+    parser.add_argument('-srmax', type=float, default=pconfig['rmaxStream'])
+    parser.add_argument('-sn', type=int, default=pconfig['nstream'])
+    parser.add_argument('-isp', type=bool, default=pconfig['isPlanet'])
+    parser.add_argument('-cart', type=bool, default=pconfig['cartesian'])
+    parser.add_argument('-p', type=str, default=pconfig['profile'])
+    parser.add_argument('-cmap', type=str, default=pconfig['cmap'])
+    parser.add_argument('-full', type=bool, default=pconfig['fullfilm'])
+    parser.add_argument('-pbar', type=bool, default=pconfig['progressBar'])
+    parser.add_argument('-multi', type=bool, default=pconfig['parallel'])
+    parser.add_argument('-cpu', type=int, default=pconfig['nbcpu'])
+    args = parser.parse_args(argv)
+
     # plt.close('all')
 
     # mode for just displaying a field for a given output number
     if args.mod=='display':
         fig, ax=plt.subplots(figsize=(9,8))#, sharex=True, sharey=True)
         plt.ioff()
-        print("on = ", pconfig['onStart'])
+        print("on = ", args.on)
         # loading the field
-        ploton = PlotNonos(pconfig, directory=diran)
-        if pconfig['streamlines']:
-            streamon=StreamNonos(pconfig, directory=diran)
-            vx1on = FieldNonos(pconfig, field='VX1', diff=False, log=False, directory=diran)
-            vx2on = FieldNonos(pconfig, field='VX2', diff=False, log=False, directory=diran)
+        ploton = PlotNonos(pconfig, field=args.f, on=args.on, diff=args.diff, log=args.log, corotate=args.cor, directory=diran)
+        if args.s:
+            streamon=StreamNonos(pconfig, field=args.f, on=args.on, directory=diran)
+            vx1on = FieldNonos(pconfig, field='VX1', on=args.on, diff=False, log=False, corotate=False, directory=diran)
+            vx2on = FieldNonos(pconfig, field='VX2', on=args.on, diff=False, log=False, corotate=False, directory=diran)
 
         # plot the field
-        if pconfig['profile']=="2d":
-            ploton.plot(ax)
-            if pconfig['streamlines']:
+        if args.p=="2d":
+            ploton.plot(ax, cartesian=args.cart, cmap=args.cmap)
+            if args.s:
                 vr = vx1on.data
                 vphi = vx2on.data
-                if pconfig['isPlanet']:
+                if args.isp:
                     vphi -= vx2on.omegaplanet*vx2on.xmed[:,None,None]
-                if pconfig['streamtype']=="lic":
+                if args.stype=="lic":
                     streams=streamon.get_lic_streams(vr,vphi)
-                    streamon.plot_lic(ax,streams,cartesian=pconfig['cartesian'], cmap='gray', alpha=0.3)
-                elif pconfig['streamtype']=="random":
-                    streams=streamon.get_random_streams(vr,vphi,xmin=pconfig['rminStream'],xmax=pconfig['rmaxStream'], n=pconfig['nstream'])
-                    streamon.plot_streams(ax,streams,cartesian=pconfig['cartesian'],color='k', linewidth=2, alpha=0.5)
-                elif pconfig['streamtype']=="fixed":
-                    streams=streamon.get_fixed_streams(vr,vphi,xmin=pconfig['rminStream'],xmax=pconfig['rmaxStream'], n=pconfig['nstream'])
-                    streamon.plot_streams(ax,streams,cartesian=pconfig['cartesian'],color='k', linewidth=2, alpha=0.5)
+                    streamon.plot_lic(ax,streams,cartesian=args.cart, cmap='gray', alpha=0.3)
+                elif args.stype=="random":
+                    streams=streamon.get_random_streams(vr,vphi,xmin=args.srmin,xmax=args.srmax, n=args.sn)
+                    streamon.plot_streams(ax,streams,cartesian=args.cart,color='k', linewidth=2, alpha=0.5)
+                elif args.stype=="fixed":
+                    streams=streamon.get_fixed_streams(vr,vphi,xmin=args.srmin,xmax=args.srmax, n=args.sn)
+                    streamon.plot_streams(ax,streams,cartesian=args.cart,color='k', linewidth=2, alpha=0.5)
 
         # plot the 1D profile
-        if pconfig['profile']=="1d":
+        if args.p=="1d":
             ploton.axiplot(ax)
 
         plt.show()
@@ -1040,38 +1065,38 @@ def main(argv: Optional[List[str]] = None) -> int:
     # mode for creating a movie of the temporal evolution of a given field
     elif args.mod=='film':
         # do we compute the full movie or a partial movie given by "on"
-        if pconfig['fullfilm']:
+        if args.full:
             pconfig['onarray']=range(n_file)
         else:
-            pconfig['onarray']=np.arange(pconfig['onStart'],pconfig['onEnd']+1)
+            pconfig['onarray']=np.arange(args.on,args.onend+1)
 
         # calculation of the min/max
-        if pconfig['diff']:
+        if args.diff:
             vmin=pconfig['vmin']
             vmax=pconfig['vmax']
         # In that case we choose a file in the middle (len(onarray)//2) and compute the MIN/MAX
         else:
-            fieldon = FieldNonos(pconfig, on=pconfig['onarray'][len(pconfig['onarray'])//2], directory=diran, diff=False)
-            if pconfig['profile']=="2d":
+            fieldon = FieldNonos(pconfig, field=args.f, on=pconfig['onarray'][len(pconfig['onarray'])//2], directory=diran, diff=False)
+            if args.p=="2d":
                 vmin=fieldon.data.min()
                 vmax=fieldon.data.max()
-            elif pconfig['profile']=="1d":
+            elif args.p=="1d":
                 vmin=(np.mean(np.mean(fieldon.data,axis=1),axis=1)).min()
                 vmax=(np.mean(np.mean(fieldon.data,axis=1),axis=1)).max()
 
         # call of the process_field function, whether it be in parallel or not
         start=time.time()
-        if pconfig['progressBar']:
+        if args.pbar:
             printProgressBar(0, len(pconfig['onarray'])-1, prefix = 'Progress:', suffix = 'Complete', length = 50) # progress bar when parallelization is included
-        if pconfig['parallel']:
+        if args.multi:
             # determines the minimum between nbcpu and the nb max of cpus in the user's system
-            nbcpuReal = min((int(pconfig['nbcpu']),os.cpu_count()))
+            nbcpuReal = min((int(args.cpu),os.cpu_count()))
             pool = Pool(nbcpuReal)   # Create a multiprocessing Pool with a security on the number of cpus
-            pool.map(functools.partial(process_field, config=pconfig, vmin=vmin, vmax=vmax, directory=diran), pconfig['onarray'])
+            pool.map(functools.partial(process_field, profile=args.p, field=args.f, cart=args.cart, diff=args.diff, log=args.log, corotate=args.cor, streamlines=args.s, stype=args.stype, srmin=args.srmin, srmax=args.srmax, nstream=args.sn, config=pconfig, vmin=vmin, vmax=vmax, isPlanet=args.isp, pbar=args.pbar, parallel=args.multi, directory=diran), pconfig['onarray'])
             tpara=time.time()-start
             print("time in parallel : %f" %tpara)
         else:
-            list(map(functools.partial(process_field, config=pconfig, vmin=vmin, vmax=vmax, directory=diran), pconfig['onarray']))
+            list(map(functools.partial(process_field, profile=args.p, field=args.f, cart=args.cart, diff=args.diff, log=args.log, corotate=args.cor, streamlines=args.s, stype=args.stype, srmin=args.srmin, srmax=args.srmax, nstream=args.sn, config=pconfig, vmin=vmin, vmax=vmax, isPlanet=args.isp, pbar=args.pbar, parallel=args.multi, directory=diran), pconfig['onarray']))
             tserie=time.time()-start
             print("time in serie : %f" %tserie)
 
