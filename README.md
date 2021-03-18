@@ -1,5 +1,5 @@
 # nonos
-A tool to analyze results from idefix/pluto simulations (for protoplanetary disks more specifically)
+A tool to analyze results from idefix/pluto/fargo3d simulations (for protoplanetary disks more specifically)
 
 #### Example of field
 ````python
