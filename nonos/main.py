@@ -300,16 +300,19 @@ class AnalysisNonos(Parameters):
             print_warn("TODO: check what is the length argument in StreamNonos().get_lic_streams ?")
 
         Parameters.__init__(self, config=self.config, directory=self.directory, paramfile=paramfile) #All the Parameters attributes inside Field
-        print("\n")
-        print(self.code.upper(), "analysis")
+        if info:
+            print("\n")
+            print(self.code.upper(), "analysis")
 
         if (self.code=='idefix' or self.code=='pluto'):
-            print("\nWORKS IN POLAR COORDINATES")
+            if info:
+                print("\nWORKS IN POLAR COORDINATES")
             try:
                 domain=readVTKPolar(os.path.join(self.directory,'data.0000.vtk'), cell="edges")
                 list_keys=list(domain.data.keys())
-                print("Possible fields: ", list_keys)
-                print('nR=%d, np=%d, nz=%d' % (domain.nx,domain.ny,domain.nz))
+                if info:
+                    print("Possible fields: ", list_keys)
+                    print('nR=%d, np=%d, nz=%d' % (domain.nx,domain.ny,domain.nz))
             except IOError:
                 print_err("IOError with data.0000.vtk")
                 return 1
@@ -317,7 +320,8 @@ class AnalysisNonos(Parameters):
             self.n_file = len(glob.glob1(self.directory,"data.*.vtk"))
 
         elif(self.code=='fargo3d'):
-            print("\nWORKS IN POLAR COORDINATES")
+            if info:
+                print("\nWORKS IN POLAR COORDINATES")
             try:
                 domain_x = np.loadtxt(os.path.join(self.directory,"domain_x.dat"))
             except IOError:
@@ -1030,12 +1034,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     # plt.close('all')
     if args.info:
         AnalysisNonos(directory="", info=True)
+        return 0
 
     # mode for just displaying a field for a given output number
     if args.mod=='display':
         fig, ax=plt.subplots(figsize=(9,8))#, sharex=True, sharey=True)
         plt.ioff()
-        print("on = ", args.on)
+        # print("on = ", args.on)
         # loading the field
         ploton = PlotNonos(pconfig, field=args.f, on=args.on, diff=args.diff, log=args.log, corotate=args.cor, directory=diran)
         if args.s:
