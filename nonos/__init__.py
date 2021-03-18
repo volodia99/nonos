@@ -1,3 +1,3 @@
 from .main import readVTKPolar, AnalysisNonos, Parameters, Mesh, FieldNonos, PlotNonos, StreamNonos
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
