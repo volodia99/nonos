@@ -24,18 +24,21 @@ import argparse
 
 # TODO: check in 3D
 # TODO: check in plot function if corotate=True works for all vtk and dpl (initial planet location) -> computation to calculate the grid rotation speed
-# TODO: in 3D, compute gas surface density and not just gas volume density : something like self.data*=np.sqrt(2*np.pi)*self.aspectratio*self.y
+# TODO: compute gas surface density and not just gas volume density : something like self.data*=np.sqrt(2*np.pi)*self.aspectratio*self.y
 # TODO: check how to generalize the path of the directory (.toml file)
 # TODO: compute vortensity
 # TODO: compute vertical flows (cf vertical_flows.txt)
+# TODO: adapt streamline analysis (cf strl.py)
 # TODO: re-check if each condition works fine
-# TODO: recheck the writeAxi feature
+# TODO: CORRECTED AND TO BE TESTED maybe small bug in the progress bar when nbcpu=n_files
+# TODO: recheck the axiplot feature (parallelization, ...) and the writeField feature
 # TODO: streamlines does not work properly (azimuthal displacement due to reconstruction of field with corotation)
 # TODO: streamline analysis: test if the estimation of the radial spacing works
 # TODO: major modif for the corotation implementation
 # TODO: streamlines = 'random', 'specific' or 'lic'
 # TODO: write a better way to save pictures (function in PlotNonos maybe)
 # TODO: dor now, calculations are made only in working directory, need to specify directory in command lines
+# TODO: do not forget to change all the functions that use dpl (planet location), which is valid if the planet is in a fixed cicular orbit
 
 firstRun = True
 
@@ -180,13 +183,89 @@ def readVTKPolar(filename, cell='edges'):
 
     return V
 
-class AnalysisNonos:
+class Parameters():
+    """
+    Adapted from Pablo Benitez-Llambay
+    Class for reading the simulation parameters.
+    input: string -> name of the parfile, normally *.ini
+    """
+    def __init__(self, config, directory="", paramfile=None):
+        if paramfile is None:
+            try:
+                paramfile = "idefix.ini"
+                params = open(os.path.join(directory,paramfile),'r') #Opening the parfile
+                self.code = 'idefix'
+            except IOError:                  # Error checker.
+                try:
+                    paramfile = "pluto.ini"
+                    params = open(os.path.join(directory,paramfile),'r') #Opening the parfile
+                    self.code = 'pluto'
+                except IOError:                  # Error checker.
+                    try:
+                        paramfile = "variables.par"
+                        params = open(os.path.join(directory,paramfile),'r') #Opening the parfile
+                        self.code = 'fargo3d'
+                    except IOError:                  # Error checker.
+                        print_err("idefix.ini, pluto.ini or variables.par not found.")
+                        return 1
+        else:
+            print_err("For now, impossible to choose your parameter file.\nBy default, the code searches idefix.ini then pluto.ini then variables.par.")
+            return 1
+
+        self.paramfile = paramfile
+        self.iniconfig = ix.load(os.path.join(directory,self.paramfile))
+
+        if self.code=='idefix':
+            self.vtk = self.iniconfig["Output"]["vtk"]
+            if config['isPlanet']:
+                self.qpl = self.iniconfig["Planet"]["qpl"]
+                self.dpl = self.iniconfig["Planet"]["dpl"]
+                self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
+                if config['corotate']:
+                    self.omegagrid = self.omegaplanet
+            else:
+                if config['corotate']:
+                    self.omegagrid = 0.0
+
+        elif self.code=='pluto':
+            self.vtk = self.iniconfig["Static Grid Output"]["vtk"][0]
+            if config['isPlanet']:
+                self.qpl = self.iniconfig["Parameters"]["Mplanet"]/self.iniconfig["Parameters"]["Mstar"]
+                print_warn("Initial distance not defined in pluto.ini.\nBy default, dpl=1.0 for the computation of omegaP\n")
+                self.dpl = 1.0
+                self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
+                if config['corotate']:
+                    self.omegagrid = self.omegaplanet
+            else:
+                if config['corotate']:
+                    self.omegagrid = 0.0
+
+        elif self.code=='fargo3d':
+            try:
+                cfgfile = glob.glob1(directory,"*.cfg")[0]
+            except IndexError:
+                print_err("*.cfg file (FARGO3D planet parameters) does not exist in %s directory"%directory)
+                return 1
+
+            self.cfgconfig = ix.load(os.path.join(directory,cfgfile))
+            self.vtk = self.iniconfig["NINTERM"]*self.iniconfig["DT"]
+            if config['isPlanet']:
+                self.qpl = self.cfgconfig[list(self.cfgconfig)[0]][1]
+                self.dpl = self.cfgconfig[list(self.cfgconfig)[0]][0]
+                self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
+                if config['corotate']:
+                    self.omegagrid = self.omegaplanet
+            else:
+                if config['corotate']:
+                    self.omegagrid = 0.0
+
+class AnalysisNonos(Parameters):
     """
     read the .toml file
     find parameters in config.toml (same directory as script)
     compute the number of data.*.vtk files in working directory
     """
-    def __init__(self, directory_of_script=os.path.dirname(os.path.abspath(__file__)), directory="", info=False):
+    def __init__(self, directory_of_script=os.path.dirname(os.path.abspath(__file__)), directory="", info=False, paramfile=None):
         self.directory = directory
         try:
             self.config=toml.load(os.path.join(directory_of_script,"config.toml"))
@@ -217,92 +296,107 @@ class AnalysisNonos:
         if(self.config['streamlines'] and self.config['streamtype']=='lic'):
             print_warn("TODO: check what is the length argument in StreamNonos().get_lic_streams ?")
 
-        try:
-            domain=readVTKPolar(os.path.join(self.directory,'data.0000.vtk'), cell="edges")
+        Parameters.__init__(self, config=self.config, directory=self.directory, paramfile=paramfile) #All the Parameters attributes inside Field
+        print("\n")
+        print(self.code.upper(), "analysis")
+
+        if (self.code=='idefix' or self.code=='pluto'):
             print("\nWORKS IN POLAR COORDINATES")
-            list_keys=list(domain.data.keys())
-            print("Possible fields: ", list_keys)
-            print('nR=%d, np=%d, nz=%d' % (domain.nx,domain.ny,domain.nz))
-        except IOError:
-            print_err("IOError with data.0000.vtk")
-            return 1
-
-        self.n_file = len(glob.glob1(self.directory,"data.*.vtk"))
-
-class Parameters():
-    """
-    Adapted from Pablo Benitez-Llambay
-    Class for reading the simulation parameters.
-    input: string -> name of the parfile, normally *.ini
-    """
-    def __init__(self, config, directory="", paramfile=None):
-        if paramfile is None:
             try:
-                paramfile = "idefix.ini"
-                params = open(os.path.join(directory,paramfile),'r') #Opening the parfile
-                self.code = 'idefix'
-            except IOError:                  # Error checker.
-                try:
-                    paramfile = "pluto.ini"
-                    params = open(os.path.join(directory,paramfile),'r') #Opening the parfile
-                    self.code = 'pluto'
-                except IOError:                  # Error checker.
-                    print_err("idefix.ini or pluto.ini not found.")
-                    return 1
-        else:
-            print_err("For now, impossible to choose your parameter file.\nBy default, the code searches idefix.ini then pluto.ini.")
-            return 1
+                domain=readVTKPolar(os.path.join(self.directory,'data.0000.vtk'), cell="edges")
+                list_keys=list(domain.data.keys())
+                print("Possible fields: ", list_keys)
+                print('nR=%d, np=%d, nz=%d' % (domain.nx,domain.ny,domain.nz))
+            except IOError:
+                print_err("IOError with data.0000.vtk")
+                return 1
 
-        self.paramfile = paramfile
-        self.iniconfig = ix.load(os.path.join(directory,self.paramfile))
+            self.n_file = len(glob.glob1(self.directory,"data.*.vtk"))
 
-        if self.code=='idefix':
-            self.vtk = self.iniconfig["Output"]["vtk"]
-            if config['isPlanet']:
-                self.qpl = self.iniconfig["Planet"]["qpl"]
-                self.dpl = self.iniconfig["Planet"]["dpl"]
-                self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
-                if config['corotate']:
-                    self.omegagrid = self.omegaplanet
-            else:
-                if config['corotate']:
-                    self.omegagrid = 0
+        elif(self.code=='fargo3d'):
+            print("\nWORKS IN POLAR COORDINATES")
+            try:
+                domain_x = np.loadtxt(os.path.join(self.directory,"domain_x.dat"))
+            except IOError:
+                print_err("IOError with domain_x.dat")
+                return 1
+            try:
+                #We avoid ghost cells
+                domain_y = np.loadtxt(os.path.join(self.directory,"domain_y.dat"))[3:-3]
+            except IOError:
+                print_err("IOError with domain_y.dat")
+                return 1
+            try:
+                domain_z = np.loadtxt(os.path.join(self.directory,"domain_z.dat"))
+                if domain_z.shape[0]>6:
+                    domain_z=domain_z[3:-3]
+            except IOError:
+                print_err("IOError with domain_z.dat")
+                return 1
 
-        elif self.code=='pluto':
-            self.vtk = self.iniconfig["Static Grid Output"]["vtk"][0]
-            if config['isPlanet']:
-                self.qpl = self.iniconfig["Parameters"]["Mplanet"]/self.iniconfig["Parameters"]["Mstar"]
-                print_warn("Initial distance not defined in pluto.ini.\nBy default, dpl=1.0 for the computation of omegaP\n")
-                self.dpl = 1.0
-                self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
-                if config['corotate']:
-                    self.omegagrid = self.omegaplanet
-            else:
-                if config['corotate']:
-                    self.omegagrid = 0
+            self.n_file = len(glob.glob1(self.directory,"gasdens*.dat")) - len(glob.glob1(self.directory,"gasdens*_*.dat"))
 
-class Mesh():
+class Mesh(Parameters):
     """
     Adapted from Pablo Benitez-Llambay
     Mesh class, for keeping all the mesh data.
     Input: directory [string] -> this is where the domain files are.
     """
-    def __init__(self, directory=""):
-        try:
-            domain=readVTKPolar(os.path.join(directory,'data.0000.vtk'), cell="edges")
-        except IOError:
-            print_err("IOError with data.0000.vtk")
-            return 1
+    def __init__(self, config, directory="", paramfile=None):
+        Parameters.__init__(self, config=config, directory=directory, paramfile=paramfile) #All the Parameters attributes inside Field
+        if (self.code=='idefix' or self.code=='pluto'):
+            try:
+                domain=readVTKPolar(os.path.join(directory,'data.0000.vtk'), cell="edges")
+            except IOError:
+                print_err("IOError with data.0000.vtk")
+                return 1
 
-        self.domain = domain
+            self.domain = domain
 
-        self.nx = self.domain.nx
-        self.ny = self.domain.ny
-        self.nz = self.domain.nz
+            self.nx = self.domain.nx
+            self.ny = self.domain.ny
+            self.nz = self.domain.nz
 
-        self.xedge = self.domain.x #X-Edge
-        self.yedge = self.domain.y-np.pi #Y-Edge
-        self.zedge = self.domain.z #Z-Edge
+            self.xedge = self.domain.x #X-Edge
+            self.yedge = self.domain.y-np.pi #Y-Edge
+            self.zedge = self.domain.z #Z-Edge
+
+            # index of the cell in the midplane
+            self.imidplane = self.nz//2
+
+        elif(self.code=='fargo3d'):
+            try:
+                domain_x = np.loadtxt(os.path.join(directory,"domain_x.dat"))
+            except IOError:
+                print_err("IOError with domain_x.dat")
+                return 1
+            try:
+                #We avoid ghost cells
+                domain_y = np.loadtxt(os.path.join(directory,"domain_y.dat"))[3:-3]
+            except IOError:
+                print_err("IOError with domain_y.dat")
+                return 1
+            try:
+                domain_z = np.loadtxt(os.path.join(directory,"domain_z.dat"))
+                if domain_z.shape[0]>6:
+                    domain_z=domain_z[3:-3]
+            except IOError:
+                print_err("IOError with domain_z.dat")
+                return 1
+
+            self.xedge = domain_y #X-Edge
+            self.yedge = domain_x #Y-Edge
+            # self.zedge = np.pi/2-domain_z #Z-Edge #latitute
+            self.zedge = domain_z #Z-Edge #latitute
+
+            self.nx=len(self.xedge)-1
+            self.ny=len(self.yedge)-1
+            self.nz=len(self.zedge)-1
+
+            if np.sign(self.zedge[0])!=np.sign(self.zedge[-1]):
+                self.imidplane = self.nz//2
+            else:
+                self.imidplane = -1
 
         self.xmed = 0.5*(self.xedge[1:]+self.xedge[:-1]) #X-Center
         self.ymed = 0.5*(self.yedge[1:]+self.yedge[:-1]) #Y-Center
@@ -317,9 +411,6 @@ class Mesh():
         self.y = self.yedge
         self.z = self.zedge
 
-        # index of the cell in the midplane
-        self.imidplane = self.nz//2
-
 class FieldNonos(Mesh,Parameters):
     """
     Inspired by Pablo Benitez-Llambay
@@ -330,7 +421,7 @@ class FieldNonos(Mesh,Parameters):
     """
     def __init__(self, config, directory="", field=None, on=None, paramfile=None, diff=None, log=None):
         self.config = config
-        Mesh.__init__(self, directory=directory)       #All the Mesh attributes inside Field
+        Mesh.__init__(self, config=self.config, directory=directory, paramfile=paramfile)       #All the Mesh attributes inside Field
         Parameters.__init__(self, config=self.config, directory=directory, paramfile=paramfile) #All the Parameters attributes inside Field
 
         if field is None:
@@ -342,15 +433,29 @@ class FieldNonos(Mesh,Parameters):
         if log is None:
             log=self.config['log']
 
-        self.field = field
-        if list(self.domain.data.keys())[0].islower():
-            self.field=self.field.lower()
         self.on = on
         self.diff=diff
         self.log=log
 
-        self.data = self.__open_field(os.path.join(directory,'data.%04d.vtk'%self.on)) #The scalar data is here.
-        self.data0=self.__open_field(os.path.join(directory,'data.0000.vtk'))
+        self.field = field
+        filedata = "data.%04d.vtk"%self.on
+        filedata0 = "data.0000.vtk"
+        if self.code=='pluto':
+            self.field=self.field.lower()
+        elif self.code=='fargo3d':
+            if self.field=='RHO':
+                self.field='dens'
+            if self.field=='VX1':
+                self.field='vy'
+            if self.field=='VX2':
+                self.field='vx'
+            if self.field=='VX3':
+                self.field='vz'
+            filedata = "gas%s%d.dat"%(self.field,self.on)
+            filedata0 = "gas%s0.dat"%self.field
+
+        self.data = self.__open_field(os.path.join(directory,filedata)) #The scalar data is here.
+        self.data0 = self.__open_field(os.path.join(directory,filedata0))
 
         if self.log:
             if self.diff:
@@ -371,9 +476,20 @@ class FieldNonos(Mesh,Parameters):
         """
         Reading the data
         """
-        data = readVTKPolar(f, cell='edges').data[self.field]
-        data = np.concatenate((data[:,self.ny//2:self.ny,:], data[:,0:self.ny//2,:]), axis=1)
-        if self.config['corotate']:
+        if(self.code=='idefix' or self.code=='pluto'):
+            data = readVTKPolar(f, cell='edges').data[self.field]
+            data = np.concatenate((data[:,self.ny//2:self.ny,:], data[:,0:self.ny//2,:]), axis=1)
+        elif(self.code=='fargo3d'):
+            data = np.fromfile(f, dtype='float64')
+            data=(data.reshape(self.nz,self.nx,self.ny)).transpose(1,2,0) #rad, pĥi, theta
+
+        """
+        if we try to rotate a grid at 0 speed
+        and if the domain is exactly [-pi,pi],
+        impossible to perform the following calculation (try/except)
+        we therefore don't move the grid if the rotation speed is null
+        """
+        if (self.config['corotate'] and self.on*self.vtk*self.omegagrid!=0.0):
             P,R = np.meshgrid(self.y,self.x)
             Prot=P-(self.on*self.vtk*self.omegagrid)%(2*np.pi)
             try:
@@ -744,8 +860,8 @@ class StreamNonos(FieldNonos):
         if ymax == None:
             ymax = self.y.max()
 
-        # X = xmin + np.linspace(0,1,n)*(xmax-xmin)
-        X = xmin*pow((xmax/xmin),np.random.rand(n))
+        X = xmin + np.linspace(0,1,n)*(xmax-xmin)
+        # X = xmin*pow((xmax/xmin),np.random.rand(n))
         Y = ymin + np.linspace(0,1,n)*(ymax-ymin)
 
         streams = []
@@ -882,13 +998,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     n_file=analysis.n_file
     diran=analysis.directory
 
-    code=Parameters(pconfig, directory=diran).code
-    print(code.upper(), "analysis")
-
     # plt.close('all')
 
     # mode for just displaying a field for a given output number
-    # if pconfig['mode']=='display':
     if args.mod=='display':
         fig, ax=plt.subplots(figsize=(9,8))#, sharex=True, sharey=True)
         plt.ioff()
@@ -925,7 +1037,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         plt.show()
 
     # mode for creating a movie of the temporal evolution of a given field
-    # elif pconfig['mode']=='film':
     elif args.mod=='film':
         # do we compute the full movie or a partial movie given by "on"
         if pconfig['fullfilm']:
