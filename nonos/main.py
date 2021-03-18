@@ -25,14 +25,12 @@ import argparse
 
 # TODO: check in 3D
 # TODO: check in plot function if corotate=True works for all vtk and dpl (initial planet location) -> computation to calculate the grid rotation speed
-# TODO: compute gas surface density and not just gas volume density : something like self.data*=np.sqrt(2*np.pi)*self.aspectratio*self.y
+# TODO: in 3D, compute gas surface density and not just gas volume density : something like self.data*=np.sqrt(2*np.pi)*self.aspectratio*self.y
 # TODO: check how to generalize the path of the directory (.toml file)
 # TODO: compute vortensity
 # TODO: compute vertical flows (cf vertical_flows.txt)
-# TODO: adapt streamline analysis (cf strl.py)
 # TODO: re-check if each condition works fine
-# TODO: CORRECTED AND TO BE TESTED maybe small bug in the progress bar when nbcpu=n_files
-# TODO: recheck the axiplot feature (parallelization, ...) and the writeField feature
+# TODO: recheck the writeAxi feature
 # TODO: streamlines does not work properly (azimuthal displacement due to reconstruction of field with corotation)
 # TODO: streamline analysis: test if the estimation of the radial spacing works
 # TODO: major modif for the corotation implementation
@@ -53,8 +51,8 @@ def readVTKPolar(filename, cell='edges'):
     try:
         fid=open(filename,"rb")
     except:
-        print("Can't open file")
-        return 0
+        print_err("Can't open vtk file")
+        return 1
 
     # define our datastructure
     V=DataStructure()
@@ -74,11 +72,9 @@ def readVTKPolar(filename, cell='edges'):
     slist=s.split()
     grid_type=str(slist[1],'utf-8')
     if(grid_type != "STRUCTURED_GRID"):
-        print("ERROR: Wrong VTK file type.")
-        print("Current type is: %s"%(grid_type))
-        print("This routine can only open Polar VTK files.")
         fid.close()
-        return 0
+        print_err("Wrong VTK file type.\nCurrent type is: %s.\nThis routine can only open Polar VTK files."%(grid_type))
+        return 1
 
     s=fid.readline()    # DIMENSIONS NX NY NZ
     slist=s.split()
@@ -96,8 +92,8 @@ def readVTKPolar(filename, cell='edges'):
     V.points=points
 
     if V.nx*V.ny*V.nz != npoints:
-        print("ERROR: Grid size incompatible with number of points in the data set")
-        return 0
+        print_err("Grid size incompatible with number of points in the data set")
+        return 1
 
     # Reconstruct the polar coordinate system
     x1d=points[::3]
@@ -116,9 +112,9 @@ def readVTKPolar(filename, cell='edges'):
     slist=s.split()
     data_type=str(slist[0],'utf-8')
     if(data_type != "CELL_DATA"):
-        print("ERROR: this routine expect CELL DATA as produced by PLUTO.")
         fid.close()
-        return 0
+        print_err("this routine expect CELL DATA as produced by PLUTO.")
+        return 1
     s=fid.readline()    # Line feed
 
     if cell=='edges':
@@ -176,7 +172,8 @@ def readVTKPolar(filename, cell='edges'):
             V.data[varname+'_Z']=np.transpose(Q[2::3].reshape(V.nz,V.ny,V.nx))
 
         else:
-            print("ERROR: Unknown datatype %s" % datatype)
+            print_err("Unknown datatype %s" % datatype)
+            return 1
             break;
 
         fid.readline()  #extra line feed
@@ -204,6 +201,30 @@ class AnalysisNonos:
             print('\n')
         except FileNotFoundError:
             print_err(os.path.join(directory_of_script,"config.toml")+" not found")
+            return 1
+
+        if(not(self.config['midplane']) and self.config['corotate']):
+            print_err("corotate is not yet implemented in the (R,z) plane")
+            return 1
+
+        if(not(self.config['average']) and not(self.config['midplane'])):
+            print_err("average=False is not yet implemented in the (R,z) plane")
+            return 1
+
+        if(not(self.config['isPlanet']) and self.config['corotate']):
+            print_warn("We don't rotate the grid if there is no planet for now.\nomegagrid = 0.")
+
+        if(self.config['streamlines'] and self.config['streamtype']=='lic'):
+            print_warn("TODO: check what is the length argument in StreamNonos().get_lic_streams ?")
+
+        try:
+            domain=readVTKPolar(os.path.join(self.directory,'data.0000.vtk'), cell="edges")
+            print("\nWORKS IN POLAR COORDINATES")
+            list_keys=list(domain.data.keys())
+            print("Possible fields: ", list_keys)
+            print('nR=%d, np=%d, nz=%d' % (domain.nx,domain.ny,domain.nz))
+        except IOError:
+            print_err("IOError with data.0000.vtk")
             return 1
 
         self.n_file = len(glob.glob1(self.directory,"data.*.vtk"))
@@ -245,17 +266,7 @@ class Parameters():
                     self.omegagrid = self.omegaplanet
             else:
                 if config['corotate']:
-                    print_warn("We don't rotate the grid if there is no planet for now.\nomegagrid = 0.")
                     self.omegagrid = 0
-
-            if self.iniconfig["Grid"]["X1-grid"][0]==1:
-                if self.iniconfig["Grid"]["X1-grid"][3][0]=='l':
-                    self.logSpacing = True
-                else:
-                    self.logSpacing = False
-            else:
-                print_warn('multiple grid domains - not tested\nImportant for streamline analysis.')
-                self.logSpacing = None
 
         elif self.code=='pluto':
             self.vtk = self.iniconfig["Static Grid Output"]["vtk"][0]
@@ -268,17 +279,7 @@ class Parameters():
                     self.omegagrid = self.omegaplanet
             else:
                 if config['corotate']:
-                    print_warn("We don't rotate the grid if there is no planet for now.\nomegagrid = 0.")
                     self.omegagrid = 0
-
-            if self.iniconfig["Grid"]["X1-grid"][0]==1:
-                if self.iniconfig["Grid"]["X1-grid"][3][0]=='l':
-                    self.logSpacing = True
-                else:
-                    self.logSpacing = False
-            else:
-                print_warn('multiple grid domains - not tested\nImportant for streamline analysis.')
-                self.logSpacing = None
 
 class Mesh():
     """
@@ -289,13 +290,6 @@ class Mesh():
     def __init__(self, directory=""):
         try:
             domain=readVTKPolar(os.path.join(directory,'data.0000.vtk'), cell="edges")
-            global firstRun
-            if firstRun:
-                print("\nWORKS IN POLAR COORDINATES")
-                list_keys=list(domain.data.keys())
-                print("Possible fields: ", list_keys)
-                print('nR=%d, np=%d, nz=%d\n' % (domain.nx,domain.ny,domain.nz))
-                firstRun=False
         except IOError:
             print_err("IOError with data.0000.vtk")
             return 1
@@ -405,7 +399,7 @@ class PlotNonos(FieldNonos):
     def axiplot(self, ax, **karg):
         dataProfile=np.mean(np.mean(self.data,axis=1),axis=1)
 
-        if self.config['writeField']:
+        if self.config['writeAxi']:
             axifile=open("axi%s%04d.csv"%(self.field.lower(),on),'w')
             for i in range(len(self.xmed)):
                 axifile.write('%f,%f\n' %(self.xmed[i],dataProfile[i]))
@@ -574,10 +568,9 @@ class StreamNonos(FieldNonos):
         interpolated value of a Field class.
         """
 
-        if self.logSpacing:
-            i = int(np.log10(x/self.x.min())/np.log10(self.x.max()/self.x.min())*self.nx)
-        else:
-            i = int((x-self.x.min())/(self.x.max()-self.x.min())*self.nx)
+        i = find_nearest(self.x,x)
+        # i = int(np.log10(x/self.x.min())/np.log10(self.x.max()/self.x.min())*self.nx)
+        # i = int((x-self.x.min())/(self.x.max()-self.x.min())*self.nx)
         j = int((y-self.y.min())/(self.y.max()-self.y.min())*self.ny)
 
         if i<0 or j<0 or i>v.shape[0]-2 or j>v.shape[1]-2:
@@ -682,14 +675,13 @@ class StreamNonos(FieldNonos):
             ds = self.euler(vx, vy, x0, y0, reverse=reverse)
             if(ds[0] == None):
                 # if(len(x)==1):
-                #     print("There was an error getting the stream, ds is NULL (see get_stream).")
+                #     print_warn("There was an error getting the stream, ds is NULL (see get_stream).")
                 break
             l += np.sqrt(ds[0]**2+ds[1]**2)
             dx = ds[0]
             dy = ds[1]
             if(np.sqrt(dx**2+dy**2)<1e-13):
-                print_warn("(get_stream): ds is very small, check if you're in a stagnation point.")
-                print ("Try selecting another initial point.")
+                print_warn("(get_stream): ds is very small, check if you're in a stagnation point.\nTry selecting another initial point.")
                 break
             if (l > maxlength):
                 # print("maxlength reached: ", l)
@@ -711,10 +703,8 @@ class StreamNonos(FieldNonos):
         if ymax == None:
             ymax = self.y.max()
 
-        if self.logSpacing:
-            X = xmin*pow((xmax/xmin),np.random.rand(n))
-        else:
-            X = xmin + np.random.rand(n)*(xmax-xmin)
+        X = xmin + np.random.rand(n)*(xmax-xmin)
+        # X = xmin*pow((xmax/xmin),np.random.rand(n))
         Y = ymin + np.random.rand(n)*(ymax-ymin)
 
         streams = []
@@ -735,10 +725,8 @@ class StreamNonos(FieldNonos):
         if ymax == None:
             ymax = self.y.max()
 
-        if self.logSpacing:
-            X = xmin*pow((xmax/xmin),np.linspace(0,1,n))
-        else:
-            X = xmin + np.linspace(0,1,n)*(xmax-xmin)
+        # X = xmin + np.linspace(0,1,n)*(xmax-xmin)
+        X = xmin*pow((xmax/xmin),np.random.rand(n))
         Y = ymin + np.linspace(0,1,n)*(ymax-ymin)
 
         streams = []
@@ -771,6 +759,11 @@ class StreamNonos(FieldNonos):
         else:
             P,R = np.meshgrid(self.y,self.x)
             ax.pcolormesh(R,P,streams,**kargs)
+
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return idx
 
 # Print iterations progress
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
@@ -871,17 +864,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     diran=analysis.directory
 
     code=Parameters(pconfig, directory=diran).code
-    print("\n")
     print(code.upper(), "analysis")
-    mesh = Mesh(directory=diran)
-
-    if(not(pconfig['midplane']) and pconfig['corotate']):
-        print_err("corotate is not yet implemented in the (R,z) plane")
-        return 1
-
-    if(not(pconfig['average']) and not(pconfig['midplane'])):
-        print_err("average=False is not yet implemented in the (R,z) plane")
-        return 1
 
     # plt.close('all')
 
@@ -918,7 +901,6 @@ def main(argv: Optional[List[str]] = None) -> int:
                 if pconfig['isPlanet']:
                     vphi -= vx2on.omegaplanet*vx2on.xmed[:,None,None]
                 if pconfig['streamtype']=="lic":
-                    print_warn("check what is the length argument in StreamNonos().get_lic_streams ?")
                     streams=streamon.get_lic_streams(vr,vphi)
                     streamon.plot_lic(ax,streams,cartesian=pconfig['cartesian'], cmap='gray', alpha=0.3)
                 elif pconfig['streamtype']=="random":
