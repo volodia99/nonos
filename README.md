@@ -42,3 +42,19 @@ ploton.plot(ax, cartesian=True, fontsize=8)
 streamon.plot_streams(ax,streams,cartesian=True, color='k', linewidth=2, alpha=0.5)
 plt.show()
 ````
+#### Example of plot with a comparison between several simulations
+````python
+from nonos import AnalysisNonos, PlotNonos
+import matplotlib.pyplot as plt
+
+dirpath=['path_to_dir1', 'path_to_dir2', 'path_to_dir3']
+
+fig, ax = plt.subplots(figsize=(8,6), ncols=len(dirpath))
+plt.subplots_adjust(left=0.05, right=0.94, top=0.95, bottom=0.1, wspace=0.4)
+for i in range(len(dirpath)):
+    pconfig = AnalysisNonos(directory=dirpath[i]).config
+    ploton = PlotNonos(pconfig, field='RHO', on=10, diff=True, directory=dirpath[i])
+    ploton.plot(ax[i], cartesian=True, fontsize=6)
+
+plt.show()
+````
