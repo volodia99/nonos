@@ -1003,7 +1003,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     n_file=analysis.n_file
     diran=analysis.directory
 
-    parser.add_argument('-mod', action="store", dest="mod", default==pconfig['mode'])
+    parser.add_argument('-mod', type=str, default=pconfig['mode'])
     parser.add_argument('-on', type=int, default=pconfig['onStart'])
     parser.add_argument('-f', type=str.lower, default=pconfig['field'])
     parser.add_argument('-onend', type=int, default=pconfig['onEnd'])
