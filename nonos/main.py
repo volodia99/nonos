@@ -387,16 +387,26 @@ class PlotNonos(FieldNonos):
     """
     Plot class which uses Field to compute different graphs.
     """
-    def __init__(self, config, directory="", field=None, on=None):
-        FieldNonos.__init__(self,config=config,field=field,on=on,directory=directory) #All the Parameters attributes inside Field
+    def __init__(self, config, directory="", field=None, on=None, diff=None, log=None):
+        FieldNonos.__init__(self,config=config,field=field,on=on,directory=directory, diff=diff, log=log) #All the Parameters attributes inside Field
 
         if field is None:
             field=self.config['field']
         if on is None:
             on=self.config['onStart']
+        if diff is None:
+            diff=self.config['diff']
+        if log is None:
+            log=self.config['log']
 
+    def axiplot(self, ax, vmin=None, vmax=None, fontsize=None, **karg):
+        if vmin is None:
+            vmin=self.config['vmin']
+        if vmax is None:
+            vmax=self.config['vmax']
+        if fontsize is None:
+            fontsize=self.config['fontsize']
 
-    def axiplot(self, ax, **karg):
         dataProfile=np.mean(np.mean(self.data,axis=1),axis=1)
 
         if self.config['writeAxi']:
@@ -410,38 +420,49 @@ class PlotNonos(FieldNonos):
         if not(self.log):
             ax.xaxis.set_minor_locator(AutoMinorLocator(5))
             ax.yaxis.set_minor_locator(AutoMinorLocator(5))
-        ax.set_ylim(self.config['vmin'],self.config['vmax'])
-        ax.tick_params('both', labelsize=self.config['fontsize'])
+        ax.set_ylim(vmin,vmax)
+        ax.tick_params('both', labelsize=fontsize)
         ax.xaxis.set_ticks_position('both')
         ax.yaxis.set_ticks_position('both')
         ax.xaxis.set_visible(True)
         ax.yaxis.set_visible(True)
-        ax.set_xlabel('Radius', fontsize=self.config['fontsize'])
-        ax.set_ylabel(self.title, fontsize=self.config['fontsize'])
+        ax.set_xlabel('Radius', fontsize=fontsize)
+        ax.set_ylabel(self.title, fontsize=fontsize)
         # plt.legend(frameon=False)
 
-    def plot(self, ax, **karg):
+    def plot(self, ax, vmin=None, vmax=None, fontsize=None, cartesian=None, cmap=None, **karg):
         """
         A layer for pcolormesh function.
         """
+        if vmin is None:
+            vmin=self.config['vmin']
+        if vmax is None:
+            vmax=self.config['vmax']
+        if cartesian is None:
+            cartesian=self.config['cartesian']
+        if fontsize is None:
+            fontsize=self.config['fontsize']
+        if cmap is None:
+            cmap=self.config['cmap']
+
         # (R,phi) plane
         if self.config['midplane']:
-            if self.config['cartesian']:
+            if cartesian:
                 P,R = np.meshgrid(self.y,self.x)
                 X = R*np.cos(P)
                 Y = R*np.sin(P)
                 if self.config['average']:
                     im=ax.pcolormesh(X,Y,np.mean(self.data,axis=2),
-                              cmap=self.config['cmap'],vmin=self.config['vmin'],vmax=self.config['vmax'],**karg)
+                              cmap=cmap,vmin=vmin,vmax=vmax,**karg)
                 else:
                     im=ax.pcolormesh(X,Y,self.data[:,:,self.imidplane],
-                              cmap=self.config['cmap'],vmin=self.config['vmin'],vmax=self.config['vmax'],**karg)
+                              cmap=cmap,vmin=vmin,vmax=vmax,**karg)
 
                 ax.set_aspect('equal')
                 ax.xaxis.set_visible(True)
                 ax.yaxis.set_visible(True)
-                ax.set_ylabel('Y [c.u.]', family='monospace', fontsize=self.config['fontsize'])
-                ax.set_xlabel('X [c.u.]', family='monospace', fontsize=self.config['fontsize'])
+                ax.set_ylabel('Y [c.u.]', family='monospace', fontsize=fontsize)
+                ax.set_xlabel('X [c.u.]', family='monospace', fontsize=fontsize)
                 if self.config['grid']:
                     ax.plot(X,Y,c='k',linewidth=0.07)
                     ax.plot(X.transpose(),Y.transpose(),c='k',linewidth=0.07)
@@ -449,28 +470,28 @@ class PlotNonos(FieldNonos):
                 P,R = np.meshgrid(self.y,self.x)
                 if self.config['average']:
                     im=ax.pcolormesh(R,P,np.mean(self.data,axis=2),
-                              cmap=self.config['cmap'],vmin=self.config['vmin'],vmax=self.config['vmax'],**karg)
+                              cmap=cmap,vmin=vmin,vmax=vmax,**karg)
                 else:
                     im=ax.pcolormesh(R,P,self.data[:,:,self.imidplane],
-                              cmap=self.config['cmap'],vmin=self.config['vmin'],vmax=self.config['vmax'],**karg)
+                              cmap=cmap,vmin=vmin,vmax=vmax,**karg)
 
                 ax.set_ylim(-np.pi,np.pi)
                 ax.set_aspect('auto')
                 ax.xaxis.set_visible(True)
                 ax.yaxis.set_visible(True)
-                ax.set_ylabel('Phi', family='monospace', fontsize=self.config['fontsize'])
-                ax.set_xlabel('Radius', family='monospace', fontsize=self.config['fontsize'])
+                ax.set_ylabel('Phi', family='monospace', fontsize=fontsize)
+                ax.set_xlabel('Radius', family='monospace', fontsize=fontsize)
                 if self.config['grid']:
                     ax.plot(R,P,c='k',linewidth=0.07)
                     ax.plot(R.transpose(),P.transpose(),c='k',linewidth=0.07)
 
         # (R,z) plane
         else:
-            if self.config['cartesian']:
+            if cartesian:
                 Z,R = np.meshgrid(self.z,self.x)
-                if self.config['average']:
+                if ['average']:
                     im=ax.pcolormesh(R,Z,np.mean(self.data,axis=1),
-                              cmap=self.config['cmap'],vmin=self.config['vmin'],vmax=self.config['vmax'],**karg)
+                              cmap=cmap,vmin=vmin,vmax=vmax,**karg)
                 # else:
                 #     print_warn("average=False is not yet implemented when midplane=False")
                 #     sys.exit()
@@ -479,8 +500,8 @@ class PlotNonos(FieldNonos):
                 ax.set_aspect('auto')
                 ax.xaxis.set_visible(True)
                 ax.yaxis.set_visible(True)
-                ax.set_ylabel('Z [c.u.]', family='monospace', fontsize=self.config['fontsize'])
-                ax.set_xlabel('X [c.u.]', family='monospace', fontsize=self.config['fontsize'])
+                ax.set_ylabel('Z [c.u.]', family='monospace', fontsize=fontsize)
+                ax.set_xlabel('X [c.u.]', family='monospace', fontsize=fontsize)
                 # ax.set_xlim(-6.0,6.0)
                 # ax.set_ylim(-6.0,6.0)
                 if self.config['grid']:
@@ -493,7 +514,7 @@ class PlotNonos(FieldNonos):
                 t = np.arctan2(R,Z)
                 if self.config['average']:
                     im=ax.pcolormesh(r,t,np.mean(self.data,axis=1),
-                              cmap=self.config['cmap'],vmin=self.config['vmin'],vmax=self.config['vmax'],**karg)
+                              cmap=cmap,vmin=vmin,vmax=vmax,**karg)
                 # else:
                 #     print_warn("average=False is not yet implemented when midplane=False")
                 #     sys.exit()
@@ -503,8 +524,8 @@ class PlotNonos(FieldNonos):
                 ax.set_aspect('auto')
                 ax.xaxis.set_visible(True)
                 ax.yaxis.set_visible(True)
-                ax.set_ylabel('Theta', family='monospace', fontsize=self.config['fontsize'])
-                ax.set_xlabel('Radius', family='monospace', fontsize=self.config['fontsize'])
+                ax.set_ylabel('Theta', family='monospace', fontsize=fontsize)
+                ax.set_xlabel('Radius', family='monospace', fontsize=fontsize)
                 # ax.set_xlim(-6.0,6.0)
                 # ax.set_ylim(-6.0,6.0)
                 if self.config['grid']:
@@ -514,7 +535,7 @@ class PlotNonos(FieldNonos):
 
         # ax.set_xlim(0.5,1.5)
         # ax.set_ylim(-0.8,0.8)
-        ax.tick_params('both', labelsize=self.config['fontsize'])
+        ax.tick_params('both', labelsize=fontsize)
         ax.xaxis.set_minor_locator(AutoMinorLocator(5))
         ax.yaxis.set_minor_locator(AutoMinorLocator(5))
         ax.xaxis.set_ticks_position('both')
@@ -522,8 +543,8 @@ class PlotNonos(FieldNonos):
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
         cbar=plt.colorbar(im, cax=cax, orientation='vertical')#, format='%.0e')
-        cbar.ax.tick_params(labelsize=self.config['fontsize'])
-        cbar.set_label(self.title, family='monospace', fontsize=self.config['fontsize'])
+        cbar.ax.tick_params(labelsize=fontsize)
+        cbar.set_label(self.title, family='monospace', fontsize=fontsize)
 
 class StreamNonos(FieldNonos):
     """
