@@ -186,18 +186,19 @@ class AnalysisNonos:
     find parameters in config.toml (same directory as script)
     compute the number of data.*.vtk files in working directory
     """
-    def __init__(self, directory_of_script=os.path.dirname(os.path.abspath(__file__)), directory=""):
+    def __init__(self, directory_of_script=os.path.dirname(os.path.abspath(__file__)), directory="", info=False):
         self.directory = directory
         try:
             self.config=toml.load(os.path.join(directory_of_script,"config.toml"))
-            print('\n')
-            print('--------------------------------------')
-            for keys in self.config:
-                print("config['%s'] = %s"%(keys,self.config[keys]))
-                # for subkeys in config[keys]:
-                #     print("config['%s']['%s'] = %s"%(keys,subkeys,config[keys][subkeys]))
-            print('--------------------------------------')
-            print('\n')
+            if info:
+                print('\n')
+                print('--------------------------------------')
+                for keys in self.config:
+                    print("config['%s'] = %s"%(keys,self.config[keys]))
+                    # for subkeys in config[keys]:
+                    #     print("config['%s']['%s'] = %s"%(keys,subkeys,config[keys][subkeys]))
+                print('--------------------------------------')
+                print('\n')
         except FileNotFoundError:
             print_err(os.path.join(directory_of_script,"config.toml")+" not found")
             return 1
