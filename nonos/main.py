@@ -190,9 +190,11 @@ class Parameters():
     Class for reading the simulation parameters.
     input: string -> name of the parfile, normally *.ini
     """
-    def __init__(self, config, directory="", paramfile=None, corotate=None):
+    def __init__(self, config, directory="", paramfile=None, corotate=None, isPlanet=None):
         if corotate is None:
             corotate=self.config['corotate']
+        if isPlanet is None:
+            isPlanet=self.config['isPlanet']
         if paramfile is None:
             try:
                 paramfile = "idefix.ini"
@@ -220,7 +222,7 @@ class Parameters():
 
         if self.code=='idefix':
             self.vtk = self.iniconfig["Output"]["vtk"]
-            if self.config['isPlanet']:
+            if isPlanet:
                 self.qpl = self.iniconfig["Planet"]["qpl"]
                 self.dpl = self.iniconfig["Planet"]["dpl"]
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
@@ -232,7 +234,7 @@ class Parameters():
 
         elif self.code=='pluto':
             self.vtk = self.iniconfig["Static Grid Output"]["vtk"][0]
-            if self.config['isPlanet']:
+            if isPlanet:
                 self.qpl = self.iniconfig["Parameters"]["Mplanet"]/self.iniconfig["Parameters"]["Mstar"]
                 print_warn("Initial distance not defined in pluto.ini.\nBy default, dpl=1.0 for the computation of omegaP\n")
                 self.dpl = 1.0
@@ -252,7 +254,7 @@ class Parameters():
 
             self.cfgconfig = ix.load(os.path.join(directory,cfgfile))
             self.vtk = self.iniconfig["NINTERM"]*self.iniconfig["DT"]
-            if self.config['isPlanet']:
+            if isPlanet:
                 self.qpl = self.cfgconfig[list(self.cfgconfig)[0]][1]
                 self.dpl = self.cfgconfig[list(self.cfgconfig)[0]][0]
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
@@ -426,10 +428,10 @@ class FieldNonos(Mesh,Parameters):
     Input: field [string] -> filename of the field
            directory='' [string] -> where filename is
     """
-    def __init__(self, config, directory="", field=None, on=None, paramfile=None, diff=None, log=None, corotate=None):
+    def __init__(self, config, directory="", field=None, on=None, paramfile=None, diff=None, log=None, corotate=None, isPlanet=None):
         self.config = config
         Mesh.__init__(self, config=self.config, directory=directory, paramfile=paramfile)       #All the Mesh attributes inside Field
-        Parameters.__init__(self, config=self.config, directory=directory, paramfile=paramfile, corotate=corotate) #All the Parameters attributes inside Field
+        Parameters.__init__(self, config=self.config, directory=directory, paramfile=paramfile, corotate=corotate, isPlanet=isPlanet) #All the Parameters attributes inside Field
 
         if field is None:
             field=self.config['field']
@@ -441,11 +443,14 @@ class FieldNonos(Mesh,Parameters):
             log=self.config['log']
         if corotate is None:
             corotate=self.config['corotate']
+        if isPlanet is None:
+            isPlanet=self.config['isPlanet']
 
         self.on = on
         self.diff=diff
         self.log=log
         self.corotate=corotate
+        self.isPlanet=isPlanet
 
         self.field = field
         filedata = "data.%04d.vtk"%self.on
@@ -513,8 +518,8 @@ class PlotNonos(FieldNonos):
     """
     Plot class which uses Field to compute different graphs.
     """
-    def __init__(self, config, directory="", field=None, on=None, diff=None, log=None, corotate=None):
-        FieldNonos.__init__(self,config=config,field=field,on=on,directory=directory, diff=diff, log=log, corotate=corotate) #All the Parameters attributes inside Field
+    def __init__(self, config, directory="", field=None, on=None, diff=None, log=None, corotate=None, isPlanet=None):
+        FieldNonos.__init__(self,config=config,field=field,on=on,directory=directory, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet) #All the Parameters attributes inside Field
 
     def axiplot(self, ax, vmin=None, vmax=None, fontsize=None, **karg):
         dataProfile=np.mean(np.mean(self.data,axis=1),axis=1)
@@ -948,11 +953,11 @@ def print_err(message):
 # process function for parallisation purpose with progress bar
 counter = Value('i', 0) # initialization of a counter
 def process_field(on, profile, field, cart, diff, log, corotate, streamlines, stype, srmin, srmax, nstream, config, vmin, vmax, isPlanet, pbar, parallel, directory):
-    ploton=PlotNonos(config, field=field, on=on, diff=diff, log=log, corotate=corotate, directory=directory)
+    ploton=PlotNonos(config, field=field, on=on, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet, directory=directory)
     if streamlines:
         streamon=StreamNonos(config, field=field, on=on, directory=directory)
-        vx1on = FieldNonos(config, field='VX1', on=on, diff=False, log=False, corotate=False, directory=directory)
-        vx2on = FieldNonos(config, field='VX2', on=on, diff=False, log=False, corotate=False, directory=directory)
+        vx1on = FieldNonos(config, field='VX1', on=on, diff=False, log=False, corotate=corotate, isPlanet=isPlanet, directory=directory)
+        vx2on = FieldNonos(config, field='VX2', on=on, diff=False, log=False, corotate=corotate, isPlanet=isPlanet, directory=directory)
     fig, ax=plt.subplots(figsize=(9,8))#, sharex=True, sharey=True)
     plt.subplots_adjust(left=0.1, right=0.87, top=0.95, bottom=0.1)
     plt.ioff()
@@ -1041,11 +1046,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         plt.ioff()
         # print("on = ", args.on)
         # loading the field
-        ploton = PlotNonos(pconfig, field=args.f, on=args.on, diff=args.diff, log=args.log, corotate=args.cor, directory=diran)
+        ploton = PlotNonos(pconfig, field=args.f, on=args.on, diff=args.diff, log=args.log, corotate=args.cor, isPlanet=args.isp, directory=diran)
         if args.s:
             streamon=StreamNonos(pconfig, field=args.f, on=args.on, directory=diran)
-            vx1on = FieldNonos(pconfig, field='VX1', on=args.on, diff=False, log=False, corotate=False, directory=diran)
-            vx2on = FieldNonos(pconfig, field='VX2', on=args.on, diff=False, log=False, corotate=False, directory=diran)
+            vx1on = FieldNonos(pconfig, field='VX1', on=args.on, diff=False, log=False, corotate=args.cor, isPlanet=args.isp, directory=diran)
+            vx2on = FieldNonos(pconfig, field='VX2', on=args.on, diff=False, log=False, corotate=args.cor, isPlanet=args.isp, directory=diran)
 
         # plot the field
         if args.p=="2d":
