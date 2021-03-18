@@ -1003,6 +1003,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     n_file=analysis.n_file
     diran=analysis.directory
 
+    parser.add_argument('-h', type=bool, nargs='?', const=True, default=False)
     parser.add_argument('-mod', type=str, default=pconfig['mode'])
     parser.add_argument('-on', type=int, default=pconfig['onStart'])
     parser.add_argument('-f', type=str.lower, default=pconfig['field'])
@@ -1027,7 +1028,9 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     args.f=args.f.upper()
     # plt.close('all')
-
+    if args.h:
+        AnalysisNonos(directory="", info=True)
+        
     # mode for just displaying a field for a given output number
     if args.mod=='display':
         fig, ax=plt.subplots(figsize=(9,8))#, sharex=True, sharey=True)
