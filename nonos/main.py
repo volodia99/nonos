@@ -220,7 +220,7 @@ class Parameters():
 
         if self.code=='idefix':
             self.vtk = self.iniconfig["Output"]["vtk"]
-            if config['isPlanet']:
+            if self.config['isPlanet']:
                 self.qpl = self.iniconfig["Planet"]["qpl"]
                 self.dpl = self.iniconfig["Planet"]["dpl"]
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
@@ -232,7 +232,7 @@ class Parameters():
 
         elif self.code=='pluto':
             self.vtk = self.iniconfig["Static Grid Output"]["vtk"][0]
-            if config['isPlanet']:
+            if self.config['isPlanet']:
                 self.qpl = self.iniconfig["Parameters"]["Mplanet"]/self.iniconfig["Parameters"]["Mstar"]
                 print_warn("Initial distance not defined in pluto.ini.\nBy default, dpl=1.0 for the computation of omegaP\n")
                 self.dpl = 1.0
@@ -252,7 +252,7 @@ class Parameters():
 
             self.cfgconfig = ix.load(os.path.join(directory,cfgfile))
             self.vtk = self.iniconfig["NINTERM"]*self.iniconfig["DT"]
-            if config['isPlanet']:
+            if self.config['isPlanet']:
                 self.qpl = self.cfgconfig[list(self.cfgconfig)[0]][1]
                 self.dpl = self.cfgconfig[list(self.cfgconfig)[0]][0]
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
