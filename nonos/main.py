@@ -1034,7 +1034,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     # plt.close('all')
     if args.info:
         AnalysisNonos(directory="", info=True)
-        return 0
 
     # mode for just displaying a field for a given output number
     if args.mod=='display':
