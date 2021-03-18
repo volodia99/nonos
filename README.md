@@ -30,9 +30,9 @@ pconfig['corotate']=True
 
 ploton = PlotNonos(pconfig, field='RHO', on=25, diff=True)
 streamon = StreamNonos(pconfig, on=25)
-vx1on = FieldNonos(pconfig, field='VX1', on=25, diff=False, log=False)
+vx1on = FieldNonos(pconfig, field='VX1', on=25, diff=False, log=False, corotate=False)
 vr = vx1on.data
-vx2on = FieldNonos(pconfig, field='VX2', on=25, diff=False, log=False)
+vx2on = FieldNonos(pconfig, field='VX2', on=25, diff=False, log=False, corotate=False)
 vphi = vx2on.data
 vphi -= vx2on.omegaplanet*vx2on.xmed[:,None,None]
 streams = streamon.get_random_streams(vr,vphi,xmin=0.7,xmax=1.3, n=30)
