@@ -1026,7 +1026,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     args.f=args.f.upper()
-    print(args.f)
     # plt.close('all')
 
     # mode for just displaying a field for a given output number
