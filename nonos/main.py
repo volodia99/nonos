@@ -994,7 +994,7 @@ def process_field(on, profile, field, cart, diff, log, corotate, streamlines, st
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('-dir', action="store", dest="dir", default="")
-    parser.add_argument('-mod', action="store", dest="mod", default="display")
+    args = parser.parse_args(argv)
 
     # read the .toml file
     analysis = AnalysisNonos(directory=args.dir)
@@ -1003,6 +1003,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     n_file=analysis.n_file
     diran=analysis.directory
 
+    parser.add_argument('-mod', action="store", dest="mod", default="display")
     parser.add_argument('-on', type=int, default=pconfig['onStart'])
     parser.add_argument('-f', type=str, default=pconfig['field'])
     parser.add_argument('-onend', type=int, default=pconfig['onEnd'])
