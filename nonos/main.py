@@ -8,7 +8,6 @@ import os
 import sys
 import time
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -390,27 +389,21 @@ class PlotNonos(FieldNonos):
     def __init__(self, config, directory="", field=None, on=None, diff=None, log=None):
         FieldNonos.__init__(self,config=config,field=field,on=on,directory=directory, diff=diff, log=log) #All the Parameters attributes inside Field
 
-        if field is None:
-            field=self.config['field']
-        if on is None:
-            on=self.config['onStart']
-        if diff is None:
-            diff=self.config['diff']
-        if log is None:
-            log=self.config['log']
-
     def axiplot(self, ax, vmin=None, vmax=None, fontsize=None, **karg):
+        dataProfile=np.mean(np.mean(self.data,axis=1),axis=1)
         if vmin is None:
             vmin=self.config['vmin']
+            if not(self.diff):
+                vmin=dataProfile.min()
         if vmax is None:
             vmax=self.config['vmax']
+            if not(self.diff):
+                vmax=dataProfile.max()
         if fontsize is None:
             fontsize=self.config['fontsize']
 
-        dataProfile=np.mean(np.mean(self.data,axis=1),axis=1)
-
         if self.config['writeAxi']:
-            axifile=open("axi%s%04d.csv"%(self.field.lower(),on),'w')
+            axifile=open("axi%s%04d.csv"%(self.field.lower(),self.on),'w')
             for i in range(len(self.xmed)):
                 axifile.write('%f,%f\n' %(self.xmed[i],dataProfile[i]))
             axifile.close()
@@ -436,8 +429,12 @@ class PlotNonos(FieldNonos):
         """
         if vmin is None:
             vmin=self.config['vmin']
+            if not(self.diff):
+                vmin=self.data.min()
         if vmax is None:
             vmax=self.config['vmax']
+            if not(self.diff):
+                vmax=self.data.max()
         if cartesian is None:
             cartesian=self.config['cartesian']
         if fontsize is None:
@@ -822,7 +819,7 @@ def print_err(message):
 
 # process function for parallisation purpose with progress bar
 counter = Value('i', 0) # initialization of a counter
-def process_field(on, config, directory):
+def process_field(on, config, vmin, vmax, directory):
     ploton=PlotNonos(config, on=on, directory=directory)
     if config['streamlines']:
         streamon=StreamNonos(config, on=on, directory=directory)
@@ -834,7 +831,7 @@ def process_field(on, config, directory):
 
     # plot the field
     if config['profile']=="2d":
-        ploton.plot(ax)
+        ploton.plot(ax, vmin=vmin, vmax=vmax)
         if config['streamlines']:
             vr = vx1on.data
             vphi = vx2on.data
@@ -857,7 +854,7 @@ def process_field(on, config, directory):
 
     # plot the 1D profile
     if config['profile']=="1d":
-        ploton.axiplot(ax)
+        ploton.axiplot(ax, vmin=vmin, vmax=vmax)
         plt.savefig("saxi_log%s%04d.png"%(config['log'],on))
 
     plt.close()
@@ -902,17 +899,6 @@ def main(argv: Optional[List[str]] = None) -> int:
             vx1on = FieldNonos(pconfig, field='VX1', diff=False, log=False, directory=diran)
             vx2on = FieldNonos(pconfig, field='VX2', diff=False, log=False, directory=diran)
 
-        # calculation of the min and max
-        if pconfig['diff']:
-            vmin=pconfig['vmin']
-            vmax=pconfig['vmax']
-        else:
-            vmin=ploton.data.min()
-            vmax=ploton.data.max()
-
-            pconfig['vmin']=vmin
-            pconfig['vmax']=vmax
-
         # plot the field
         if pconfig['profile']=="2d":
             ploton.plot(ax)
@@ -947,30 +933,18 @@ def main(argv: Optional[List[str]] = None) -> int:
             pconfig['onarray']=np.arange(pconfig['onStart'],pconfig['onEnd']+1)
 
         # calculation of the min/max
-        vmin=1e6
-        vmax=0
         if pconfig['diff']:
             vmin=pconfig['vmin']
             vmax=pconfig['vmax']
-
-        # check if a minmax file was created by idefix, else choose an arbitrary MIN/MAX based on a file
         # In that case we choose a file in the middle (len(onarray)//2) and compute the MIN/MAX
         else:
-            if os.path.exists(os.path.join(diran,"dataminmax.csv")):
-                print("Reading dataminmax.csv file")
-                extrema=pd.read_csv('dataminmax.csv', delimiter=',', names=['mini','maxi'])
-                vmin=np.min(extrema.mini)
-                vmax=np.max(extrema.maxi)
-                if pconfig['log']:
-                    vmin=np.log10(vmin)
-                    vmax=np.log10(vmax)
-            else:
-                fieldon = FieldNonos(pconfig, on=pconfig['onarray'][len(pconfig['onarray'])//2], directory=diran)
-                vmin=ploton.data.min()
-                vmax=ploton.data.max()
-
-            pconfig['vmin']=vmin
-            pconfig['vmax']=vmax
+            fieldon = FieldNonos(pconfig, on=pconfig['onarray'][len(pconfig['onarray'])//2], directory=diran, diff=False)
+            if pconfig['profile']=="2d":
+                vmin=fieldon.data.min()
+                vmax=fieldon.data.max()
+            elif pconfig['profile']=="1d":
+                vmin=(np.mean(np.mean(fieldon.data,axis=1),axis=1)).min()
+                vmax=(np.mean(np.mean(fieldon.data,axis=1),axis=1)).max()
 
         # call of the process_field function, whether it be in parallel or not
         start=time.time()
@@ -980,11 +954,11 @@ def main(argv: Optional[List[str]] = None) -> int:
             # determines the minimum between nbcpu and the nb max of cpus in the user's system
             nbcpuReal = min((int(pconfig['nbcpu']),os.cpu_count()))
             pool = Pool(nbcpuReal)   # Create a multiprocessing Pool with a security on the number of cpus
-            pool.map(functools.partial(process_field, config=pconfig, directory=diran), pconfig['onarray'])
+            pool.map(functools.partial(process_field, config=pconfig, vmin=vmin, vmax=vmax, directory=diran), pconfig['onarray'])
             tpara=time.time()-start
             print("time in parallel : %f" %tpara)
         else:
-            list(map(functools.partial(process_field, config=pconfig, directory=diran), pconfig['onarray']))
+            list(map(functools.partial(process_field, config=pconfig, vmin=vmin, vmax=vmax, directory=diran), pconfig['onarray']))
             tserie=time.time()-start
             print("time in serie : %f" %tserie)
 
