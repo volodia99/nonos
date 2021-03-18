@@ -441,6 +441,7 @@ class FieldNonos(Mesh,Parameters):
         self.on = on
         self.diff=diff
         self.log=log
+        self.corotate=corotate
 
         self.field = field
         filedata = "data.%04d.vtk"%self.on
@@ -494,7 +495,7 @@ class FieldNonos(Mesh,Parameters):
         impossible to perform the following calculation (try/except)
         we therefore don't move the grid if the rotation speed is null
         """
-        if (corotate and self.on*self.vtk*self.omegagrid!=0.0):
+        if (self.corotate and self.on*self.vtk*self.omegagrid!=0.0):
             P,R = np.meshgrid(self.y,self.x)
             Prot=P-(self.on*self.vtk*self.omegagrid)%(2*np.pi)
             try:
