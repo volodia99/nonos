@@ -1106,4 +1106,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         print("everything's loaded")
 
+    print('\n')
+
     return 0
