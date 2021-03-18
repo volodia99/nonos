@@ -649,6 +649,7 @@ class PlotNonos(FieldNonos):
 
         # ax.set_xlim(0.5,1.5)
         # ax.set_ylim(-0.8,0.8)
+        ax.set_title(self.code, family='monospace', fontsize=fontsize)
         ax.tick_params('both', labelsize=fontsize)
         ax.xaxis.set_minor_locator(AutoMinorLocator(5))
         ax.yaxis.set_minor_locator(AutoMinorLocator(5))
