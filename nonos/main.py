@@ -264,14 +264,13 @@ class Parameters():
                 if corotate:
                     self.omegagrid = 0.0
 
-class AnalysisNonos(Parameters):
+class AnalysisNonos():
     """
     read the .toml file
     find parameters in config.toml (same directory as script)
     compute the number of data.*.vtk files in working directory
     """
-    def __init__(self, directory_of_script=os.path.dirname(os.path.abspath(__file__)), directory="", info=False, paramfile=None):
-        self.directory = directory
+    def __init__(self, directory_of_script=os.path.dirname(os.path.abspath(__file__)), info=False):
         try:
             self.config=toml.load(os.path.join(directory_of_script,"config.toml"))
             if info:
@@ -301,6 +300,12 @@ class AnalysisNonos(Parameters):
         if(self.config['streamlines'] and self.config['streamtype']=='lic'):
             print_warn("TODO: check what is the length argument in StreamNonos().get_lic_streams ?")
 
+class InitParamNonos(AnalysisNonos,Parameters):
+    """
+    """
+    def __init__(self, directory="", info=False, paramfile=None):
+        self.directory = directory
+        AnalysisNonos.__init__(self, info=False)
         Parameters.__init__(self, config=self.config, directory=self.directory, paramfile=paramfile) #All the Parameters attributes inside Field
         if info:
             print("\n")
@@ -1007,12 +1012,11 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # read the .toml file
     # analysis = AnalysisNonos(directory=args.dir)
-    analysis = AnalysisNonos(directory="")
+    analysis = AnalysisNonos()
     pconfig=analysis.config
-    n_file=analysis.n_file
-    diran=analysis.directory
 
     parser.add_argument('-info', type=bool, nargs='?', const=True, default=False)
+    parser.add_argument('-dir', type=str, default=pconfig['mode'], help="default: pconfig['dir']")
     parser.add_argument('-mod', type=str, default=pconfig['mode'], help="default: pconfig['mode']")
     parser.add_argument('-on', type=int, default=pconfig['onStart'], help="default: pconfig['onStart']")
     parser.add_argument('-f', type=str.lower, default=pconfig['field'], help="default: pconfig['field']")
@@ -1037,8 +1041,13 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     args.f=args.f.upper()
     # plt.close('all')
-    if args.info:
-        AnalysisNonos(directory="", info=True)
+
+    # if args.info:
+    #     AnalysisNonos(info=True)
+
+    init = InitParamNonos(directory=args.dir, info=args.info)
+    n_file=init.n_file
+    diran=init.directory
 
     # mode for just displaying a field for a given output number
     if args.mod=='display':
