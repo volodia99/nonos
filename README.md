@@ -3,16 +3,16 @@ A tool to analyze results from idefix/pluto/fargo3d simulations (for protoplanet
 
 #### Example of field
 ````python
-from nonos import AnalysisNonos, FieldNonos
-pconfig = AnalysisNonos(info=True).config #info=True gives the default parameters in the param file for pconfig
+from nonos import InitParamNonos, FieldNonos
+pconfig = InitParamNonos(info=True).config #info=True gives the default parameters in the param file for pconfig
 fieldon = FieldNonos(pconfig, field='RHO', on=25, diff=True)
 ````
 #### Example of plot without streamlines
 ````python
-from nonos import AnalysisNonos, PlotNonos
+from nonos import InitParamNonos, PlotNonos
 import matplotlib.pyplot as plt
 
-pconfig = AnalysisNonos().config
+pconfig = InitParamNonos().config
 ploton = PlotNonos(pconfig, field='RHO', on=25, diff=True)
 
 fig, ax = plt.subplots()
@@ -21,10 +21,10 @@ plt.show()
 ````
 #### Example of plot with streamlines with a planet
 ````python
-from nonos import AnalysisNonos, FieldNonos, PlotNonos, StreamNonos
+from nonos import InitParamNonos, FieldNonos, PlotNonos, StreamNonos
 import matplotlib.pyplot as plt
 
-pconfig = AnalysisNonos().config
+pconfig = InitParamNonos().config
 pconfig['isPlanet']=True
 pconfig['corotate']=True
 
@@ -44,7 +44,7 @@ plt.show()
 ````
 #### Example of plot with a comparison between several simulations
 ````python
-from nonos import AnalysisNonos, PlotNonos
+from nonos import InitParamNonos, PlotNonos
 import matplotlib.pyplot as plt
 
 dirpath=['path_to_dir1', 'path_to_dir2', 'path_to_dir3']
@@ -52,7 +52,7 @@ dirpath=['path_to_dir1', 'path_to_dir2', 'path_to_dir3']
 fig, ax = plt.subplots(figsize=(8,6), ncols=len(dirpath))
 plt.subplots_adjust(left=0.05, right=0.94, top=0.95, bottom=0.1, wspace=0.4)
 for i in range(len(dirpath)):
-    pconfig = AnalysisNonos(directory=dirpath[i]).config
+    pconfig = InitParamNonos(directory=dirpath[i]).config
     ploton = PlotNonos(pconfig, field='RHO', on=10, diff=True, directory=dirpath[i])
     ploton.plot(ax[i], cartesian=True, fontsize=6)
 
