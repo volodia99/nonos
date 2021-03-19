@@ -310,7 +310,6 @@ class InitParamNonos(AnalysisNonos,Parameters):
         self.directory=directory
         Parameters.__init__(self, config=self.config, directory=self.directory, paramfile=paramfile) #All the Parameters attributes inside Field
         if info:
-            print("\n")
             print(self.code.upper(), "analysis")
 
         if (self.code=='idefix' or self.code=='pluto'):
