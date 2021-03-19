@@ -1018,7 +1018,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     pconfig=analysis.config
 
     parser.add_argument('-info', type=bool, nargs='?', const=True, default=False)
-    parser.add_argument('-dir', type=str, default=pconfig['mode'], help="default: pconfig['dir']")
+    parser.add_argument('-dir', type=str, default=pconfig['dir'], help="default: pconfig['dir']")
     parser.add_argument('-mod', type=str, default=pconfig['mode'], help="default: pconfig['mode']")
     parser.add_argument('-on', type=int, default=pconfig['onStart'], help="default: pconfig['onStart']")
     parser.add_argument('-f', type=str.lower, default=pconfig['field'], help="default: pconfig['field']")
