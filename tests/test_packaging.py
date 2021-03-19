@@ -1,5 +1,7 @@
 from nonos import InitParamNonos, FieldNonos
+import os
+import pytest
 
-def test_packaging():
-    # this will fail unless the package is installed properly
-    pconfig = InitParamNonos(info=True).config
+def test_init_params_wo_a_file(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        pconfig = InitParamNonos(info=True).config
