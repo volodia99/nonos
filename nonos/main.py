@@ -52,11 +52,11 @@ def readVTKPolar(filename, cell='edges'):
     Adapted from Geoffroy Lesur
     Function that reads a vtk file in polar coordinates
     """
-    try:
-        fid=open(filename,"rb")
-    except:
-        print_err("Can't open vtk file")
-        return 1
+    nfound = len(glob.glob1("",filename))
+    if nfound!=1:
+        return None
+
+    fid=open(filename,"rb")
 
     # define our datastructure
     V=DataStructure()
@@ -78,7 +78,7 @@ def readVTKPolar(filename, cell='edges'):
     if(grid_type != "STRUCTURED_GRID"):
         fid.close()
         print_err("Wrong VTK file type.\nCurrent type is: %s.\nThis routine can only open Polar VTK files."%(grid_type))
-        return 1
+        return None
 
     s=fid.readline()    # DIMENSIONS NX NY NZ
     slist=s.split()
@@ -97,7 +97,7 @@ def readVTKPolar(filename, cell='edges'):
 
     if V.nx*V.ny*V.nz != npoints:
         print_err("Grid size incompatible with number of points in the data set")
-        return 1
+        return None
 
     # Reconstruct the polar coordinate system
     x1d=points[::3]
@@ -118,7 +118,7 @@ def readVTKPolar(filename, cell='edges'):
     if(data_type != "CELL_DATA"):
         fid.close()
         print_err("this routine expect CELL DATA as produced by PLUTO.")
-        return 1
+        return None
     s=fid.readline()    # Line feed
 
     if cell=='edges':
@@ -177,7 +177,7 @@ def readVTKPolar(filename, cell='edges'):
 
         else:
             print_err("Unknown datatype %s" % datatype)
-            return 1
+            return None
             break;
 
         fid.readline()  #extra line feed
@@ -207,13 +207,12 @@ class Parameters():
             if nfound == 0:
                 raise FileNotFoundError("idefix.ini, pluto.ini or variables.par not found.")
             elif nfound > 1:
-                raise RuntimeError("found more than one possible file.")
-            paramfile = list(lookup_table.keys())[found.index(True)]
+                raise RuntimeError("found more than one possible ini file.")
+            paramfile = list(lookup_table.keys())[list(found.values()).index(True)]
             params = open(os.path.join(directory, paramfile))
             self.code = lookup_table[paramfile]
         else:
-            print_err("For now, impossible to choose your parameter file.\nBy default, the code searches idefix.ini then pluto.ini then variables.par.")
-            return 1
+            raise FileNotFoundError("For now, impossible to choose your parameter file.\nBy default, the code searches idefix.ini, pluto.ini or variables.par.")
 
         self.paramfile = paramfile
         self.iniconfig = ix.load(os.path.join(directory,self.paramfile))
@@ -244,11 +243,13 @@ class Parameters():
                     self.omegagrid = 0.0
 
         elif self.code=='fargo3d':
-            try:
-                cfgfile = glob.glob1(directory,"*.cfg")[0]
-            except IndexError:
-                print_err("*.cfg file (FARGO3D planet parameters) does not exist in %s directory"%directory)
-                return 1
+            nfound = len(glob.glob1(directory,"*.cfg"))
+            if nfound==0:
+                raise FileNotFoundError("*.cfg file (FARGO3D planet parameters) does not exist in '%s' directory"%directory)
+            elif nfound>1:
+                raise RuntimeError("found more than one possible .cfg file.")
+
+            cfgfile = glob.glob1(directory,"*.cfg")[0]
 
             self.cfgconfig = ix.load(os.path.join(directory,cfgfile))
             self.vtk = self.iniconfig["NINTERM"]*self.iniconfig["DT"]
@@ -271,34 +272,21 @@ class AnalysisNonos():
     def __init__(self, directory_of_script=None, info=False):
         if directory_of_script is None:
             directory_of_script=os.path.dirname(os.path.abspath(__file__))
-        try:
-            self.config=toml.load(os.path.join(directory_of_script,"config.toml"))
-            if info:
-                print('\n')
-                print('--------------------------------------')
-                for keys in self.config:
-                    print("config['%s'] = %s"%(keys,self.config[keys]))
-                    # for subkeys in config[keys]:
-                    #     print("config['%s']['%s'] = %s"%(keys,subkeys,config[keys][subkeys]))
-                print('--------------------------------------')
-                print('\n')
-        except FileNotFoundError:
-            print_err(os.path.join(directory_of_script,"config.toml")+" not found")
-            return 1
 
-        if(not(self.config['midplane']) and self.config['corotate']):
-            print_err("corotate is not yet implemented in the (R,z) plane")
-            return 1
+        nfound = len(glob.glob1(directory_of_script,"config.toml"))
+        if nfound==0:
+            raise FileNotFoundError(os.path.join(directory_of_script,"config.toml")+" not found")
 
-        if(not(self.config['average']) and not(self.config['midplane'])):
-            print_err("average=False is not yet implemented in the (R,z) plane")
-            return 1
-
-        if(not(self.config['isPlanet']) and self.config['corotate']):
-            print_warn("We don't rotate the grid if there is no planet for now.\nomegagrid = 0.")
-
-        if(self.config['streamlines'] and self.config['streamtype']=='lic'):
-            print_warn("TODO: check what is the length argument in StreamNonos().get_lic_streams ?")
+        self.config=toml.load(os.path.join(directory_of_script,"config.toml"))
+        if info:
+            print('\n')
+            print('--------------------------------------')
+            for keys in self.config:
+                print("config['%s'] = %s"%(keys,self.config[keys]))
+                # for subkeys in config[keys]:
+                #     print("config['%s']['%s'] = %s"%(keys,subkeys,config[keys][subkeys]))
+            print('--------------------------------------')
+            print('\n')
 
 class InitParamNonos(AnalysisNonos,Parameters):
     """
@@ -313,43 +301,43 @@ class InitParamNonos(AnalysisNonos,Parameters):
             print(self.code.upper(), "analysis")
 
         if (self.code=='idefix' or self.code=='pluto'):
+            domain=readVTKPolar(os.path.join(self.directory,'data.0000.vtk'), cell="edges")
+            if domain is None:
+                raise AttributeError("Problem with the readVTKPolar function.\nDoes 'data.0000.vtk' exist?")
+            list_keys=list(domain.data.keys())
             if info:
                 print("\nWORKS IN POLAR COORDINATES")
-            try:
-                domain=readVTKPolar(os.path.join(self.directory,'data.0000.vtk'), cell="edges")
-                list_keys=list(domain.data.keys())
-                if info:
-                    print("Possible fields: ", list_keys)
-                    print('nR=%d, np=%d, nz=%d' % (domain.nx,domain.ny,domain.nz))
-            except IOError:
-                print_err("IOError with data.0000.vtk")
-                return 1
+                print("Possible fields: ", list_keys)
+                print('nR=%d, np=%d, nz=%d' % (domain.nx,domain.ny,domain.nz))
 
             self.n_file = len(glob.glob1(self.directory,"data.*.vtk"))
 
         elif(self.code=='fargo3d'):
+            nfound_x = len(glob.glob1(self.directory,"domain_x.dat"))
+            if nfound_x!=1:
+                raise FileNotFoundError("domain_x.dat not found.")
+            nfound_y = len(glob.glob1(self.directory,"domain_y.dat"))
+            if nfound_y!=1:
+                raise FileNotFoundError("domain_y.dat not found.")
+            nfound_z = len(glob.glob1(self.directory,"domain_z.dat"))
+            if nfound_z!=1:
+                raise FileNotFoundError("domain_z.dat not found.")
+
+            domain_x = np.loadtxt(os.path.join(self.directory,"domain_x.dat"))
+            #We avoid ghost cells
+            domain_y = np.loadtxt(os.path.join(self.directory,"domain_y.dat"))[3:-3]
+            domain_z = np.loadtxt(os.path.join(self.directory,"domain_z.dat"))
+            if domain_z.shape[0]>6:
+                domain_z=domain_z[3:-3]
+
             if info:
                 print("\nWORKS IN POLAR COORDINATES")
-            try:
-                domain_x = np.loadtxt(os.path.join(self.directory,"domain_x.dat"))
-            except IOError:
-                print_err("IOError with domain_x.dat")
-                return 1
-            try:
-                #We avoid ghost cells
-                domain_y = np.loadtxt(os.path.join(self.directory,"domain_y.dat"))[3:-3]
-            except IOError:
-                print_err("IOError with domain_y.dat")
-                return 1
-            try:
-                domain_z = np.loadtxt(os.path.join(self.directory,"domain_z.dat"))
-                if domain_z.shape[0]>6:
-                    domain_z=domain_z[3:-3]
-            except IOError:
-                print_err("IOError with domain_z.dat")
-                return 1
+                print('nR=%d, np=%d, nz=%d' % (len(domain_y)-1,len(domain_x)-1,len(domain_z)-1))
 
             self.n_file = len(glob.glob1(self.directory,"gasdens*.dat")) - len(glob.glob1(self.directory,"gasdens*_*.dat"))
+
+        if self.n_file==0:
+            raise FileNotFoundError("No data files (e.g., 'data.*.vtk' or 'gasdens*.dat') are found.")
 
 class Mesh(Parameters):
     """
@@ -360,11 +348,9 @@ class Mesh(Parameters):
     def __init__(self, config, directory="", paramfile=None):
         Parameters.__init__(self, config=config, directory=directory, paramfile=paramfile) #All the Parameters attributes inside Field
         if (self.code=='idefix' or self.code=='pluto'):
-            try:
-                domain=readVTKPolar(os.path.join(directory,'data.0000.vtk'), cell="edges")
-            except IOError:
-                print_err("IOError with data.0000.vtk")
-                return 1
+            domain=readVTKPolar(os.path.join(self.directory,'data.0000.vtk'), cell="edges")
+            if domain is None:
+                raise AttributeError("Problem with the readVTKPolar function.\nDoes 'data.0000.vtk' exist?")
 
             self.domain = domain
 
@@ -380,24 +366,22 @@ class Mesh(Parameters):
             self.imidplane = self.nz//2
 
         elif(self.code=='fargo3d'):
-            try:
-                domain_x = np.loadtxt(os.path.join(directory,"domain_x.dat"))
-            except IOError:
-                print_err("IOError with domain_x.dat")
-                return 1
-            try:
-                #We avoid ghost cells
-                domain_y = np.loadtxt(os.path.join(directory,"domain_y.dat"))[3:-3]
-            except IOError:
-                print_err("IOError with domain_y.dat")
-                return 1
-            try:
-                domain_z = np.loadtxt(os.path.join(directory,"domain_z.dat"))
-                if domain_z.shape[0]>6:
-                    domain_z=domain_z[3:-3]
-            except IOError:
-                print_err("IOError with domain_z.dat")
-                return 1
+            nfound_x = len(glob.glob1(directory,"domain_x.dat"))
+            if nfound_x!=1:
+                raise FileNotFoundError("domain_x.dat not found.")
+            nfound_y = len(glob.glob1(directory,"domain_y.dat"))
+            if nfound_y!=1:
+                raise FileNotFoundError("domain_y.dat not found.")
+            nfound_z = len(glob.glob1(directory,"domain_z.dat"))
+            if nfound_z!=1:
+                raise FileNotFoundError("domain_z.dat not found.")
+
+            domain_x = np.loadtxt(os.path.join(directory,"domain_x.dat"))
+            #We avoid ghost cells
+            domain_y = np.loadtxt(os.path.join(directory,"domain_y.dat"))[3:-3]
+            domain_z = np.loadtxt(os.path.join(directory,"domain_z.dat"))
+            if domain_z.shape[0]>6:
+                domain_z=domain_z[3:-3]
 
             self.xedge = domain_y #X-Edge
             self.yedge = domain_x #Y-Edge
@@ -475,8 +459,16 @@ class FieldNonos(Mesh,Parameters):
             filedata = "gas%s%d.dat"%(self.field,self.on)
             filedata0 = "gas%s0.dat"%self.field
 
+        nfdat = len(glob.glob1(directory,filedata))
+        if nfdat!=1:
+            raise FileNotFoundError(os.path.join(directory,filedata)+" not found")
         self.data = self.__open_field(os.path.join(directory,filedata)) #The scalar data is here.
-        self.data0 = self.__open_field(os.path.join(directory,filedata0))
+
+        if self.diff:
+            nfdat0 = len(glob.glob1(directory,filedata0))
+            if nfdat0!=1:
+                raise FileNotFoundError(os.path.join(directory,filedata0)+" not found")
+            self.data0 = self.__open_field(os.path.join(directory,filedata0))
 
         if self.log:
             if self.diff:
@@ -960,10 +952,14 @@ def print_err(message):
 counter = Value('i', 0) # initialization of a counter
 def process_field(on, profile, field, cart, diff, log, corotate, streamlines, stype, srmin, srmax, nstream, config, vmin, vmax, isPlanet, pbar, parallel, directory):
     ploton=PlotNonos(config, field=field, on=on, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet, directory=directory)
-    if streamlines:
-        streamon=StreamNonos(config, field=field, on=on, directory=directory)
-        vx1on = FieldNonos(config, field='VX1', on=on, diff=False, log=False, corotate=corotate, isPlanet=isPlanet, directory=directory)
-        vx2on = FieldNonos(config, field='VX2', on=on, diff=False, log=False, corotate=corotate, isPlanet=isPlanet, directory=directory)
+    try:
+        if streamlines:
+            streamon=StreamNonos(config, field=field, on=on, directory=directory)
+            vx1on = FieldNonos(config, field='VX1', on=on, diff=False, log=False, corotate=corotate, isPlanet=isPlanet, directory=directory)
+            vx2on = FieldNonos(config, field='VX2', on=on, diff=False, log=False, corotate=corotate, isPlanet=isPlanet, directory=directory)
+    except FileNotFoundError as exc:
+        print_err(exc)
+        return 1
     fig, ax=plt.subplots(figsize=(9,8))#, sharex=True, sharey=True)
     plt.subplots_adjust(left=0.1, right=0.87, top=0.95, bottom=0.1)
     plt.ioff()
@@ -1009,7 +1005,12 @@ def process_field(on, profile, field, cart, diff, log, corotate, streamlines, st
 
 def main(argv: Optional[List[str]] = None) -> int:
     # read the .toml file
-    analysis = AnalysisNonos()
+    try:
+        analysis = AnalysisNonos()
+    except FileNotFoundError as exc:
+        print_err(exc)
+        return 1
+
     pconfig=analysis.config
 
     parser = argparse.ArgumentParser()
@@ -1047,10 +1048,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         if len(glob.glob1("","config.toml"))!=1:
             pathconfig = os.path.join(os.path.dirname(os.path.abspath(__file__)),"config.toml")
             copyfile(pathconfig, "config.toml")
-            print("config.toml file copied in working directory")
-            print("You can now open it and choose the parameters")
+            print_warn("config.toml file copied in working directory.\nYou can now open it and choose the parameters")
             return 0
-        init = InitParamNonos(directory=args.dir, directory_of_script="", info=args.info)
+        try:
+            init = InitParamNonos(directory=args.dir, directory_of_script="", info=args.info)
+        except (FileNotFoundError,RuntimeError,AttributeError) as exc:
+            print_err(exc)
+            return 1
         pconfig=init.config
         args.dir=init.config["dir"]
         args.mod=init.config["mode"]
@@ -1082,7 +1086,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         try:
             init = InitParamNonos(directory=args.dir, info=args.info)
-        except FileNotFoundError as exc:
+        except (FileNotFoundError,RuntimeError,AttributeError) as exc:
             print_err(exc)
             return 1
 
@@ -1093,17 +1097,36 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.pol:
         args.cart=False
 
+    if(not(init.config['midplane']) and args.cor):
+        print_err("corotate is not yet implemented in the (R,z) plane")
+        return 1
+
+    if(not(init.config['average']) and not(init.config['midplane'])):
+        print_err("average=False is not yet implemented in the (R,z) plane")
+        return 1
+
+    if(not(args.isp) and args.cor):
+        print_warn("We don't rotate the grid if there is no planet for now.\nomegagrid = 0.")
+
+    if(args.s and args.stype=='lic'):
+        print_warn("TODO: check what is the length argument in StreamNonos().get_lic_streams ?")
+
     # mode for just displaying a field for a given output number
     if args.mod=='display':
         fig, ax=plt.subplots(figsize=(9,8))#, sharex=True, sharey=True)
         plt.ioff()
         # print("on = ", args.on)
         # loading the field
-        ploton = PlotNonos(pconfig, field=args.f, on=args.on, diff=args.diff, log=args.log, corotate=args.cor, isPlanet=args.isp, directory=diran)
-        if args.s:
-            streamon=StreamNonos(pconfig, field=args.f, on=args.on, directory=diran)
-            vx1on = FieldNonos(pconfig, field='VX1', on=args.on, diff=False, log=False, corotate=args.cor, isPlanet=args.isp, directory=diran)
-            vx2on = FieldNonos(pconfig, field='VX2', on=args.on, diff=False, log=False, corotate=args.cor, isPlanet=args.isp, directory=diran)
+
+        try:
+            ploton = PlotNonos(pconfig, field=args.f, on=args.on, diff=args.diff, log=args.log, corotate=args.cor, isPlanet=args.isp, directory=diran)
+            if args.s:
+                streamon=StreamNonos(pconfig, field=args.f, on=args.on, directory=diran)
+                vx1on = FieldNonos(pconfig, field='VX1', on=args.on, diff=False, log=False, corotate=args.cor, isPlanet=args.isp, directory=diran)
+                vx2on = FieldNonos(pconfig, field='VX2', on=args.on, diff=False, log=False, corotate=args.cor, isPlanet=args.isp, directory=diran)
+        except FileNotFoundError as exc:
+            print_err(exc)
+            return 1
 
         # plot the field
         if args.p=="2d":
@@ -1145,7 +1168,11 @@ def main(argv: Optional[List[str]] = None) -> int:
                 vmax=pconfig['vmax']
         # In that case we choose a file in the middle (len(onarray)//2) and compute the MIN/MAX
         else:
-            fieldon = FieldNonos(pconfig, field=args.f, on=pconfig['onarray'][len(pconfig['onarray'])//2], directory=diran, diff=False)
+            try:
+                fieldon = FieldNonos(pconfig, field=args.f, on=pconfig['onarray'][len(pconfig['onarray'])//2], directory=diran, diff=False)
+            except FileNotFoundError as exc:
+                print_err(exc)
+                return 1
             if args.p=="2d":
                 if args.vmin is None:
                     vmin=fieldon.data.min()
