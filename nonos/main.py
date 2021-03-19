@@ -1021,6 +1021,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument('-mod', type=str, default=pconfig['mode'], help="default: pconfig['mode']")
     parser.add_argument('-on', type=int, default=pconfig['onStart'], help="default: pconfig['onStart']")
     parser.add_argument('-f', type=str.lower, default=pconfig['field'], help="default: pconfig['field']")
+    parser.add_argument('-vmin', type=float, default=None, help="default: pconfig['vmin'] or calculated")
+    parser.add_argument('-vmax', type=float, default=None, help="default: pconfig['vmax'] or calculated")
     parser.add_argument('-onend', type=int, default=pconfig['onEnd'], help="default: pconfig['onEnd']")
     parser.add_argument('-diff', type=bool, nargs='?', const=True, default=pconfig['diff'], help="default: pconfig['diff']")
     parser.add_argument('-log', type=bool, nargs='?', const=True, default=pconfig['log'], help="default: pconfig['log']")
@@ -1064,7 +1066,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         # plot the field
         if args.p=="2d":
-            ploton.plot(ax, cartesian=args.cart, cmap=args.cmap)
+            ploton.plot(ax, vmin=args.vmin, vmax=args.vmax, cartesian=args.cart, cmap=args.cmap)
             if args.s:
                 vr = vx1on.data
                 vphi = vx2on.data
@@ -1096,17 +1098,23 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         # calculation of the min/max
         if args.diff:
-            vmin=pconfig['vmin']
-            vmax=pconfig['vmax']
+            if args.vmin is None:
+                vmin=pconfig['vmin']
+            if args.vmax is None:
+                vmax=pconfig['vmax']
         # In that case we choose a file in the middle (len(onarray)//2) and compute the MIN/MAX
         else:
             fieldon = FieldNonos(pconfig, field=args.f, on=pconfig['onarray'][len(pconfig['onarray'])//2], directory=diran, diff=False)
             if args.p=="2d":
-                vmin=fieldon.data.min()
-                vmax=fieldon.data.max()
+                if args.vmin is None:
+                    vmin=fieldon.data.min()
+                if args.vmax is None:
+                    vmax=fieldon.data.max()
             elif args.p=="1d":
-                vmin=(np.mean(np.mean(fieldon.data,axis=1),axis=1)).min()
-                vmax=(np.mean(np.mean(fieldon.data,axis=1),axis=1)).max()
+                if args.vmin is None:
+                    vmin=(np.mean(np.mean(fieldon.data,axis=1),axis=1)).min()
+                if args.vmax is None:
+                    vmax=(np.mean(np.mean(fieldon.data,axis=1),axis=1)).max()
 
         # call of the process_field function, whether it be in parallel or not
         start=time.time()
