@@ -270,7 +270,9 @@ class AnalysisNonos():
     find parameters in config.toml (same directory as script)
     compute the number of data.*.vtk files in working directory
     """
-    def __init__(self, directory_of_script=os.path.dirname(os.path.abspath(__file__)), info=False):
+    def __init__(self, directory_of_script=None, info=False):
+        if directory_of_script is None:
+            directory_of_script=os.path.dirname(os.path.abspath(__file__))
         try:
             self.config=toml.load(os.path.join(directory_of_script,"config.toml"))
             if info:
@@ -303,8 +305,8 @@ class AnalysisNonos():
 class InitParamNonos(AnalysisNonos,Parameters):
     """
     """
-    def __init__(self, directory=None, info=False, paramfile=None):
-        AnalysisNonos.__init__(self, info=info)
+    def __init__(self, directory=None, directory_of_script=None, info=False, paramfile=None):
+        AnalysisNonos.__init__(self, directory_of_script=directory_of_script, info=info)
         if directory is None:
             directory=self.config['dir']
         self.directory=directory
@@ -1008,15 +1010,14 @@ def process_field(on, profile, field, cart, diff, log, corotate, streamlines, st
             printProgressBar(on-config['onarray'][0], len(config['onarray'])-1, prefix = 'Progress:', suffix = 'Complete', length = 50)
 
 def main(argv: Optional[List[str]] = None) -> int:
-    parser = argparse.ArgumentParser()
-    # parser.add_argument('-dir', action="store", dest="dir", default="")
-
     # read the .toml file
-    # analysis = AnalysisNonos(directory=args.dir)
     analysis = AnalysisNonos()
     pconfig=analysis.config
 
+    parser = argparse.ArgumentParser()
+    # analysis = AnalysisNonos(directory=args.dir)
     parser.add_argument('-info', type=bool, nargs='?', const=True, default=False)
+    parser.add_argument('-l', type=bool, nargs='?', const=True, default=False)
     parser.add_argument('-dir', type=str, default=pconfig['dir'], help="default: pconfig['dir']")
     parser.add_argument('-mod', type=str, default=pconfig['mode'], help="default: pconfig['mode']")
     parser.add_argument('-on', type=int, default=pconfig['onStart'], help="default: pconfig['onStart']")
@@ -1042,15 +1043,49 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument('-cpu', type=int, default=pconfig['nbcpu'], help="default: pconfig['nbcpu']")
     args = parser.parse_args(argv)
 
-    args.f=args.f.upper()
-    # plt.close('all')
+    if args.l:
+        rprint(f"[bold white]Local mode")
+        if len(glob.glob1("","config.toml"))!=1:
+            pathconfig = os.path.join(os.path.dirname(os.path.abspath(__file__)),"config.toml")
+            from shutil import copyfile
+            copyfile(pathconfig, "config.toml")
+            print("config.toml file copied in working directory")
+        init = InitParamNonos(directory=args.dir, directory_of_script="", info=args.info)
+        pconfig=init.config
+        args.dir=init.config["dir"]
+        args.mod=init.config["mode"]
+        args.on=init.config["onStart"]
+        args.f=init.config["field"]
+        args.onend=init.config["onEnd"]
+        args.diff=init.config["diff"]
+        args.log=init.config["log"]
+        if args.diff:
+            args.vmin=init.config["vmin"]
+            args.vmax=init.config["vmax"]
+        else:
+            args.vmin=None
+            args.vmax=None
+        args.cor=init.config["corotate"]
+        args.s=init.config["streamlines"]
+        args.stype=init.config["streamtype"]
+        args.srmin=init.config["rminStream"]
+        args.srmax=init.config["rmaxStream"]
+        args.sn=init.config["nstream"]
+        args.isp=init.config["isPlanet"]
+        args.cart=init.config["cartesian"]
+        args.p=init.config["profile"]
+        args.cmap=init.config["cmap"]
+        args.full=init.config["fullfilm"]
+        args.pbar=init.config["progressBar"]
+        args.multi=init.config["parallel"]
+        args.cpu=init.config["nbcpu"]
+    else:
+        init = InitParamNonos(directory=args.dir, info=args.info)
 
-    # if args.info:
-    #     AnalysisNonos(info=True)
-
-    init = InitParamNonos(directory=args.dir, info=args.info)
     n_file=init.n_file
     diran=init.directory
+
+    args.f=args.f.upper()
 
     # mode for just displaying a field for a given output number
     if args.mod=='display':
