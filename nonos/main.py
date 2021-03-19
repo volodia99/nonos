@@ -303,9 +303,11 @@ class AnalysisNonos():
 class InitParamNonos(AnalysisNonos,Parameters):
     """
     """
-    def __init__(self, directory="", info=False, paramfile=None):
-        self.directory = directory
+    def __init__(self, directory=None, info=False, paramfile=None):
         AnalysisNonos.__init__(self, info=False)
+        if directory is None:
+            directory=self.config['dir']
+        self.directory=directory
         Parameters.__init__(self, config=self.config, directory=self.directory, paramfile=paramfile) #All the Parameters attributes inside Field
         if info:
             print("\n")
