@@ -13,6 +13,7 @@ from matplotlib.ticker import AutoMinorLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from multiprocessing import Pool, Value
 
+from shutil import copyfile
 import toml
 import inifix as ix
 import functools
@@ -1035,9 +1036,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument('-sn', type=int, default=pconfig['nstream'], help="default: pconfig['nstream']")
     parser.add_argument('-isp', type=bool, nargs='?', const=True, default=pconfig['isPlanet'], help="default: pconfig['isPlanet']")
     parser.add_argument('-cart', type=bool, nargs='?', const=True, default=pconfig['cartesian'], help="default: pconfig['cartesian']")
+    parser.add_argument('-pol', type=bool, nargs='?', const=True, default=False, help="default: False")
     parser.add_argument('-p', type=str, default=pconfig['profile'], help="default: pconfig['profile']")
     parser.add_argument('-cmap', type=str, default=pconfig['cmap'], help="default: pconfig['cmap']")
-    parser.add_argument('-full', type=bool, nargs='?', const=True, default=pconfig['fullfilm'], help="default: pconfig['fullfilm']")
+    parser.add_argument('-full', type=bool, default=pconfig['fullfilm'], help="default: pconfig['fullfilm']")
     parser.add_argument('-pbar', type=bool, nargs='?', const=True, default=pconfig['progressBar'], help="default: pconfig['progressBar']")
     parser.add_argument('-multi', type=bool, nargs='?', const=True, default=pconfig['parallel'], help="default: pconfig['parallel']")
     parser.add_argument('-cpu', type=int, default=pconfig['nbcpu'], help="default: pconfig['nbcpu']")
@@ -1047,7 +1049,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         rprint(f"[bold white]Local mode")
         if len(glob.glob1("","config.toml"))!=1:
             pathconfig = os.path.join(os.path.dirname(os.path.abspath(__file__)),"config.toml")
-            from shutil import copyfile
             copyfile(pathconfig, "config.toml")
             print("config.toml file copied in working directory")
             print("You can now open it and choose the parameters")
@@ -1088,6 +1089,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     diran=init.directory
 
     args.f=args.f.upper()
+    if args.pol:
+        args.cart=False
 
     # mode for just displaying a field for a given output number
     if args.mod=='display':
