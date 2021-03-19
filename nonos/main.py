@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from multiprocessing import Pool, Value
-
+from pathlib import Path
 from shutil import copyfile
 import toml
 import inifix as ix
@@ -197,23 +197,20 @@ class Parameters():
         if isPlanet is None:
             isPlanet=self.config['isPlanet']
         if paramfile is None:
-            try:
-                paramfile = "idefix.ini"
-                params = open(os.path.join(directory,paramfile),'r') #Opening the parfile
-                self.code = 'idefix'
-            except IOError:                  # Error checker.
-                try:
-                    paramfile = "pluto.ini"
-                    params = open(os.path.join(directory,paramfile),'r') #Opening the parfile
-                    self.code = 'pluto'
-                except IOError:                  # Error checker.
-                    try:
-                        paramfile = "variables.par"
-                        params = open(os.path.join(directory,paramfile),'r') #Opening the parfile
-                        self.code = 'fargo3d'
-                    except IOError:                  # Error checker.
-                        print_err("idefix.ini, pluto.ini or variables.par not found.")
-                        return 1
+            lookup_table = {
+                "idefix.ini" : "idefix",
+                "pluto.ini": "pluto",
+                "variables.par": "fargo3d",
+            }
+            found = {paramfile: Path(directory).joinpath(paramfile).is_file() for paramfile in lookup_table}
+            nfound = sum(list(found.values()))
+            if nfound == 0:
+                raise FileNotFoundError("idefix.ini, pluto.ini or variables.par not found.")
+            elif nfound > 1:
+                raise RuntimeError("found more than one possible file.")
+            paramfile = list(lookup_table.keys())[found.index(True)]
+            params = open(os.path.join(directory, paramfile))
+            self.code = lookup_table[paramfile]
         else:
             print_err("For now, impossible to choose your parameter file.\nBy default, the code searches idefix.ini then pluto.ini then variables.par.")
             return 1
@@ -1083,7 +1080,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         args.multi=init.config["parallel"]
         args.cpu=init.config["nbcpu"]
     else:
-        init = InitParamNonos(directory=args.dir, info=args.info)
+        try:
+            init = InitParamNonos(directory=args.dir, info=args.info)
+        except FileNotFoundError as exc:
+            print_err(exc)
+            return 1
 
     n_file=init.n_file
     diran=init.directory
