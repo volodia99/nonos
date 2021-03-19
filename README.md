@@ -1,5 +1,6 @@
 # nonos
 A tool to analyze results from idefix/pluto/fargo3d simulations (for protoplanetary disks more specifically)
+tested in 2D for now
 
 #### Example of field
 ````python
