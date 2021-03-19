@@ -1050,6 +1050,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             from shutil import copyfile
             copyfile(pathconfig, "config.toml")
             print("config.toml file copied in working directory")
+            print("You can now open it and choose the parameters")
+            return 0
         init = InitParamNonos(directory=args.dir, directory_of_script="", info=args.info)
         pconfig=init.config
         args.dir=init.config["dir"]
