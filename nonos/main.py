@@ -52,7 +52,7 @@ def readVTKPolar(filename, cell='edges'):
     Adapted from Geoffroy Lesur
     Function that reads a vtk file in polar coordinates
     """
-    nfound = len(glob.glob1("",filename))
+    nfound = len(glob.glob(filename))
     if nfound!=1:
         return None
 
@@ -348,7 +348,7 @@ class Mesh(Parameters):
     def __init__(self, config, directory="", paramfile=None):
         Parameters.__init__(self, config=config, directory=directory, paramfile=paramfile) #All the Parameters attributes inside Field
         if (self.code=='idefix' or self.code=='pluto'):
-            domain=readVTKPolar(os.path.join(self.directory,'data.0000.vtk'), cell="edges")
+            domain=readVTKPolar(os.path.join(directory,'data.0000.vtk'), cell="edges")
             if domain is None:
                 raise AttributeError("Problem with the readVTKPolar function.\nDoes 'data.0000.vtk' exist?")
 
