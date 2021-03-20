@@ -23,8 +23,8 @@ import glob
 from typing import List, Optional
 import argparse
 
-# TODO: check in 3D
-# TODO: adapt config['midplane'] as an arg when 3D
+# TODO: recheck in 3D
+# TODO: adapt config['average'] as an arg
 # TODO: check in plot function if corotate=True works for all vtk and dpl (initial planet location) -> computation to calculate the grid rotation speed
 # TODO: compute gas surface density and not just gas volume density : something like self.data*=np.sqrt(2*np.pi)*self.aspectratio*self.y
 # TODO: check how to generalize the path of the directory (.toml file)
@@ -218,6 +218,7 @@ class Parameters():
         self.iniconfig = ix.load(os.path.join(directory,self.paramfile))
 
         if self.code=='idefix':
+            self.h0 = self.iniconfig["Setup"]["h0"]
             self.vtk = self.iniconfig["Output"]["vtk"]
             if isPlanet:
                 self.qpl = self.iniconfig["Planet"]["qpl"]
@@ -230,6 +231,8 @@ class Parameters():
                     self.omegagrid = 0.0
 
         elif self.code=='pluto':
+            print_warn("Aspect ratio not defined in pluto.ini.\nBy default, h0=0.05\n")
+            self.h0 = 0.05
             self.vtk = self.iniconfig["Static Grid Output"]["vtk"][0]
             if isPlanet:
                 self.qpl = self.iniconfig["Parameters"]["Mplanet"]/self.iniconfig["Parameters"]["Mstar"]
@@ -253,6 +256,7 @@ class Parameters():
 
             self.cfgconfig = ix.load(os.path.join(directory,cfgfile))
             self.vtk = self.iniconfig["NINTERM"]*self.iniconfig["DT"]
+            self.h0 = self.iniconfig["ASPECTRATIO"]
             if isPlanet:
                 self.qpl = self.cfgconfig[list(self.cfgconfig)[0]][1]
                 self.dpl = self.cfgconfig[list(self.cfgconfig)[0]][0]
@@ -553,7 +557,7 @@ class PlotNonos(FieldNonos):
         ax.set_ylabel(self.title, fontsize=fontsize)
         # plt.legend(frameon=False)
 
-    def plot(self, ax, vmin=None, vmax=None, fontsize=None, cartesian=None, cmap=None, **karg):
+    def plot(self, ax, vmin=None, vmax=None, fontsize=None, midplane=None, cartesian=None, cmap=None, **karg):
         """
         A layer for pcolormesh function.
         """
@@ -565,6 +569,8 @@ class PlotNonos(FieldNonos):
             vmax=self.config['vmax']
             if not(self.diff):
                 vmax=self.data.max()
+        if midplane is None:
+            midplane=self.config['midplane']
         if cartesian is None:
             cartesian=self.config['cartesian']
         if fontsize is None:
@@ -573,7 +579,7 @@ class PlotNonos(FieldNonos):
             cmap=self.config['cmap']
 
         # (R,phi) plane
-        if self.config['midplane']:
+        if midplane:
             if self.x.shape[0]<=1:
                 raise IndexError("No radial direction, the simulation is not 3D.\nTry midplane=False")
             if self.y.shape[0]<=1:
@@ -616,12 +622,27 @@ class PlotNonos(FieldNonos):
                     ax.plot(R,P,c='k',linewidth=0.07)
                     ax.plot(R.transpose(),P.transpose(),c='k',linewidth=0.07)
 
+            # ax.set_xlim(0.5,1.5)
+            # ax.set_ylim(-0.8,0.8)
+            ax.set_title(self.code, family='monospace', fontsize=fontsize)
+            ax.tick_params('both', labelsize=fontsize)
+            ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+            ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+            ax.xaxis.set_ticks_position('both')
+            ax.yaxis.set_ticks_position('both')
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="5%", pad=0.05)
+            cbar=plt.colorbar(im, cax=cax, orientation='vertical')#, format='%.0e')
+            cbar.ax.tick_params(labelsize=fontsize)
+            cbar.set_label(self.title, family='monospace', fontsize=fontsize)
+
         # (R,z) plane
         else:
             if self.x.shape[0]<=1:
                 raise IndexError("No radial direction, the simulation is not 3D.\nTry midplane=True")
             if self.z.shape[0]<=1:
                 raise IndexError("No vertical direction, the simulation is not 3D.\nTry midplane=True")
+            Z,R = np.meshgrid(self.z,self.x)
             if cartesian:
                 Z,R = np.meshgrid(self.z,self.x)
                 if self.config['average']:
@@ -643,13 +664,38 @@ class PlotNonos(FieldNonos):
                     # im=ax.scatter(X,Y,c=np.mean(self.data,axis=2))
                     ax.plot(R,Z,c='k',linewidth=0.07)
                     ax.plot(R.transpose(),Z.transpose(),c='k',linewidth=0.07)
+
+                # ax.set_xlim(0.5,1.5)
+                # ax.set_ylim(-0.8,0.8)
+                ax.set_title(self.code, family='monospace', fontsize=fontsize)
+                ax.tick_params('both', labelsize=fontsize)
+                ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+                ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+                ax.xaxis.set_ticks_position('both')
+                ax.yaxis.set_ticks_position('both')
+                divider = make_axes_locatable(ax)
+                cax = divider.append_axes("right", size="5%", pad=0.05)
+                cbar=plt.colorbar(im, cax=cax, orientation='vertical')#, format='%.0e')
+                cbar.ax.tick_params(labelsize=fontsize)
+                cbar.set_label(self.title, family='monospace', fontsize=fontsize)
             else:
                 Z,R = np.meshgrid(self.z,self.x)
                 r = np.sqrt(R**2+Z**2)
                 t = np.arctan2(R,Z)
                 if self.config['average']:
-                    im=ax.pcolormesh(r,t,np.mean(self.data,axis=1),
+                    im=ax.pcolormesh(t,r,np.mean(self.data,axis=1),
                               cmap=cmap,vmin=vmin,vmax=vmax,**karg)
+
+                tmin = np.pi/2-5*self.h0
+                tmax = np.pi/2+5*self.h0
+                # tmin = np.arctan2(1.0,Z.min())
+                # tmax = np.arctan2(1.0,Z.max())
+                ax.set_rmax(R.max())
+                ax.set_theta_zero_location('N')
+                ax.set_theta_direction(-1)
+                ax.set_thetamin(tmin*180/np.pi)
+                ax.set_thetamax(tmax*180/np.pi)
+
                 # else:
                 #     print_warn("average=False is not yet implemented when midplane=False")
                 #     sys.exit()
@@ -668,19 +714,17 @@ class PlotNonos(FieldNonos):
                     ax.plot(r,t,c='k',linewidth=0.07)
                     ax.plot(r.transpose(),t.transpose(),c='k',linewidth=0.07)
 
-        # ax.set_xlim(0.5,1.5)
-        # ax.set_ylim(-0.8,0.8)
-        ax.set_title(self.code, family='monospace', fontsize=fontsize)
-        ax.tick_params('both', labelsize=fontsize)
-        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
-        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
-        ax.xaxis.set_ticks_position('both')
-        ax.yaxis.set_ticks_position('both')
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.05)
-        cbar=plt.colorbar(im, cax=cax, orientation='vertical')#, format='%.0e')
-        cbar.ax.tick_params(labelsize=fontsize)
-        cbar.set_label(self.title, family='monospace', fontsize=fontsize)
+                # ax.set_xlim(0.5,1.5)
+                # ax.set_ylim(-0.8,0.8)
+                ax.set_title(self.code, family='monospace', fontsize=fontsize)
+                ax.tick_params('both', labelsize=fontsize)
+                ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+                ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+                ax.xaxis.set_ticks_position('both')
+                ax.yaxis.set_ticks_position('both')
+                cbar=plt.colorbar(im, orientation='vertical')#, format='%.0e')
+                cbar.ax.tick_params(labelsize=fontsize)
+                cbar.set_label(self.title, family='monospace', fontsize=fontsize)
 
 class StreamNonos(FieldNonos):
     """
@@ -958,7 +1002,7 @@ def print_err(message):
 
 # process function for parallisation purpose with progress bar
 counter = Value('i', 0) # initialization of a counter
-def process_field(on, profile, field, cart, diff, log, corotate, streamlines, stype, srmin, srmax, nstream, config, vmin, vmax, isPlanet, pbar, parallel, directory):
+def process_field(on, profile, field, mid, cart, diff, log, corotate, streamlines, stype, srmin, srmax, nstream, config, vmin, vmax, cmap, isPlanet, pbar, parallel, directory):
     ploton=PlotNonos(config, field=field, on=on, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet, directory=directory)
     try:
         if streamlines:
@@ -975,7 +1019,7 @@ def process_field(on, profile, field, cart, diff, log, corotate, streamlines, st
     # plot the field
     if profile=="2d":
         try:
-            ploton.plot(ax, vmin=vmin, vmax=vmax)
+            ploton.plot(ax, vmin=vmin, vmax=vmax, midplane=mid, cartesian=cart, cmap=cmap)
         except IndexError as exc:
             print_err(exc)
             return 1
@@ -994,7 +1038,7 @@ def process_field(on, profile, field, cart, diff, log, corotate, streamlines, st
                 streams=streamon.get_fixed_streams(vr,vphi,xmin=srmin,xmax=srmax, n=nstream)
                 streamon.plot_streams(ax,streams,cartesian=cart,color='k', linewidth=2, alpha=0.5)
 
-        if config['midplane']:
+        if mid:
             plt.savefig("sRphi_log%s_c%s%04d.png"%(log,cart,on))
         else:
             plt.savefig("sRz_log%s_c%s%04d.png"%(log,cart,on))
@@ -1045,6 +1089,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument('-srmax', type=float, default=pconfig['rmaxStream'], help="default: pconfig['rmaxStream']")
     parser.add_argument('-sn', type=int, default=pconfig['nstream'], help="default: pconfig['nstream']")
     parser.add_argument('-isp', type=bool, nargs='?', const=True, default=pconfig['isPlanet'], help="default: pconfig['isPlanet']")
+    parser.add_argument('-mid', type=bool, nargs='?', const=True, default=pconfig['midplane'], help="default: pconfig['midplane']")
+    parser.add_argument('-rz', type=bool, nargs='?', const=True, default=False, help="default: False")
     parser.add_argument('-cart', type=bool, nargs='?', const=True, default=pconfig['cartesian'], help="default: pconfig['cartesian']")
     parser.add_argument('-pol', type=bool, nargs='?', const=True, default=False, help="default: False")
     parser.add_argument('-p', type=str, default=pconfig['profile'], help="default: pconfig['profile']")
@@ -1088,7 +1134,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         args.srmax=init.config["rmaxStream"]
         args.sn=init.config["nstream"]
         args.isp=init.config["isPlanet"]
+        args.mid=init.config["midplane"]
+        args.rz=not(args.mid)
         args.cart=init.config["cartesian"]
+        args.pol=not(args.cart)
         args.p=init.config["profile"]
         args.cmap=init.config["cmap"]
         args.full=init.config["fullfilm"]
@@ -1106,14 +1155,20 @@ def main(argv: Optional[List[str]] = None) -> int:
     diran=init.directory
 
     args.f=args.f.upper()
+    if args.rz:
+        args.mid=False
     if args.pol:
         args.cart=False
 
-    if(not(init.config['midplane']) and args.cor):
+    if(not(args.mid) and args.cor):
         print_err("corotate is not yet implemented in the (R,z) plane")
         return 1
 
-    if(not(init.config['average']) and not(init.config['midplane'])):
+    if(not(args.mid) and args.s):
+        print_err("For now, we do not compute streamlines in the (R,z) plane")
+        return 1
+
+    if(not(init.config['average']) and not(args.mid)):
         print_err("average=False is not yet implemented in the (R,z) plane")
         return 1
 
@@ -1125,7 +1180,12 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # mode for just displaying a field for a given output number
     if args.mod=='display':
-        fig, ax=plt.subplots(figsize=(9,8))#, sharex=True, sharey=True)
+        if (args.pol and args.rz):
+            print_warn('plot not optimized for now in the (R,z) plane in polar.\nCheck in cartesian coordinates to be sure')
+            fig = plt.figure(figsize=(9,8))
+            ax = fig.add_subplot(111, polar=args.pol)
+        else:
+            fig, ax=plt.subplots(figsize=(9,8))#, sharex=True, sharey=True)
         plt.ioff()
         # print("on = ", args.on)
         # loading the field
@@ -1143,7 +1203,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         # plot the field
         if args.p=="2d":
             try:
-                ploton.plot(ax, vmin=args.vmin, vmax=args.vmax, cartesian=args.cart, cmap=args.cmap)
+                ploton.plot(ax, vmin=args.vmin, vmax=args.vmax, midplane=args.mid, cartesian=args.cart, cmap=args.cmap)
             except IndexError as exc:
                 print_err(exc)
                 return 1
@@ -1208,11 +1268,11 @@ def main(argv: Optional[List[str]] = None) -> int:
             # determines the minimum between nbcpu and the nb max of cpus in the user's system
             nbcpuReal = min((int(args.cpu),os.cpu_count()))
             pool = Pool(nbcpuReal)   # Create a multiprocessing Pool with a security on the number of cpus
-            pool.map(functools.partial(process_field, profile=args.p, field=args.f, cart=args.cart, diff=args.diff, log=args.log, corotate=args.cor, streamlines=args.s, stype=args.stype, srmin=args.srmin, srmax=args.srmax, nstream=args.sn, config=pconfig, vmin=vmin, vmax=vmax, isPlanet=args.isp, pbar=args.pbar, parallel=args.multi, directory=diran), pconfig['onarray'])
+            pool.map(functools.partial(process_field, profile=args.p, field=args.f, mid=args.mid, cart=args.cart, diff=args.diff, log=args.log, corotate=args.cor, streamlines=args.s, stype=args.stype, srmin=args.srmin, srmax=args.srmax, nstream=args.sn, config=pconfig, vmin=vmin, vmax=vmax, cmap=args.cmap, isPlanet=args.isp, pbar=args.pbar, parallel=args.multi, directory=diran), pconfig['onarray'])
             tpara=time.time()-start
             print("time in parallel : %f" %tpara)
         else:
-            list(map(functools.partial(process_field, profile=args.p, field=args.f, cart=args.cart, diff=args.diff, log=args.log, corotate=args.cor, streamlines=args.s, stype=args.stype, srmin=args.srmin, srmax=args.srmax, nstream=args.sn, config=pconfig, vmin=vmin, vmax=vmax, isPlanet=args.isp, pbar=args.pbar, parallel=args.multi, directory=diran), pconfig['onarray']))
+            list(map(functools.partial(process_field, profile=args.p, field=args.f, mid=args.mid, cart=args.cart, diff=args.diff, log=args.log, corotate=args.cor, streamlines=args.s, stype=args.stype, srmin=args.srmin, srmax=args.srmax, nstream=args.sn, config=pconfig, vmin=vmin, vmax=vmax, cmap=args.cmap, isPlanet=args.isp, pbar=args.pbar, parallel=args.multi, directory=diran), pconfig['onarray']))
             tserie=time.time()-start
             print("time in serie : %f" %tserie)
 
