@@ -1,6 +1,15 @@
 # nonos
 A tool to analyze results from idefix/pluto/fargo3d simulations (for protoplanetary disks more specifically)
-tested in 2D for now
+
+error: ````corotate=True```` & ````midplane=False```` -> not yet implemented
+
+error: ````streamlines```` & ````midplane=False```` -> not yet implemented
+
+error: ````average=False```` & ````midplane=False```` -> not yet implemented
+
+warning: ````isPlanet=False```` & ````corotate=True```` -> we don't rotate the grid if there is no planet for now.\nomegagrid = 0.
+
+warning: ````cartesian=False```` & ````midplane=False```` -> plot not optimized for now in the (R,z) plane in polar.
 
 #### Example of field
 ````python
