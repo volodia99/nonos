@@ -1,11 +1,9 @@
 # nonos
 A tool to analyze results from idefix/pluto/fargo3d simulations (for protoplanetary disks more specifically)
 
-error: ````corotate=True```` & ````midplane=False```` -> not yet implemented
+to be tested: the function/class part of the programm (cf the example here to start with)
 
 error: ````streamlines```` & ````midplane=False```` -> not yet implemented
-
-error: ````average=False```` & ````midplane=False```` -> not yet implemented
 
 warning: ````isPlanet=False```` & ````corotate=True```` -> we don't rotate the grid if there is no planet for now.\nomegagrid = 0.
 
