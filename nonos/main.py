@@ -562,7 +562,7 @@ class PlotNonos(FieldNonos):
         ax.set_ylabel(self.title, fontsize=fontsize)
         # plt.legend(frameon=False)
 
-    def plot(self, ax, vmin=None, vmax=None, fontsize=None, midplane=None, cartesian=None, average=None, cmap=None, **karg):
+    def plot(self, ax, vmin=None, vmax=None, midplane=None, cartesian=None, average=None, fontsize=None, cmap=None, **karg):
         """
         A layer for pcolormesh function.
         """
@@ -1021,7 +1021,7 @@ def print_err(message):
 
 # process function for parallisation purpose with progress bar
 counter = Value('i', 0) # initialization of a counter
-def process_field(on, profile, field, mid, cart, avr, diff, log, corotate, streamlines, stype, srmin, srmax, nstream, config, vmin, vmax, cmap, isPlanet, pbar, parallel, directory):
+def process_field(on, profile, field, mid, cart, avr, diff, log, corotate, streamlines, stype, srmin, srmax, nstream, config, vmin, vmax, ft, cmap, isPlanet, pbar, parallel, directory):
     ploton=PlotNonos(config, field=field, on=on, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet, directory=directory, check=False)
     try:
         if streamlines:
@@ -1044,7 +1044,7 @@ def process_field(on, profile, field, mid, cart, avr, diff, log, corotate, strea
     # plot the field
     if profile=="2d":
         try:
-            ploton.plot(ax, vmin=vmin, vmax=vmax, midplane=mid, cartesian=cart, average=avr, cmap=cmap)
+            ploton.plot(ax, vmin=vmin, vmax=vmax, midplane=mid, cartesian=cart, average=avr, fontsize=ft, cmap=cmap)
         except IndexError as exc:
             print_err(exc)
             return 1
@@ -1070,7 +1070,7 @@ def process_field(on, profile, field, mid, cart, avr, diff, log, corotate, strea
 
     # plot the 1D profile
     if profile=="1d":
-        ploton.axiplot(ax, vmin=vmin, vmax=vmax)
+        ploton.axiplot(ax, vmin=vmin, vmax=vmax, fontsize=ft)
         plt.savefig("saxi_log%s%04d.png"%(log,on))
 
     plt.close()
@@ -1121,6 +1121,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument('-avr', type=bool, nargs='?', const=True, default=pconfig['average'], help="default: pconfig['average']")
     parser.add_argument('-noavr', type=bool, nargs='?', const=True, default=False, help="default: False")
     parser.add_argument('-p', type=str, default=pconfig['profile'], help="default: pconfig['profile']")
+    parser.add_argument('-ft', type=float, default=pconfig['fontsize'], help="default: pconfig['fontsize']")
     parser.add_argument('-cmap', type=str, default=pconfig['cmap'], help="default: pconfig['cmap']")
     parser.add_argument('-full', type=bool, default=pconfig['fullfilm'], help="default: pconfig['fullfilm']")
     parser.add_argument('-pbar', type=bool, nargs='?', const=True, default=pconfig['progressBar'], help="default: pconfig['progressBar']")
@@ -1168,6 +1169,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         args.avr=init.config["average"]
         args.noavr=not(args.avr)
         args.p=init.config["profile"]
+        args.ft=init.config["ft"]
         args.cmap=init.config["cmap"]
         args.full=init.config["fullfilm"]
         args.pbar=init.config["progressBar"]
@@ -1226,7 +1228,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         # plot the field
         if args.p=="2d":
             try:
-                ploton.plot(ax, vmin=args.vmin, vmax=args.vmax, midplane=args.mid, cartesian=args.cart, average=args.avr, cmap=args.cmap)
+                ploton.plot(ax, vmin=args.vmin, vmax=args.vmax, midplane=args.mid, cartesian=args.cart, average=args.avr, fontsize=args.ft, cmap=args.cmap)
             except IndexError as exc:
                 print_err(exc)
                 return 1
@@ -1247,7 +1249,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         # plot the 1D profile
         if args.p=="1d":
-            ploton.axiplot(ax)
+            ploton.axiplot(ax, vmin=args.vmin, vmax=args.vmax, fontsize=args.ft)
 
         plt.show()
 
@@ -1291,11 +1293,11 @@ def main(argv: Optional[List[str]] = None) -> int:
             # determines the minimum between nbcpu and the nb max of cpus in the user's system
             nbcpuReal = min((int(args.cpu),os.cpu_count()))
             pool = Pool(nbcpuReal)   # Create a multiprocessing Pool with a security on the number of cpus
-            pool.map(functools.partial(process_field, profile=args.p, field=args.f, mid=args.mid, cart=args.cart, avr=args.avr, diff=args.diff, log=args.log, corotate=args.cor, streamlines=args.s, stype=args.stype, srmin=args.srmin, srmax=args.srmax, nstream=args.sn, config=pconfig, vmin=args.vmin, vmax=args.vmax, cmap=args.cmap, isPlanet=args.isp, pbar=args.pbar, parallel=args.multi, directory=diran), pconfig['onarray'])
+            pool.map(functools.partial(process_field, profile=args.p, field=args.f, mid=args.mid, cart=args.cart, avr=args.avr, diff=args.diff, log=args.log, corotate=args.cor, streamlines=args.s, stype=args.stype, srmin=args.srmin, srmax=args.srmax, nstream=args.sn, config=pconfig, vmin=args.vmin, vmax=args.vmax, ft=args.ft, cmap=args.cmap, isPlanet=args.isp, pbar=args.pbar, parallel=args.multi, directory=diran), pconfig['onarray'])
             tpara=time.time()-start
             print("time in parallel : %f" %tpara)
         else:
-            list(map(functools.partial(process_field, profile=args.p, field=args.f, mid=args.mid, cart=args.cart, avr=args.avr, diff=args.diff, log=args.log, corotate=args.cor, streamlines=args.s, stype=args.stype, srmin=args.srmin, srmax=args.srmax, nstream=args.sn, config=pconfig, vmin=args.vmin, vmax=args.vmax, cmap=args.cmap, isPlanet=args.isp, pbar=args.pbar, parallel=args.multi, directory=diran), pconfig['onarray']))
+            list(map(functools.partial(process_field, profile=args.p, field=args.f, mid=args.mid, cart=args.cart, avr=args.avr, diff=args.diff, log=args.log, corotate=args.cor, streamlines=args.s, stype=args.stype, srmin=args.srmin, srmax=args.srmax, nstream=args.sn, config=pconfig, vmin=args.vmin, vmax=args.vmax, ft=args.ft, cmap=args.cmap, isPlanet=args.isp, pbar=args.pbar, parallel=args.multi, directory=diran), pconfig['onarray']))
             tserie=time.time()-start
             print("time in serie : %f" %tserie)
 
