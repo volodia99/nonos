@@ -422,7 +422,8 @@ class FieldNonos(Mesh,Parameters):
     Input: field [string] -> filename of the field
            directory='' [string] -> where filename is
     """
-    def __init__(self, config, directory="", field=None, on=None, paramfile=None, diff=None, log=None, corotate=None, isPlanet=None):
+    def __init__(self, config, directory="", field=None, on=None, paramfile=None, diff=None, log=None, corotate=None, isPlanet=None, check=True):
+        self.check=check
         self.config = config
         Mesh.__init__(self, config=self.config, directory=directory, paramfile=paramfile)       #All the Mesh attributes inside Field
         Parameters.__init__(self, config=self.config, directory=directory, paramfile=paramfile, corotate=corotate, isPlanet=isPlanet) #All the Parameters attributes inside Field
@@ -462,6 +463,10 @@ class FieldNonos(Mesh,Parameters):
                 self.field='vz'
             filedata = "gas%s%d.dat"%(self.field,self.on)
             filedata0 = "gas%s0.dat"%self.field
+
+        if self.check:
+            if(not(self.isPlanet) and self.corotate):
+                print_warn("We don't rotate the grid if there is no planet for now.\nomegagrid = 0.")
 
         nfdat = len(glob.glob1(directory,filedata))
         if nfdat!=1:
@@ -520,8 +525,8 @@ class PlotNonos(FieldNonos):
     """
     Plot class which uses Field to compute different graphs.
     """
-    def __init__(self, config, directory="", field=None, on=None, diff=None, log=None, corotate=None, isPlanet=None):
-        FieldNonos.__init__(self,config=config,field=field,on=on,directory=directory, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet) #All the Parameters attributes inside Field
+    def __init__(self, config, directory="", field=None, on=None, diff=None, log=None, corotate=None, isPlanet=None, check=True):
+        FieldNonos.__init__(self,config=config,field=field,on=on,directory=directory, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet, check=check) #All the Parameters attributes inside Field
 
     def axiplot(self, ax, vmin=None, vmax=None, fontsize=None, **karg):
         dataProfile=np.mean(np.mean(self.data,axis=1),axis=1)
@@ -577,6 +582,16 @@ class PlotNonos(FieldNonos):
             fontsize=self.config['fontsize']
         if cmap is None:
             cmap=self.config['cmap']
+
+        if self.check:
+            if(not(midplane) and self.corotate):
+                plt.close()
+                print_err("corotate is not yet implemented in the (R,z) plane")
+                return 1
+            if(not(self.config['average']) and not(midplane)):
+                plt.close()
+                print_err("average=False is not yet implemented in the (R,z) plane")
+                return 1
 
         # (R,phi) plane
         if midplane:
@@ -690,6 +705,10 @@ class PlotNonos(FieldNonos):
                 tmax = np.pi/2+5*self.h0
                 # tmin = np.arctan2(1.0,Z.min())
                 # tmax = np.arctan2(1.0,Z.max())
+                if self.check:
+                    plt.close()
+                    print_err("if polar plot in the (R,z) plane, use rather\nfig = plt.figure()\nax = fig.add_subplot(111, polar=True)")
+                    return 1
                 ax.set_rmax(R.max())
                 ax.set_theta_zero_location('N')
                 ax.set_theta_direction(-1)
@@ -731,8 +750,8 @@ class StreamNonos(FieldNonos):
     Adapted from Pablo Benitez-Llambay
     Class which uses Field to compute streamlines.
     """
-    def __init__(self, config, directory="", field=None, on=None):
-        FieldNonos.__init__(self,config=config,field=field,on=on,directory=directory) #All the Parameters attributes inside Field
+    def __init__(self, config, directory="", field=None, on=None, check=True):
+        FieldNonos.__init__(self,config=config,field=field,on=on,directory=directory, check=check) #All the Parameters attributes inside Field
 
         if field is None:
             field=self.config['field']
@@ -938,28 +957,39 @@ class StreamNonos(FieldNonos):
             counter += 1
         return streams
 
-    def plot_streams(self, ax, streams, cartesian=False, **kargs):
+    def plot_streams(self, ax, streams, midplane=True, cartesian=True, **kargs):
         for stream in streams:
             for sub_stream in stream:
                 # sub_stream[0]*=unit_code.length/unit.AU
-                if cartesian:
-                    ax.plot(sub_stream[0]*np.cos(sub_stream[1]),sub_stream[0]*np.sin(sub_stream[1]),**kargs)
+                if midplane:
+                    if cartesian:
+                        ax.plot(sub_stream[0]*np.cos(sub_stream[1]),sub_stream[0]*np.sin(sub_stream[1]),**kargs)
+                    else:
+                        ax.plot(sub_stream[0],sub_stream[1],**kargs)
                 else:
-                    ax.plot(sub_stream[0],sub_stream[1],**kargs)
+                    if self.check:
+                        print_err("For now, we do not compute streamlines in the (R,z) plane")
+                        return 1
+
 
     def get_lic_streams(self, vx, vy):
         get_lic=lic.lic(vx[:,:,self.imidplane],vy[:,:,self.imidplane],length=30)
         return(get_lic)
 
-    def plot_lic(self, ax, streams, cartesian=False, **kargs):
-        if cartesian:
-            P,R = np.meshgrid(self.y,self.x)
-            X = R*np.cos(P)
-            Y = R*np.sin(P)
-            ax.pcolormesh(X,Y,streams,**kargs)
+    def plot_lic(self, ax, streams, midplane=True, cartesian=True, **kargs):
+        if midplane:
+            if cartesian:
+                P,R = np.meshgrid(self.y,self.x)
+                X = R*np.cos(P)
+                Y = R*np.sin(P)
+                ax.pcolormesh(X,Y,streams,**kargs)
+            else:
+                P,R = np.meshgrid(self.y,self.x)
+                ax.pcolormesh(R,P,streams,**kargs)
         else:
-            P,R = np.meshgrid(self.y,self.x)
-            ax.pcolormesh(R,P,streams,**kargs)
+            if self.check:
+                print_err("For now, we do not compute streamlines in the (R,z) plane")
+                return 1
 
 def find_nearest(array, value):
     array = np.asarray(array)
@@ -1003,12 +1033,12 @@ def print_err(message):
 # process function for parallisation purpose with progress bar
 counter = Value('i', 0) # initialization of a counter
 def process_field(on, profile, field, mid, cart, diff, log, corotate, streamlines, stype, srmin, srmax, nstream, config, vmin, vmax, cmap, isPlanet, pbar, parallel, directory):
-    ploton=PlotNonos(config, field=field, on=on, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet, directory=directory)
+    ploton=PlotNonos(config, field=field, on=on, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet, directory=directory, check=False)
     try:
         if streamlines:
-            streamon=StreamNonos(config, field=field, on=on, directory=directory)
-            vx1on = FieldNonos(config, field='VX1', on=on, diff=False, log=False, corotate=corotate, isPlanet=isPlanet, directory=directory)
-            vx2on = FieldNonos(config, field='VX2', on=on, diff=False, log=False, corotate=corotate, isPlanet=isPlanet, directory=directory)
+            streamon=StreamNonos(config, field=field, on=on, directory=directory, check=False)
+            vx1on = FieldNonos(config, field='VX1', on=on, diff=False, log=False, corotate=corotate, isPlanet=isPlanet, directory=directory, check=False)
+            vx2on = FieldNonos(config, field='VX2', on=on, diff=False, log=False, corotate=corotate, isPlanet=isPlanet, directory=directory, check=False)
     except FileNotFoundError as exc:
         print_err(exc)
         return 1
@@ -1191,11 +1221,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         # loading the field
 
         try:
-            ploton = PlotNonos(pconfig, field=args.f, on=args.on, diff=args.diff, log=args.log, corotate=args.cor, isPlanet=args.isp, directory=diran)
+            ploton = PlotNonos(pconfig, field=args.f, on=args.on, diff=args.diff, log=args.log, corotate=args.cor, isPlanet=args.isp, directory=diran, check=False)
             if args.s:
-                streamon=StreamNonos(pconfig, field=args.f, on=args.on, directory=diran)
-                vx1on = FieldNonos(pconfig, field='VX1', on=args.on, diff=False, log=False, corotate=args.cor, isPlanet=args.isp, directory=diran)
-                vx2on = FieldNonos(pconfig, field='VX2', on=args.on, diff=False, log=False, corotate=args.cor, isPlanet=args.isp, directory=diran)
+                streamon=StreamNonos(pconfig, field=args.f, on=args.on, directory=diran, check=False)
+                vx1on = FieldNonos(pconfig, field='VX1', on=args.on, diff=False, log=False, corotate=args.cor, isPlanet=args.isp, directory=diran, check=False)
+                vx2on = FieldNonos(pconfig, field='VX2', on=args.on, diff=False, log=False, corotate=args.cor, isPlanet=args.isp, directory=diran, check=False)
         except FileNotFoundError as exc:
             print_err(exc)
             return 1
@@ -1245,7 +1275,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         # In that case we choose a file in the middle (len(onarray)//2) and compute the MIN/MAX
         else:
             try:
-                fieldon = FieldNonos(pconfig, field=args.f, on=pconfig['onarray'][len(pconfig['onarray'])//2], directory=diran, diff=False)
+                fieldon = FieldNonos(pconfig, field=args.f, on=pconfig['onarray'][len(pconfig['onarray'])//2], directory=diran, diff=False, check=False)
             except FileNotFoundError as exc:
                 print_err(exc)
                 return 1
