@@ -1,42 +1,43 @@
 # [data]
-dir            =      ""                # directory where the simulation results are stored
-mode			     =      "display" 		    # mode can be display, film
-field			     =      "RHO"		          # which field?
-profile        =      "2d"              # 1D axisymmetric porfile or 2D field
-onStart	       =      1		              # first 'on' if partial film, only 'on' if display
-onEnd		       =      15		            # last 'on' if partial film
 
+dir                =  ""                                                        # directory where the simulation results are stored
+mode               =  "display"                                                 # mode can be display, film
+field              =  "RHO"                                                     # which field?
+profile            =  "2d"                                                      # 1D axisymmetric porfile or 2D field
+onStart            =  1                                                         # first 'on' if partial film, only 'on' if display
+onEnd              =  15                                                        # last 'on' if partial film
 # [properties]
-diff			     =      false		          # perturbation of field
-log			       =      false		          # field in log
-vmin           =      -0.5              # default min field when diff
-vmax           =      0.5               # default max field when diff
-midplane		   =      true		          # if midplane: (R,phi), else: (R,z)
-average			   =      true		          # do we average in the 3rd dimension?
-fullfilm	     =      true		          # if film, full or partial film?
 
+diff               =  false                                                     # perturbation of field
+log                =  false                                                     # field in log
+vmin               =  -0.5                                                      # default min field when diff
+vmax               =  0.5                                                       # default max field when diff
+midplane           =  true                                                      # if midplane: (R,phi), else: (R,z)
+average            =  true                                                      # do we average in the 3rd dimension?
+fullfilm           =  true                                                      # if film, full or partial film?
 # [streamlines]
-streamlines    =      false             # do we compute streamlines around the planet location?
-streamtype     =      "random"          # do we compute random streams ("random"), fixed streams ("fixed") or lic ("lic")?
-rminStream     =      0.7               # min radius for streamlines computation
-rmaxStream     =      1.3               # max radius for streamlines computation
-nstream        =      50                # how many streamlines are computed
 
+streamlines        =  false                                                     # do we compute streamlines around the planet location?
+streamtype         =  "random"                                                  # do we compute random streams ("random"), fixed streams ("fixed") or lic ("lic")?
+rminStream         =  0.7                                                       # min radius for streamlines computation
+rmaxStream         =  1.3                                                       # max radius for streamlines computation
+nstream            =  50                                                        # how many streamlines are computed
 # [option]
-progressBar    =      false             # do we display the progress (loading+plotting)
-writeAxi       =      false             # if 1d profile, do we write it in file?
 
+progressBar        =  false                                                     # do we display the progress (loading+plotting)
+writeAxi           =  false                                                     # if 1d profile, do we write it in file?
 # [grid]
-grid			     =      false		          # do we display the grid?
-cartesian		   =      true		          # cartesian or polar coordinates
-isPlanet		   =      false    		      # is there a planet in the grid?
-corotate		   =      false		          # do the grid rotate with the planet?
 
+grid               =  false                                                     # do we display the grid?
+cartesian          =  true                                                      # cartesian or polar coordinates
+isPlanet           =  false                                                     # is there a planet in the grid?
+corotate           =  false                                                     # do the grid rotate with the planet?
 # [multiprocessing]
-parallel		   =      false             # load and plot field in serie or parallel
-nbcpu          =      4                 # number of cpus if parallel
 
+parallel           =  false                                                     # load and plot field in serie or parallel
+nbcpu              =  4                                                         # number of cpus if parallel
 # [plot]
-fontsize		   =      10		            # fontsize for graphs
-cmap           =      "RdYlBu_r"        # choice of colormap
+
+fontsize           =  10                                                        # fontsize for graphs
+cmap               =  "RdYlBu_r"                                                # choice of colormap
 # cmap           =      "binary"          # choice of colormap
