@@ -574,6 +574,10 @@ class PlotNonos(FieldNonos):
 
         # (R,phi) plane
         if self.config['midplane']:
+            if self.x.shape[0]<=1:
+                raise IndexError("No radial direction, the simulation is not 3D.\nTry midplane=False")
+            if self.y.shape[0]<=1:
+                raise IndexError("No azimuthal direction, the simulation is not 3D.\nTry midplane=False")
             if cartesian:
                 P,R = np.meshgrid(self.y,self.x)
                 X = R*np.cos(P)
@@ -614,9 +618,13 @@ class PlotNonos(FieldNonos):
 
         # (R,z) plane
         else:
+            if self.x.shape[0]<=1:
+                raise IndexError("No radial direction, the simulation is not 3D.\nTry midplane=True")
+            if self.z.shape[0]<=1:
+                raise IndexError("No vertical direction, the simulation is not 3D.\nTry midplane=True")
             if cartesian:
                 Z,R = np.meshgrid(self.z,self.x)
-                if ['average']:
+                if self.config['average']:
                     im=ax.pcolormesh(R,Z,np.mean(self.data,axis=1),
                               cmap=cmap,vmin=vmin,vmax=vmax,**karg)
                 # else:
@@ -966,7 +974,11 @@ def process_field(on, profile, field, cart, diff, log, corotate, streamlines, st
 
     # plot the field
     if profile=="2d":
-        ploton.plot(ax, vmin=vmin, vmax=vmax)
+        try:
+            ploton.plot(ax, vmin=vmin, vmax=vmax)
+        except IndexError as exc:
+            print_err(exc)
+            return 1
         if streamlines:
             vr = vx1on.data
             vphi = vx2on.data
@@ -1130,7 +1142,11 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         # plot the field
         if args.p=="2d":
-            ploton.plot(ax, vmin=args.vmin, vmax=args.vmax, cartesian=args.cart, cmap=args.cmap)
+            try:
+                ploton.plot(ax, vmin=args.vmin, vmax=args.vmax, cartesian=args.cart, cmap=args.cmap)
+            except IndexError as exc:
+                print_err(exc)
+                return 1
             if args.s:
                 vr = vx1on.data
                 vphi = vx2on.data
