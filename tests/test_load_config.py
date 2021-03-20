@@ -2,6 +2,7 @@ import os
 import re
 
 import pytest
+import sys
 
 from nonos.main import AnalysisNonos
 
@@ -9,6 +10,7 @@ def test_load_analysis(tmp_path):
     os.chdir(tmp_path)
     AnalysisNonos()
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="does not run on windows")
 def test_config_dir_not_found(tmp_path):
     with pytest.raises(
         FileNotFoundError,
