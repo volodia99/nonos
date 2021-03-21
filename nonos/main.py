@@ -1101,7 +1101,7 @@ def process_field(on, profile, field, mid, cart, avr, diff, log, corotate, strea
         else:
             printProgressBar(on-config['onarray'][0], len(config['onarray'])-1, prefix = 'Progress:', suffix = 'Complete', length = 50)
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: Optional[List[str]] = None, show=True) -> int:
     # read the .toml file
     try:
         analysis = AnalysisNonos()
@@ -1268,7 +1268,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         if args.p=="1d":
             ploton.axiplot(ax, vmin=args.vmin, vmax=args.vmax, fontsize=args.ft)
 
-        plt.show()
+        if show:
+            plt.show()
+        else:
+            plt.close()
 
     # mode for creating a movie of the temporal evolution of a given field
     elif args.mod=='film':
