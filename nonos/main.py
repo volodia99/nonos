@@ -4,6 +4,13 @@
 adapted from pbenitez-llambay, gwafflard-fernandez, crobert-lot & glesur
 """
 
+from multiprocessing import Pool, Value
+from pathlib import Path
+from shutil import copyfile
+import functools
+import glob
+from typing import List, Optional
+import argparse
 import os
 import sys
 import time
@@ -11,40 +18,44 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from multiprocessing import Pool, Value
-from pathlib import Path
-from shutil import copyfile
 import toml
 import inifix as ix
-import functools
 from rich import print as rprint
 import lic
-import glob
-from typing import List, Optional
-import argparse
 
 # TODO: recheck in 3D
 # TODO: adapt config['average'] as an arg
-# TODO: check in plot function if corotate=True works for all vtk and dpl (initial planet location) -> computation to calculate the grid rotation speed
-# TODO: compute gas surface density and not just gas volume density : something like self.data*=np.sqrt(2*np.pi)*self.aspectratio*self.y
+# TODO: check in plot function if corotate=True works for all vtk and dpl
+#        (initial planet location) -> computation to calculate the grid rotation speed
+# TODO: compute gas surface density and not just gas volume density :
+#        something like self.data*=np.sqrt(2*np.pi)*self.aspectratio*self.y
 # TODO: check how to generalize the path of the directory (.toml file)
 # TODO: compute vortensity
 # TODO: compute vertical flows (cf vertical_flows.txt)
 # TODO: adapt streamline analysis (cf strl.py)
 # TODO: re-check if each condition works fine
-# TODO: CORRECTED AND TO BE TESTED maybe small bug in the progress bar when nbcpu=n_files
+# TODO: CORRECTED AND TO BE TESTED maybe small bug
+#        in the progress bar when nbcpu=n_files
 # TODO: recheck the axiplot feature (parallelization, ...) and the writeField feature
-# TODO: streamlines does not work properly (azimuthal displacement due to reconstruction of field with corotation)
+# TODO: streamlines does not work properly (azimuthal displacement
+#        due to reconstruction of field with corotation)
 # TODO: streamline analysis: test if the estimation of the radial spacing works
 # TODO: major modif for the corotation implementation
 # TODO: streamlines = 'random', 'specific' or 'lic'
 # TODO: write a better way to save pictures (function in PlotNonos maybe)
-# TODO: dor now, calculations are made only in working directory, need to specify directory in command lines
-# TODO: do not forget to change all the functions that use dpl (planet location), which is valid if the planet is in a fixed cicular orbit
+# TODO: for now, calculations are made only in working directory,
+#        need to specify directory in command lines
+# TODO: do not forget to change all the functions that use dpl (planet location),
+#        which is valid if the planet is in a fixed cicular orbit
 # TODO: test corotate in the (R,z) plane
-# TODO: create a test that compares when midplane=False (average=True+corotate=True) & (average=True+corotate=False) should be identical
+# TODO: create a test that compares when midplane=False
+#        (average=True+corotate=True) & (average=True+corotate=False) should be identical
 
 class DataStructure:
+    """
+    Class that helps create the datastructure
+    in the readtVTKPolar function
+    """
     pass
 
 def readVTKPolar(filename, cell='edges'):
@@ -75,7 +86,7 @@ def readVTKPolar(filename, cell='edges'):
 
     slist=s.split()
     grid_type=str(slist[1],'utf-8')
-    if(grid_type != "STRUCTURED_GRID"):
+    if grid_type != "STRUCTURED_GRID":
         fid.close()
         print_err("Wrong VTK file type.\nCurrent type is: %s.\nThis routine can only open Polar VTK files."%(grid_type))
         return None
@@ -115,7 +126,7 @@ def readVTKPolar(filename, cell='edges'):
     s=fid.readline()    # CELL_DATA (NX-1)(NY-1)(NZ-1)
     slist=s.split()
     data_type=str(slist[0],'utf-8')
-    if(data_type != "CELL_DATA"):
+    if data_type != "CELL_DATA":
         fid.close()
         print_err("this routine expect CELL DATA as produced by PLUTO.")
         return None
@@ -158,7 +169,7 @@ def readVTKPolar(filename, cell='edges'):
             V.z=z
 
     while 1:
-        s=fid.readline()        # SCALARS/VECTORS name data_type (ex: SCALARS imagedata unsigned_char)
+        s=fid.readline() # SCALARS/VECTORS name data_type (ex: SCALARS imagedata unsigned_char)
         #print repr(s)
         if len(s)<2:         # leave if end of file
             break
@@ -178,7 +189,7 @@ def readVTKPolar(filename, cell='edges'):
         else:
             print_err("Unknown datatype %s" % datatype)
             return None
-            break;
+            break
 
         fid.readline()  #extra line feed
     fid.close()
@@ -193,9 +204,9 @@ class Parameters():
     """
     def __init__(self, config, directory="", paramfile=None, corotate=None, isPlanet=None):
         if corotate is None:
-            corotate=self.config['corotate']
+            corotate=config['corotate']
         if isPlanet is None:
-            isPlanet=self.config['isPlanet']
+            isPlanet=config['isPlanet']
         if paramfile is None:
             lookup_table = {
                 "idefix.ini" : "idefix",
@@ -209,7 +220,6 @@ class Parameters():
             elif nfound > 1:
                 raise RuntimeError("found more than one possible ini file.")
             paramfile = list(lookup_table.keys())[list(found.values()).index(True)]
-            params = open(os.path.join(directory, paramfile))
             self.code = lookup_table[paramfile]
         else:
             raise FileNotFoundError("For now, impossible to choose your parameter file.\nBy default, the code searches idefix.ini, pluto.ini or variables.par.")
@@ -294,6 +304,8 @@ class AnalysisNonos():
 
 class InitParamNonos(AnalysisNonos,Parameters):
     """
+    Call the AnalysisNonos class to define the config dictionary
+    and use it to call the Parameters class to initialize important parameters.
     """
     def __init__(self, directory=None, directory_of_script=None, info=False, paramfile=None):
         AnalysisNonos.__init__(self, directory_of_script=directory_of_script, info=info)
@@ -316,7 +328,7 @@ class InitParamNonos(AnalysisNonos,Parameters):
 
             self.n_file = len(glob.glob1(self.directory,"data.*.vtk"))
 
-        elif(self.code=='fargo3d'):
+        elif self.code=='fargo3d':
             nfound_x = len(glob.glob1(self.directory,"domain_x.dat"))
             if nfound_x!=1:
                 raise FileNotFoundError("domain_x.dat not found.")
@@ -369,7 +381,7 @@ class Mesh(Parameters):
             # index of the cell in the midplane
             self.imidplane = self.nz//2
 
-        elif(self.code=='fargo3d'):
+        elif self.code=='fargo3d':
             nfound_x = len(glob.glob1(directory,"domain_x.dat"))
             if nfound_x!=1:
                 raise FileNotFoundError("domain_x.dat not found.")
@@ -501,7 +513,7 @@ class FieldNonos(Mesh,Parameters):
         if(self.code=='idefix' or self.code=='pluto'):
             data = readVTKPolar(f, cell='edges').data[self.field]
             data = np.concatenate((data[:,self.ny//2:self.ny,:], data[:,0:self.ny//2,:]), axis=1)
-        elif(self.code=='fargo3d'):
+        elif self.code=='fargo3d':
             data = np.fromfile(f, dtype='float64')
             data=(data.reshape(self.nz,self.nx,self.ny)).transpose(1,2,0) #rad, pĥi, theta
 
@@ -519,7 +531,7 @@ class FieldNonos(Mesh,Parameters):
             except ValueError:
                 index=(np.where(Prot[0]<-np.pi))[0].max()
             data=np.concatenate((data[:,index:self.ny,:],data[:,0:index,:]),axis=1)
-        return (data)
+        return data
 
 class PlotNonos(FieldNonos):
     """
@@ -532,11 +544,11 @@ class PlotNonos(FieldNonos):
         dataProfile=np.mean(np.mean(self.data,axis=1),axis=1)
         if vmin is None:
             vmin=self.config['vmin']
-            if not(self.diff):
+            if not self.diff:
                 vmin=dataProfile.min()
         if vmax is None:
             vmax=self.config['vmax']
-            if not(self.diff):
+            if not self.diff:
                 vmax=dataProfile.max()
         if fontsize is None:
             fontsize=self.config['fontsize']
@@ -549,7 +561,7 @@ class PlotNonos(FieldNonos):
 
         ax.plot(self.xmed,dataProfile,**karg)
 
-        if not(self.log):
+        if not self.log:
             ax.xaxis.set_minor_locator(AutoMinorLocator(5))
             ax.yaxis.set_minor_locator(AutoMinorLocator(5))
         ax.set_ylim(vmin,vmax)
@@ -568,11 +580,11 @@ class PlotNonos(FieldNonos):
         """
         if vmin is None:
             vmin=self.config['vmin']
-            if not(self.diff):
+            if not self.diff:
                 vmin=self.data.min()
         if vmax is None:
             vmax=self.config['vmax']
-            if not(self.diff):
+            if not self.diff:
                 vmax=self.data.max()
         if midplane is None:
             midplane=self.config['midplane']
@@ -763,12 +775,18 @@ class StreamNonos(FieldNonos):
         f(p): Float.
               The interpolated value of the function f(p) = f(x,y)
         """
-
-        xp  = p[0]; yp   = p[1]; x1  = x[0]; x2  = x[1]
-        y1  = y[0]; y2  = y[1];  f11 = f[0]; f12 = f[1]
-        f21 = f[2]; f22 = f[3]
-        t = (xp-x1)/(x2-x1);    u = (yp-y1)/(y2-y1)
-
+        xp  = p[0]
+        yp   = p[1]
+        x1  = x[0]
+        x2  = x[1]
+        y1  = y[0]
+        y2  = y[1]
+        f11 = f[0]
+        f12 = f[1]
+        f21 = f[2]
+        f22 = f[3]
+        t = (xp-x1)/(x2-x1)
+        u = (yp-y1)/(y2-y1)
         return (1.0-t)*(1.0-u)*f11 + t*(1.0-u)*f12 + t*u*f22 + u*(1-t)*f21
 
     def get_v(self, v, x, y):
@@ -882,17 +900,17 @@ class StreamNonos(FieldNonos):
 
         for i in range(nmax):
             ds = self.euler(vx, vy, x0, y0, reverse=reverse)
-            if(ds[0] == None):
+            if ds[0] is None:
                 # if(len(x)==1):
                 #     print_warn("There was an error getting the stream, ds is NULL (see get_stream).")
                 break
             l += np.sqrt(ds[0]**2+ds[1]**2)
             dx = ds[0]
             dy = ds[1]
-            if(np.sqrt(dx**2+dy**2)<1e-13):
+            if np.sqrt(dx**2+dy**2)<1e-13:
                 print_warn("(get_stream): ds is very small, check if you're in a stagnation point.\nTry selecting another initial point.")
                 break
-            if (l > maxlength):
+            if l > maxlength:
                 # print("maxlength reached: ", l)
                 break
             x0 += dx
@@ -903,13 +921,13 @@ class StreamNonos(FieldNonos):
         return np.array([x,y])
 
     def get_random_streams(self, vx, vy, xmin=None, xmax=None, ymin=None, ymax=None, n=30, nmax=100000):
-        if xmin == None:
+        if xmin is None:
             xmin = self.x.min()
-        if ymin == None:
+        if ymin is None:
             ymin = self.y.min()
-        if xmax == None:
+        if xmax is None:
             xmax = self.x.max()
-        if ymax == None:
+        if ymax is None:
             ymax = self.y.max()
 
         X = xmin + np.random.rand(n)*(xmax-xmin)
@@ -917,21 +935,21 @@ class StreamNonos(FieldNonos):
         Y = ymin + np.random.rand(n)*(ymax-ymin)
 
         streams = []
-        counter = 0
+        cter = 0
         for x,y in zip(X,Y):
             stream = self.get_stream(vx, vy, x, y, nmax=nmax, bidirectional=True)
             streams.append(stream)
-            counter += 1
+            cter += 1
         return streams
 
     def get_fixed_streams(self, vx, vy, xmin=None, xmax=None, ymin=None, ymax=None, n=30, nmax=100000):
-        if xmin == None:
+        if xmin is None:
             xmin = self.x.min()
-        if ymin == None:
+        if ymin is None:
             ymin = self.y.min()
-        if xmax == None:
+        if xmax is None:
             xmax = self.x.max()
-        if ymax == None:
+        if ymax is None:
             ymax = self.y.max()
 
         X = xmin + np.linspace(0,1,n)*(xmax-xmin)
@@ -939,11 +957,11 @@ class StreamNonos(FieldNonos):
         Y = ymin + np.linspace(0,1,n)*(ymax-ymin)
 
         streams = []
-        counter = 0
+        cter2 = 0
         for x,y in zip(X,Y):
             stream = self.get_stream(vx, vy, x, y, nmax=nmax, bidirectional=True)
             streams.append(stream)
-            counter += 1
+            cter2 += 1
         return streams
 
     def plot_streams(self, ax, streams, midplane=True, cartesian=True, **kargs):
@@ -960,10 +978,9 @@ class StreamNonos(FieldNonos):
                         print_err("For now, we do not compute streamlines in the (R,z) plane")
                         return 1
 
-
     def get_lic_streams(self, vx, vy):
         get_lic=lic.lic(vx[:,:,self.imidplane],vy[:,:,self.imidplane],length=30)
-        return(get_lic)
+        return get_lic
 
     def plot_lic(self, ax, streams, midplane=True, cartesian=True, **kargs):
         if midplane:
@@ -1001,8 +1018,8 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
     """
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
-    bar = fill * filledLength + '-' * (length - filledLength)
-    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = printEnd)
+    barobj = fill * filledLength + '-' * (length - filledLength)
+    print('\r%s |%s| %s%% %s' % (prefix, barobj, percent, suffix), end = printEnd)
     # Print New Line on Complete
     if iteration == total:
         print()
@@ -1020,7 +1037,7 @@ def print_err(message):
     rprint(f"[bold white on red]Error |[/] {message}", file=sys.stderr)
 
 # process function for parallisation purpose with progress bar
-counter = Value('i', 0) # initialization of a counter
+counterParallel = Value('i', 0) # initialization of a counter
 def process_field(on, profile, field, mid, cart, avr, diff, log, corotate, streamlines, stype, srmin, srmax, nstream, config, vmin, vmax, ft, cmap, isPlanet, pbar, parallel, directory):
     ploton=PlotNonos(config, field=field, on=on, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet, directory=directory, check=False)
     try:
@@ -1032,7 +1049,7 @@ def process_field(on, profile, field, mid, cart, avr, diff, log, corotate, strea
         print_err(exc)
         return 1
 
-    if (not(cart) and not(mid)):
+    if (not cart and not mid):
         print_warn('plot not optimized for now in the (R,z) plane in polar.\nCheck in cartesian coordinates to be sure')
         fig = plt.figure(figsize=(9,8))
         ax = fig.add_subplot(111, polar=True)
@@ -1077,10 +1094,10 @@ def process_field(on, profile, field, mid, cart, avr, diff, log, corotate, strea
 
     if pbar:
         if parallel:
-            global counter
-            printProgressBar(counter.value, len(config['onarray'])-1, prefix = 'Progress:', suffix = 'Complete', length = 50) # progress bar when parallelization is included
-            with counter.get_lock():
-                counter.value += 1  # incrementation of the counter
+            global counterParallel
+            printProgressBar(counterParallel.value, len(config['onarray'])-1, prefix = 'Progress:', suffix = 'Complete', length = 50) # progress bar when parallelization is included
+            with counterParallel.get_lock():
+                counterParallel.value += 1  # incrementation of the counter
         else:
             printProgressBar(on-config['onarray'][0], len(config['onarray'])-1, prefix = 'Progress:', suffix = 'Complete', length = 50)
 
@@ -1130,7 +1147,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     if args.l:
-        rprint(f"[bold white]Local mode")
+        rprint("[bold white]Local mode")
         if len(glob.glob1("","config.toml"))!=1:
             pathconfig = os.path.join(os.path.dirname(os.path.abspath(__file__)),"config.toml")
             copyfile(pathconfig, "config.toml")
@@ -1163,11 +1180,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         args.sn=init.config["nstream"]
         args.isp=init.config["isPlanet"]
         args.mid=init.config["midplane"]
-        args.rz=not(args.mid)
+        args.rz=not args.mid
         args.cart=init.config["cartesian"]
-        args.pol=not(args.cart)
+        args.pol=not args.cart
         args.avr=init.config["average"]
-        args.noavr=not(args.avr)
+        args.noavr=not args.avr
         args.p=init.config["profile"]
         args.ft=init.config["fontsize"]
         args.cmap=init.config["cmap"]
