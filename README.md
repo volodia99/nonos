@@ -1,5 +1,6 @@
 # nonos
-A tool to analyze results from idefix/pluto/fargo3d simulations (for protoplanetary disks more specifically)
+A tool to analyze results from idefix/pluto/fargo3d simulations (for protoplanetary disks more specifically, 2D ok, 3D cylindrical)
+TODO: write readme for the command line tool mode (ex: nonos -diff -on 10) / local mode (nonos -l + config.toml file)
 
 to be tested: the function/class part of the programm (cf the example here to start with)
 
