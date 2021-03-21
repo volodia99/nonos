@@ -1324,6 +1324,4 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
     else:
         print("everything's loaded")
 
-    print('\n')
-
     return 0
