@@ -1150,7 +1150,7 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
     if args.l:
         rprint("[bold white]Local mode")
         if len(glob.glob1("","config.toml"))!=1:
-            pathconfig = os.path.join(os.path.dirname(os.path.abspath(__file__)),"config.toml")
+            pathconfig = pkg_resources.resource_filename("nonos", "config.toml")
             copyfile(pathconfig, "config.toml")
             print_warn("config.toml file copied in working directory.\nYou can now open it and choose the parameters")
             return 0
