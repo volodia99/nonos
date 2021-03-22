@@ -1,6 +1,14 @@
 # nonos
-A tool to analyze results from idefix/pluto/fargo3d simulations (for protoplanetary disks more specifically)
-tested in 2D for now
+A tool to analyze results from idefix/pluto/fargo3d simulations (for protoplanetary disks more specifically, 2D ok, 3D cylindrical)
+TODO: write readme for the command line tool mode (ex: nonos -diff -on 10) / local mode (nonos -l + config.toml file)
+
+to be tested: the function/class part of the programm (cf the example here to start with)
+
+error: ````streamlines```` & ````midplane=False```` -> not yet implemented
+
+warning: ````isPlanet=False```` & ````corotate=True```` -> we don't rotate the grid if there is no planet for now.\nomegagrid = 0.
+
+warning: ````cartesian=False```` & ````midplane=False```` -> plot not optimized for now in the (R,z) plane in polar.
 
 #### Example of field
 ````python
