@@ -8,6 +8,7 @@ from multiprocessing import Pool, Value
 from pathlib import Path
 from shutil import copyfile
 import functools
+import pkg_resources
 import glob
 from typing import List, Optional
 import argparse
@@ -286,13 +287,12 @@ class AnalysisNonos():
     """
     def __init__(self, directory_of_script=None, info=False):
         if directory_of_script is None:
-            directory_of_script=os.path.dirname(os.path.abspath(__file__))
+            config_file = pkg_resources.resource_filename("nonos", "config.toml")
+        else:
+            config_file = os.path.join(directory_of_script, 'config.toml')
 
-        nfound = len(glob.glob1(directory_of_script,"config.toml"))
-        if nfound==0:
-            raise FileNotFoundError(os.path.join(directory_of_script,"config.toml")+" not found")
+        self.config = toml.load(config_file)
 
-        self.config=toml.load(os.path.join(directory_of_script,"config.toml"))
         if info:
             print('\n')
             print('--------------------------------------')
