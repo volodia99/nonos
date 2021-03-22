@@ -1153,12 +1153,7 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
     parser.add_argument('-multi', action="store_true", help="default: False")
     parser.add_argument('-cpu', type=int, default=pconfig['nbcpu'], help="default: pconfig['nbcpu']")
 
-    try:
-        args = parser.parse_args(argv)
-    except argparse.ArgumentError:
-        print("cacaaaaaaaaa")
-        print_err("Check mutual exclusive arguments mid/rz, cart/pol or avr/noavr.")
-        return 1
+    args = parser.parse_args(argv)
 
     if args.l:
         rprint("[bold white]Local mode")
@@ -1223,7 +1218,6 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
         args.cart=False
     if args.noavr:
         args.avr=False
-    print("-mid:",args.mid,"-rz:",args.rz)
 
     if(not(args.mid) and args.s):
         print_err("For now, we do not compute streamlines in the (R,z) plane")
