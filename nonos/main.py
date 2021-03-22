@@ -1114,8 +1114,8 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
 
     parser = argparse.ArgumentParser()
     # analysis = AnalysisNonos(directory=args.dir)
-    parser.add_argument('-info', type=bool, nargs='?', const=True, default=False)
-    parser.add_argument('-l', type=bool, nargs='?', const=True, default=False)
+    parser.add_argument('-info', action="store_true")
+    parser.add_argument('-l', action="store_true")
     parser.add_argument('-dir', type=str, default=pconfig['dir'], help="default: pconfig['dir']")
     parser.add_argument('-mod', type=str, default=pconfig['mode'], help="default: pconfig['mode']")
     parser.add_argument('-on', type=int, default=pconfig['onStart'], help="default: pconfig['onStart']")
@@ -1123,29 +1123,42 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
     parser.add_argument('-vmin', type=float, default=None, help="default: pconfig['vmin'] or calculated")
     parser.add_argument('-vmax', type=float, default=None, help="default: pconfig['vmax'] or calculated")
     parser.add_argument('-onend', type=int, default=pconfig['onEnd'], help="default: pconfig['onEnd']")
-    parser.add_argument('-diff', type=bool, nargs='?', const=True, default=pconfig['diff'], help="default: pconfig['diff']")
-    parser.add_argument('-log', type=bool, nargs='?', const=True, default=pconfig['log'], help="default: pconfig['log']")
-    parser.add_argument('-cor', type=bool, nargs='?', const=True, default=pconfig['corotate'], help="default: pconfig['corotate']")
-    parser.add_argument('-s', type=bool, nargs='?', const=True, default=pconfig['streamlines'], help="default: pconfig['streamlines']")
+    parser.add_argument('-diff', action="store_true", help="default: False")
+    parser.add_argument('-log', action="store_true", help="default: False")
+    parser.add_argument('-cor', action="store_true", help="default: False")
+    parser.add_argument('-s', action="store_true", help="default: False")
     parser.add_argument('-stype', type=str, default=pconfig['streamtype'], help="default: pconfig['streamtype']")
     parser.add_argument('-srmin', type=float, default=pconfig['rminStream'], help="default: pconfig['rminStream']")
     parser.add_argument('-srmax', type=float, default=pconfig['rmaxStream'], help="default: pconfig['rmaxStream']")
     parser.add_argument('-sn', type=int, default=pconfig['nstream'], help="default: pconfig['nstream']")
-    parser.add_argument('-isp', type=bool, nargs='?', const=True, default=pconfig['isPlanet'], help="default: pconfig['isPlanet']")
-    parser.add_argument('-mid', type=bool, nargs='?', const=True, default=pconfig['midplane'], help="default: pconfig['midplane']")
-    parser.add_argument('-rz', type=bool, nargs='?', const=True, default=False, help="default: False")
-    parser.add_argument('-cart', type=bool, nargs='?', const=True, default=pconfig['cartesian'], help="default: pconfig['cartesian']")
-    parser.add_argument('-pol', type=bool, nargs='?', const=True, default=False, help="default: False")
-    parser.add_argument('-avr', type=bool, nargs='?', const=True, default=pconfig['average'], help="default: pconfig['average']")
-    parser.add_argument('-noavr', type=bool, nargs='?', const=True, default=False, help="default: False")
+    parser.add_argument('-isp', action="store_true", help="default: False")
+
+    groupmid = parser.add_mutually_exclusive_group()
+    groupmid.add_argument('-mid', action="store_true", default=pconfig['midplane'], help="default: pconfig['midplane']")
+    groupmid.add_argument('-rz', action="store_true", default=False, help="default: False")
+
+    groupcart = parser.add_mutually_exclusive_group()
+    groupcart.add_argument('-cart', action="store_true", default=pconfig['cartesian'], help="default: pconfig['cartesian']")
+    groupcart.add_argument('-pol', action="store_true", default=False, help="default: False")
+
+    groupavr = parser.add_mutually_exclusive_group()
+    groupavr.add_argument('-avr', action="store_true", default=pconfig['average'], help="default: pconfig['average']")
+    groupavr.add_argument('-noavr', action="store_true", default=False, help="default: False")
+
     parser.add_argument('-p', type=str, default=pconfig['profile'], help="default: pconfig['profile']")
     parser.add_argument('-ft', type=float, default=pconfig['fontsize'], help="default: pconfig['fontsize']")
     parser.add_argument('-cmap', type=str, default=pconfig['cmap'], help="default: pconfig['cmap']")
     parser.add_argument('-full', type=bool, default=pconfig['fullfilm'], help="default: pconfig['fullfilm']")
-    parser.add_argument('-pbar', type=bool, nargs='?', const=True, default=pconfig['progressBar'], help="default: pconfig['progressBar']")
-    parser.add_argument('-multi', type=bool, nargs='?', const=True, default=pconfig['parallel'], help="default: pconfig['parallel']")
+    parser.add_argument('-pbar', action="store_true", help="default: False")
+    parser.add_argument('-multi', action="store_true", help="default: False")
     parser.add_argument('-cpu', type=int, default=pconfig['nbcpu'], help="default: pconfig['nbcpu']")
-    args = parser.parse_args(argv)
+
+    try:
+        args = parser.parse_args(argv)
+    except argparse.ArgumentError:
+        print("cacaaaaaaaaa")
+        print_err("Check mutual exclusive arguments mid/rz, cart/pol or avr/noavr.")
+        return 1
 
     if args.l:
         rprint("[bold white]Local mode")
@@ -1210,6 +1223,7 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
         args.cart=False
     if args.noavr:
         args.avr=False
+    print("-mid:",args.mid,"-rz:",args.rz)
 
     if(not(args.mid) and args.s):
         print_err("For now, we do not compute streamlines in the (R,z) plane")
