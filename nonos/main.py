@@ -243,7 +243,6 @@ class Parameters():
                     self.omegagrid = 0.0
 
         elif self.code=='pluto':
-            print_warn("Aspect ratio not defined in pluto.ini.\nBy default, h0=0.05\n")
             self.h0 = 0.05
             self.vtk = self.iniconfig["Static Grid Output"]["vtk"][0]
             if isPlanet:
@@ -707,6 +706,7 @@ class PlotNonos(FieldNonos):
                     im=ax.pcolormesh(r,t,self.data[:,self.ny//2,:],
                               cmap=cmap,vmin=vmin,vmax=vmax,**karg)
 
+                print_warn("Aspect ratio not defined in pluto.ini.\nBy default, h0=0.05\n")
                 tmin = np.pi/2-5*self.h0
                 tmax = np.pi/2+5*self.h0
                 # tmin = np.arctan2(1.0,Z.min())
