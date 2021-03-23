@@ -57,7 +57,7 @@ def readVTKPolar(filename, cell='edges'):
     """
     nfound = len(glob.glob(filename))
     if nfound!=1:
-        return None
+        raise FileNotFoundError("In readVTKPolar: %s not found."%filename)
 
     fid=open(filename,"rb")
 
@@ -80,8 +80,7 @@ def readVTKPolar(filename, cell='edges'):
     grid_type=str(slist[1],'utf-8')
     if grid_type != "STRUCTURED_GRID":
         fid.close()
-        print_err("Wrong VTK file type.\nCurrent type is: %s.\nThis routine can only open Polar VTK files."%(grid_type))
-        return None
+        raise ValueError("In readVTKPolar: Wrong VTK file type.\nCurrent type is: '%s'.\nThis routine can only open Polar VTK files."%(grid_type))
 
     s=fid.readline()    # DIMENSIONS NX NY NZ
     slist=s.split()
@@ -97,10 +96,8 @@ def readVTKPolar(filename, cell='edges'):
     s=fid.readline()    # EXTRA LINE FEED
 
     V.points=points
-
     if V.nx*V.ny*V.nz != npoints:
-        print_err("Grid size incompatible with number of points in the data set")
-        return None
+        raise ValueError("In readVTKPolar: Grid size (%d) incompatible with number of points (%d) in the data set"%(V.nx*V.ny*V.nz,npoints))
 
     # Reconstruct the polar coordinate system
     x1d=points[::3]
@@ -120,8 +117,7 @@ def readVTKPolar(filename, cell='edges'):
     data_type=str(slist[0],'utf-8')
     if data_type != "CELL_DATA":
         fid.close()
-        print_err("this routine expect CELL DATA as produced by PLUTO.")
-        return None
+        raise ValueError("In readVTKPolar: this routine expect 'CELL DATA' as produced by PLUTO, not '%s'."%data_type)
     s=fid.readline()    # Line feed
 
     if cell=='edges':
@@ -179,8 +175,7 @@ def readVTKPolar(filename, cell='edges'):
             V.data[varname+'_Z']=np.transpose(Q[2::3].reshape(V.nz,V.ny,V.nx))
 
         else:
-            print_err("Unknown datatype %s" % datatype)
-            return None
+            raise ValueError("In readVTKPolar: Unknown datatype '%s', should be 'SCALARS' or 'VECTORS'" % datatype)
             break
 
         fid.readline()  #extra line feed
@@ -225,13 +220,14 @@ class Parameters():
                 self.qpl = self.iniconfig["Planet"]["qpl"]
                 self.dpl = self.iniconfig["Planet"]["dpl"]
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
-                if corotate:
-                    self.vtk = self.iniconfig["Output"]["vtk"]
+
+            if corotate:
+                self.vtk = self.iniconfig["Output"]["vtk"]
+                if isPlanet:
                     self.omegagrid = self.omegaplanet
-            else:
-                if corotate:
-                    self.vtk = self.iniconfig["Output"]["vtk"]
+                else:
                     self.omegagrid = 0.0
+
 
         elif self.code=='pluto':
             # self.h0 = 0.05
@@ -240,12 +236,12 @@ class Parameters():
                 print_warn("Initial distance not defined in pluto.ini.\nBy default, dpl=1.0 for the computation of omegaP\n")
                 self.dpl = 1.0
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
-                if corotate:
-                    self.vtk = self.iniconfig["Static Grid Output"]["vtk"][0]
+
+            if corotate:
+                self.vtk = self.iniconfig["Static Grid Output"]["vtk"][0]
+                if isPlanet:
                     self.omegagrid = self.omegaplanet
-            else:
-                if corotate:
-                    self.vtk = self.iniconfig["Static Grid Output"]["vtk"][0]
+                else:
                     self.omegagrid = 0.0
 
         elif self.code=='fargo3d':
@@ -263,12 +259,11 @@ class Parameters():
                 self.qpl = self.cfgconfig[list(self.cfgconfig)[0]][1]
                 self.dpl = self.cfgconfig[list(self.cfgconfig)[0]][0]
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
-                if corotate:
-                    self.vtk = self.iniconfig["NINTERM"]*self.iniconfig["DT"]
+            if corotate:
+                self.vtk = self.iniconfig["NINTERM"]*self.iniconfig["DT"]
+                if isPlanet:
                     self.omegagrid = self.omegaplanet
-            else:
-                if corotate:
-                    self.vtk = self.iniconfig["NINTERM"]*self.iniconfig["DT"]
+                else:
                     self.omegagrid = 0.0
 
 class AnalysisNonos():
@@ -311,8 +306,6 @@ class InitParamNonos(AnalysisNonos,Parameters):
 
         if (self.code=='idefix' or self.code=='pluto'):
             domain=readVTKPolar(os.path.join(self.directory,'data.0000.vtk'), cell="edges")
-            if domain is None:
-                raise AttributeError("Problem with the readVTKPolar function.\nDoes 'data.0000.vtk' exist?")
             list_keys=list(domain.data.keys())
             if info:
                 print("\nWORKS IN POLAR COORDINATES")
@@ -358,9 +351,6 @@ class Mesh(Parameters):
         Parameters.__init__(self, config=config, directory=directory, paramfile=paramfile) #All the Parameters attributes inside Field
         if (self.code=='idefix' or self.code=='pluto'):
             domain=readVTKPolar(os.path.join(directory,'data.0000.vtk'), cell="edges")
-            if domain is None:
-                raise AttributeError("Problem with the readVTKPolar function.\nDoes 'data.0000.vtk' exist?")
-
             self.domain = domain
 
             self.nx = self.domain.nx
@@ -516,15 +506,16 @@ class FieldNonos(Mesh,Parameters):
         impossible to perform the following calculation (try/except)
         we therefore don't move the grid if the rotation speed is null
         """
-        if self.corotate:
-            if self.on*self.vtk*self.omegagrid!=0.0:
-                P,R = np.meshgrid(self.y,self.x)
-                Prot=P-(self.on*self.vtk*self.omegagrid)%(2*np.pi)
-                try:
-                    index=(np.where(Prot[0]>np.pi))[0].min()
-                except ValueError:
-                    index=(np.where(Prot[0]<-np.pi))[0].max()
-                data=np.concatenate((data[:,index:self.ny,:],data[:,0:index,:]),axis=1)
+        if not(self.corotate and abs(self.on*self.vtk*self.omegagrid)>1.0e-16):
+            return data
+
+        P,R = np.meshgrid(self.y,self.x)
+        Prot=P-(self.on*self.vtk*self.omegagrid)%(2*np.pi)
+        try:
+            index=(np.where(Prot[0]>np.pi))[0].min()
+        except ValueError:
+            index=(np.where(Prot[0]<-np.pi))[0].max()
+        data=np.concatenate((data[:,index:self.ny,:],data[:,0:index,:]),axis=1)
         return data
 
 class PlotNonos(FieldNonos):
@@ -970,8 +961,7 @@ class StreamNonos(FieldNonos):
                         ax.plot(sub_stream[0],sub_stream[1],**kargs)
                 else:
                     if self.check:
-                        print_err("For now, we do not compute streamlines in the (R,z) plane")
-                        return 1
+                        raise NotImplementedError("For now, we do not compute streamlines in the (R,z) plane")
 
     def get_lic_streams(self, vx, vy):
         get_lic=lic.lic(vx[:,:,self.imidplane],vy[:,:,self.imidplane],length=30)
@@ -989,8 +979,7 @@ class StreamNonos(FieldNonos):
                 ax.pcolormesh(R,P,streams,**kargs)
         else:
             if self.check:
-                print_err("For now, we do not compute streamlines in the (R,z) plane")
-                return 1
+                raise NotImplementedError("For now, we do not compute streamlines in the (R,z) plane")
 
 def find_nearest(array, value):
     array = np.asarray(array)
@@ -1105,13 +1094,6 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
         return 1
 
     pconfig=analysis.config
-
-    # see
-    # parser.add_argument(
-    # "-test",
-    # choices=["mod1","mod2"],
-    # default="mod1",
-    # )
 
     parser = argparse.ArgumentParser()
     # analysis = AnalysisNonos(directory=args.dir)
@@ -1310,7 +1292,7 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
             return 0
         try:
             init = InitParamNonos(directory=args.dir, directory_of_script="", info=args.info)
-        except (FileNotFoundError,RuntimeError,AttributeError) as exc:
+        except (FileNotFoundError,RuntimeError,ValueError) as exc:
             print_err(exc)
             return 1
         pconfig=init.config
@@ -1350,7 +1332,7 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
     else:
         try:
             init = InitParamNonos(directory=args.dir, info=args.info)
-        except (FileNotFoundError,RuntimeError,AttributeError) as exc:
+        except (FileNotFoundError,RuntimeError,ValueError) as exc:
             print_err(exc)
             return 1
 
