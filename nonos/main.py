@@ -220,30 +220,32 @@ class Parameters():
         self.iniconfig = ix.load(os.path.join(directory,self.paramfile))
 
         if self.code=='idefix':
-            self.h0 = self.iniconfig["Setup"]["h0"]
-            self.vtk = self.iniconfig["Output"]["vtk"]
+            # self.h0 = self.iniconfig["Setup"]["h0"]
             if isPlanet:
                 self.qpl = self.iniconfig["Planet"]["qpl"]
                 self.dpl = self.iniconfig["Planet"]["dpl"]
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
                 if corotate:
+                    self.vtk = self.iniconfig["Output"]["vtk"]
                     self.omegagrid = self.omegaplanet
             else:
                 if corotate:
+                    self.vtk = self.iniconfig["Output"]["vtk"]
                     self.omegagrid = 0.0
 
         elif self.code=='pluto':
-            self.h0 = 0.05
-            self.vtk = self.iniconfig["Static Grid Output"]["vtk"][0]
+            # self.h0 = 0.05
             if isPlanet:
                 self.qpl = self.iniconfig["Parameters"]["Mplanet"]/self.iniconfig["Parameters"]["Mstar"]
                 print_warn("Initial distance not defined in pluto.ini.\nBy default, dpl=1.0 for the computation of omegaP\n")
                 self.dpl = 1.0
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
                 if corotate:
+                    self.vtk = self.iniconfig["Static Grid Output"]["vtk"][0]
                     self.omegagrid = self.omegaplanet
             else:
                 if corotate:
+                    self.vtk = self.iniconfig["Static Grid Output"]["vtk"][0]
                     self.omegagrid = 0.0
 
         elif self.code=='fargo3d':
@@ -256,16 +258,17 @@ class Parameters():
             cfgfile = glob.glob1(directory,"*.cfg")[0]
 
             self.cfgconfig = ix.load(os.path.join(directory,cfgfile))
-            self.vtk = self.iniconfig["NINTERM"]*self.iniconfig["DT"]
-            self.h0 = self.iniconfig["ASPECTRATIO"]
+            # self.h0 = self.iniconfig["ASPECTRATIO"]
             if isPlanet:
                 self.qpl = self.cfgconfig[list(self.cfgconfig)[0]][1]
                 self.dpl = self.cfgconfig[list(self.cfgconfig)[0]][0]
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
                 if corotate:
+                    self.vtk = self.iniconfig["NINTERM"]*self.iniconfig["DT"]
                     self.omegagrid = self.omegaplanet
             else:
                 if corotate:
+                    self.vtk = self.iniconfig["NINTERM"]*self.iniconfig["DT"]
                     self.omegagrid = 0.0
 
 class AnalysisNonos():
@@ -513,14 +516,15 @@ class FieldNonos(Mesh,Parameters):
         impossible to perform the following calculation (try/except)
         we therefore don't move the grid if the rotation speed is null
         """
-        if (self.corotate and self.on*self.vtk*self.omegagrid!=0.0):
-            P,R = np.meshgrid(self.y,self.x)
-            Prot=P-(self.on*self.vtk*self.omegagrid)%(2*np.pi)
-            try:
-                index=(np.where(Prot[0]>np.pi))[0].min()
-            except ValueError:
-                index=(np.where(Prot[0]<-np.pi))[0].max()
-            data=np.concatenate((data[:,index:self.ny,:],data[:,0:index,:]),axis=1)
+        if self.corotate:
+            if self.on*self.vtk*self.omegagrid!=0.0:
+                P,R = np.meshgrid(self.y,self.x)
+                Prot=P-(self.on*self.vtk*self.omegagrid)%(2*np.pi)
+                try:
+                    index=(np.where(Prot[0]>np.pi))[0].min()
+                except ValueError:
+                    index=(np.where(Prot[0]<-np.pi))[0].max()
+                data=np.concatenate((data[:,index:self.ny,:],data[:,0:index,:]),axis=1)
         return data
 
 class PlotNonos(FieldNonos):
@@ -696,9 +700,9 @@ class PlotNonos(FieldNonos):
                     im=ax.pcolormesh(r,t,self.data[:,self.ny//2,:],
                               cmap=cmap,vmin=vmin,vmax=vmax,**karg)
 
-                print_warn("Aspect ratio not defined in pluto.ini.\nBy default, h0=0.05\n")
-                tmin = np.pi/2-5*self.h0
-                tmax = np.pi/2+5*self.h0
+                print_warn("Aspect ratio not defined for now.\nBy default, h0=0.05\n")
+                tmin = np.pi/2-5*0.05
+                tmax = np.pi/2+5*0.05
                 # tmin = np.arctan2(1.0,Z.min())
                 # tmax = np.arctan2(1.0,Z.max())
 
