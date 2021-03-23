@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-adapted from pbenitez-llambay, gwafflard-fernandez, crobert-lot & glesur
+adapted from pbenitez-llambay, gwafflard-fernandez, cmt robert & glesur
 """
 
 from multiprocessing import Pool, Value
@@ -1027,13 +1027,15 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
 
 def print_warn(message):
     """
-    from crobert
+    adapted from idefix_cli (cmt robert)
+    https://github.com/neutrinoceros/idefix_cli
     """
     rprint(f"[bold red]Warning |[/] {message}", file=sys.stderr)
 
 def print_err(message):
     """
-    from crobert
+    adapted from idefix_cli (cmt robert)
+    https://github.com/neutrinoceros/idefix_cli
     """
     rprint(f"[bold white on red]Error |[/] {message}", file=sys.stderr)
 
