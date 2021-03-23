@@ -26,27 +26,17 @@ from rich.progress import track
 import lic
 
 # TODO: recheck in 3D
-# TODO: adapt config['average'] as an arg
 # TODO: check in plot function if corotate=True works for all vtk and dpl
 #        (initial planet location) -> computation to calculate the grid rotation speed
 # TODO: compute gas surface density and not just gas volume density :
 #        something like self.data*=np.sqrt(2*np.pi)*self.aspectratio*self.y
-# TODO: check how to generalize the path of the directory (.toml file)
 # TODO: compute vortensity
 # TODO: compute vertical flows (cf vertical_flows.txt)
-# TODO: adapt streamline analysis (cf strl.py)
 # TODO: re-check if each condition works fine
-# TODO: CORRECTED AND TO BE TESTED maybe small bug
-#        in the progress bar when nbcpu=n_files
-# TODO: recheck the axiplot feature (parallelization, ...) and the writeField feature
-# TODO: streamlines does not work properly (azimuthal displacement
-#        due to reconstruction of field with corotation)
+# TODO: recheck the writeField feature
+# TODO: streamline analysis: weird azimuthal reconnection ?
 # TODO: streamline analysis: test if the estimation of the radial spacing works
-# TODO: major modif for the corotation implementation
-# TODO: streamlines = 'random', 'specific' or 'lic'
 # TODO: write a better way to save pictures (function in PlotNonos maybe)
-# TODO: for now, calculations are made only in working directory,
-#        need to specify directory in command lines
 # TODO: do not forget to change all the functions that use dpl (planet location),
 #        which is valid if the planet is in a fixed cicular orbit
 # TODO: test corotate in the (R,z) plane
@@ -1112,46 +1102,198 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
 
     pconfig=analysis.config
 
+    # see
+    # parser.add_argument(
+    # "-test",
+    # choices=["mod1","mod2"],
+    # default="mod1",
+    # )
+
     parser = argparse.ArgumentParser()
     # analysis = AnalysisNonos(directory=args.dir)
-    parser.add_argument('-info', action="store_true")
-    parser.add_argument('-l', action="store_true")
-    parser.add_argument('-dir', type=str, default=pconfig['dir'], help="default: pconfig['dir']")
-    parser.add_argument('-mod', type=str, default=pconfig['mode'], help="default: pconfig['mode']")
-    parser.add_argument('-on', type=int, default=pconfig['onStart'], help="default: pconfig['onStart']")
-    parser.add_argument('-f', type=str.lower, default=pconfig['field'], help="default: pconfig['field']")
-    parser.add_argument('-vmin', type=float, default=None, help="default: pconfig['vmin'] or calculated")
-    parser.add_argument('-vmax', type=float, default=None, help="default: pconfig['vmax'] or calculated")
-    parser.add_argument('-onend', type=int, default=pconfig['onEnd'], help="default: pconfig['onEnd']")
-    parser.add_argument('-diff', action="store_true", help="default: False")
-    parser.add_argument('-log', action="store_true", help="default: False")
-    parser.add_argument('-cor', action="store_true", help="default: False")
-    parser.add_argument('-s', action="store_true", help="default: False")
-    parser.add_argument('-stype', type=str, default=pconfig['streamtype'], help="default: pconfig['streamtype']")
-    parser.add_argument('-srmin', type=float, default=pconfig['rminStream'], help="default: pconfig['rminStream']")
-    parser.add_argument('-srmax', type=float, default=pconfig['rmaxStream'], help="default: pconfig['rmaxStream']")
-    parser.add_argument('-sn', type=int, default=pconfig['nstream'], help="default: pconfig['nstream']")
-    parser.add_argument('-isp', action="store_true", help="default: False")
+    parser.add_argument(
+        '-info',
+        action="store_true",
+        )
+    parser.add_argument(
+        '-l',
+        action="store_true",
+        )
+    parser.add_argument(
+        '-dir',
+        type=str,
+        default=pconfig['dir'],
+        help="default: pconfig['dir']",
+        )
+    parser.add_argument(
+        '-mod',
+        type=str,
+        choices=["display","film"],
+        default=pconfig['mode'],
+        help="default: pconfig['mode']",
+        )
+    parser.add_argument(
+        '-on',
+        type=int,
+        default=pconfig['onStart'],
+        help="default: pconfig['onStart']",
+        )
+    parser.add_argument(
+        '-f',
+        type=str.lower,
+        default=pconfig['field'],
+        help="default: pconfig['field']",
+        )
+    parser.add_argument(
+        '-vmin',
+        type=float,
+        default=None,
+        help="default: pconfig['vmin'] or calculated",
+        )
+    parser.add_argument(
+        '-vmax',
+        type=float,
+        default=None,
+        help="default: pconfig['vmax'] or calculated",
+        )
+    parser.add_argument(
+        '-onend',
+        type=int,
+        default=pconfig['onEnd'],
+        help="default: pconfig['onEnd']",
+        )
+    parser.add_argument(
+        '-diff',
+        action="store_true",
+        help="default: False",
+        )
+    parser.add_argument(
+        '-log',
+        action="store_true",
+        help="default: False",
+        )
+    parser.add_argument(
+        '-cor',
+        action="store_true",
+        help="default: False",
+        )
+    parser.add_argument(
+        '-s',
+        action="store_true",
+        help="default: False",
+        )
+    parser.add_argument(
+        '-stype',
+        type=str,
+        choices=["random","fixed","lic"],
+        default=pconfig['streamtype'],
+        help="default: pconfig['streamtype']",
+        )
+    parser.add_argument(
+        '-srmin',
+        type=float,
+        default=pconfig['rminStream'],
+        help="default: pconfig['rminStream']",
+        )
+    parser.add_argument(
+        '-srmax',
+        type=float,
+        default=pconfig['rmaxStream'],
+        help="default: pconfig['rmaxStream']",
+        )
+    parser.add_argument(
+        '-sn',
+        type=int,
+        default=pconfig['nstream'],
+        help="default: pconfig['nstream']",
+        )
+    parser.add_argument(
+        '-isp',
+        action="store_true",
+        help="default: False",
+        )
 
     groupmid = parser.add_mutually_exclusive_group()
-    groupmid.add_argument('-mid', action="store_true", default=pconfig['midplane'], help="default: pconfig['midplane']")
-    groupmid.add_argument('-rz', action="store_true", default=False, help="default: False")
-
+    groupmid.add_argument(
+        '-mid',
+        action="store_true",
+        default=pconfig['midplane'],
+        help="default: pconfig['midplane']",
+        )
+    groupmid.add_argument(
+        '-rz',
+        action="store_true",
+        default=False,
+        help="default: False",
+        )
     groupcart = parser.add_mutually_exclusive_group()
-    groupcart.add_argument('-cart', action="store_true", default=pconfig['cartesian'], help="default: pconfig['cartesian']")
-    groupcart.add_argument('-pol', action="store_true", default=False, help="default: False")
-
+    groupcart.add_argument(
+        '-cart',
+        action="store_true",
+        default=pconfig['cartesian'],
+        help="default: pconfig['cartesian']",
+        )
+    groupcart.add_argument(
+        '-pol',
+        action="store_true",
+        default=False,
+        help="default: False",
+        )
     groupavr = parser.add_mutually_exclusive_group()
-    groupavr.add_argument('-avr', action="store_true", default=pconfig['average'], help="default: pconfig['average']")
-    groupavr.add_argument('-noavr', action="store_true", default=False, help="default: False")
+    groupavr.add_argument(
+        '-avr',
+        action="store_true",
+        default=pconfig['average'],
+        help="default: pconfig['average']",
+        )
+    groupavr.add_argument(
+        '-noavr',
+        action="store_true",
+        default=False,
+        help="default: False",
+        )
 
-    parser.add_argument('-p', type=str, default=pconfig['profile'], help="default: pconfig['profile']")
-    parser.add_argument('-ft', type=float, default=pconfig['fontsize'], help="default: pconfig['fontsize']")
-    parser.add_argument('-cmap', type=str, default=pconfig['cmap'], help="default: pconfig['cmap']")
-    parser.add_argument('-full', type=bool, default=pconfig['fullfilm'], help="default: pconfig['fullfilm']")
-    parser.add_argument('-pbar', action="store_true", help="default: False")
-    parser.add_argument('-multi', action="store_true", help="default: False")
-    parser.add_argument('-cpu', type=int, default=pconfig['nbcpu'], help="default: pconfig['nbcpu']")
+    parser.add_argument(
+        '-p',
+        type=str,
+        choices=["2d","1d"],
+        default=pconfig['profile'],
+        help="default: pconfig['profile']",
+        )
+    parser.add_argument(
+        '-ft',
+        type=float,
+        default=pconfig['fontsize'],
+        help="default: pconfig['fontsize']",
+        )
+    parser.add_argument(
+        '-cmap',
+        type=str,
+        default=pconfig['cmap'],
+        help="default: pconfig['cmap']",
+        )
+    parser.add_argument(
+        '-full',
+        type=bool,
+        default=pconfig['fullfilm'],
+        help="default: pconfig['fullfilm']",
+        )
+    parser.add_argument(
+        '-pbar',
+        action="store_true",
+        help="default: False",
+        )
+    parser.add_argument(
+        '-multi',
+        action="store_true",
+        help="default: False",
+        )
+    parser.add_argument(
+        '-cpu',
+        type=int,
+        default=pconfig['nbcpu'],
+        help="default: pconfig['nbcpu']",
+        )
 
     args = parser.parse_args(argv)
 
