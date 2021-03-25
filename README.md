@@ -3,6 +3,7 @@ A tool to analyze results from idefix/pluto/fargo3d simulations (for protoplanet
 TODO: write readme for the command line tool mode (ex: nonos -diff -on 10) / local mode (nonos -l + config.toml file)
 
 to be tested: the function/class part of the programm (cf the example here to start with)
+In particular, a restructuration is needed in order to take InitParamNonos() object as argument of FieldNonos() or PlotNonos() instead of the dictionary pconfig. For now we need to precise ````pconfig['isPlanet']=True```` after InitParamNonos()
 
 error: ````streamlines```` & ````midplane=False```` -> not yet implemented
 
@@ -43,7 +44,7 @@ vx1on = FieldNonos(pconfig, field='VX1', on=25, diff=False, log=False)
 vr = vx1on.data
 vx2on = FieldNonos(pconfig, field='VX2', on=25, diff=False, log=False)
 vphi = vx2on.data
-vphi -= vx2on.omegaplanet*vx2on.xmed[:,None,None]
+vphi -= vx2on.omegaplanet[25]*vx2on.xmed[:,None,None]
 streams = streamon.get_random_streams(vr,vphi,xmin=0.7,xmax=1.3, n=30)
 
 fig, ax = plt.subplots()
