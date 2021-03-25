@@ -3,7 +3,6 @@ A tool to analyze results from idefix/pluto/fargo3d simulations (for protoplanet
 TODO: write readme for the command line tool mode (ex: nonos -diff -on 10) / local mode (nonos -l + config.toml file)
 
 to be tested: the function/class part of the programm (cf the example here to start with)
-In particular, a restructuration is needed in order to take InitParamNonos() object as argument of FieldNonos() or PlotNonos() instead of the dictionary pconfig. For now we need to precise ````pconfig['isPlanet']=True```` after InitParamNonos()
 
 error: ````streamlines```` & ````midplane=False```` -> not yet implemented
 
