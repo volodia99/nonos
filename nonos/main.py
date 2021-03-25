@@ -42,6 +42,7 @@ import lic
 # TODO: test corotate in the (R,z) plane
 # TODO: create a test that compares when midplane=False
 #        (average=True+corotate=True) & (average=True+corotate=False) should be identical
+# TODO: check how the class arguments (arg=None) are defined between different classes
 
 class DataStructure:
     """
@@ -189,7 +190,9 @@ class Parameters():
     Class for reading the simulation parameters.
     input: string -> name of the parfile, normally *.ini
     """
-    def __init__(self, config, directory="", paramfile=None, corotate=None, isPlanet=None):
+    def __init__(self, config, directory=None, paramfile=None, corotate=None, isPlanet=None):
+        if directory is None:
+            directory=config['dir']
         if corotate is None:
             corotate=config['corotate']
         if isPlanet is None:
@@ -215,10 +218,20 @@ class Parameters():
         self.iniconfig = ix.load(os.path.join(directory,self.paramfile))
 
         if self.code=='idefix':
+            self.n_file = len(glob.glob1(directory,"data.*.vtk"))
             # self.h0 = self.iniconfig["Setup"]["h0"]
             if isPlanet:
-                self.qpl = self.iniconfig["Planet"]["qpl"]
-                self.dpl = self.iniconfig["Planet"]["dpl"]
+                if Path(directory).joinpath("planet0.dat").is_file():
+                    with open('planet0.dat','r') as f1:
+                        datafile = f1.readlines()
+                        self.qpl = np.array([float(line.split()[7]) for line in datafile])
+                        self.dpl = np.array([np.sqrt(float(line.split()[1])**2+float(line.split()[2])**2+float(line.split()[3])**2) for line in datafile])
+                        self.xpl = np.array([float(line.split()[1]) for line in datafile])
+                        self.ypl = np.array([float(line.split()[2]) for line in datafile])
+                        self.tpl = np.array([float(line.split()[8]) for line in datafile])
+                else:
+                    self.qpl = np.array([self.iniconfig["Planet"]["qpl"] for i in range(self.n_file)])
+                    self.dpl = np.array([self.iniconfig["Planet"]["dpl"] for i in range(self.n_file)])
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
 
             if corotate:
@@ -226,15 +239,15 @@ class Parameters():
                 if isPlanet:
                     self.omegagrid = self.omegaplanet
                 else:
-                    self.omegagrid = 0.0
-
+                    self.omegagrid = np.array([0.0 for i in range(self.n_file)])
 
         elif self.code=='pluto':
+            self.n_file = len(glob.glob1(directory,"data.*.vtk"))
             # self.h0 = 0.05
             if isPlanet:
-                self.qpl = self.iniconfig["Parameters"]["Mplanet"]/self.iniconfig["Parameters"]["Mstar"]
+                self.qpl = np.array([self.iniconfig["Parameters"]["Mplanet"]/self.iniconfig["Parameters"]["Mstar"] for i in range(self.n_file)])
                 print_warn("Initial distance not defined in pluto.ini.\nBy default, dpl=1.0 for the computation of omegaP\n")
-                self.dpl = 1.0
+                self.dpl = np.array([1.0 for i in range(self.n_file)])
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
 
             if corotate:
@@ -242,9 +255,10 @@ class Parameters():
                 if isPlanet:
                     self.omegagrid = self.omegaplanet
                 else:
-                    self.omegagrid = 0.0
+                    self.omegagrid = np.array([0.0 for i in range(self.n_file)])
 
         elif self.code=='fargo3d':
+            self.n_file = len(glob.glob1(directory,"gasdens*.dat")) - len(glob.glob1(directory,"gasdens*_*.dat"))
             nfound = len(glob.glob1(directory,"*.cfg"))
             if nfound==0:
                 raise FileNotFoundError("*.cfg file (FARGO3D planet parameters) does not exist in '%s' directory"%directory)
@@ -256,15 +270,35 @@ class Parameters():
             self.cfgconfig = ix.load(os.path.join(directory,cfgfile))
             # self.h0 = self.iniconfig["ASPECTRATIO"]
             if isPlanet:
-                self.qpl = self.cfgconfig[list(self.cfgconfig)[0]][1]
-                self.dpl = self.cfgconfig[list(self.cfgconfig)[0]][0]
+                if Path(directory).joinpath("planet0.dat").is_file():
+                    with open('planet0.dat','r') as f1:
+                        datafile = f1.readlines()
+                        self.qpl = np.array([float(line.split()[7]) for line in datafile])
+                        self.dpl = np.array([np.sqrt(float(line.split()[1])**2+float(line.split()[2])**2+float(line.split()[3])**2) for line in datafile])
+                        self.xpl = np.array([float(line.split()[1]) for line in datafile])
+                        self.ypl = np.array([float(line.split()[2]) for line in datafile])
+                        self.tpl = np.array([float(line.split()[8]) for line in datafile])
+                else:
+                    self.qpl = np.array([self.cfgconfig[list(self.cfgconfig)[0]][1] for i in range(self.n_file)])
+                    self.dpl = np.array([self.cfgconfig[list(self.cfgconfig)[0]][0] for i in range(self.n_file)])
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
             if corotate:
                 self.vtk = self.iniconfig["NINTERM"]*self.iniconfig["DT"]
                 if isPlanet:
                     self.omegagrid = self.omegaplanet
                 else:
-                    self.omegagrid = 0.0
+                    self.omegagrid = np.array([0.0 for i in range(self.n_file)])
+        # if isPlanet:
+        #     print("qpl:",self.qpl)
+        #     print("dpl:",self.dpl)
+        #     print("omegaplanet:",self.omegaplanet)
+        # if corotate:
+        #     print("vtk:",self.vtk)
+        #     print("omegagrid:",self.omegagrid)
+        # print("n_file:",self.n_file)
+
+        if self.n_file==0:
+            raise FileNotFoundError("No data files (e.g., 'data.*.vtk' or 'gasdens*.dat') are found.")
 
 class AnalysisNonos():
     """
@@ -295,12 +329,12 @@ class InitParamNonos(AnalysisNonos,Parameters):
     Call the AnalysisNonos class to define the config dictionary
     and use it to call the Parameters class to initialize important parameters.
     """
-    def __init__(self, directory=None, directory_of_script=None, info=False, paramfile=None):
+    def __init__(self, directory=None, directory_of_script=None, info=False, paramfile=None, corotate=None, isPlanet=None):
         AnalysisNonos.__init__(self, directory_of_script=directory_of_script, info=info)
         if directory is None:
             directory=self.config['dir']
         self.directory=directory
-        Parameters.__init__(self, config=self.config, directory=self.directory, paramfile=paramfile) #All the Parameters attributes inside Field
+        Parameters.__init__(self, config=self.config, directory=self.directory, paramfile=paramfile, corotate=corotate, isPlanet=isPlanet) #All the Parameters attributes inside Field
         if info:
             print(self.code.upper(), "analysis")
 
@@ -312,7 +346,7 @@ class InitParamNonos(AnalysisNonos,Parameters):
                 print("Possible fields: ", list_keys)
                 print('nR=%d, np=%d, nz=%d' % (domain.nx,domain.ny,domain.nz))
 
-            self.n_file = len(glob.glob1(self.directory,"data.*.vtk"))
+            # self.n_file = len(glob.glob1(self.directory,"data.*.vtk"))
 
         elif self.code=='fargo3d':
             nfound_x = len(glob.glob1(self.directory,"domain_x.dat"))
@@ -336,10 +370,10 @@ class InitParamNonos(AnalysisNonos,Parameters):
                 print("\nWORKS IN POLAR COORDINATES")
                 print('nR=%d, np=%d, nz=%d' % (len(domain_y)-1,len(domain_x)-1,len(domain_z)-1))
 
-            self.n_file = len(glob.glob1(self.directory,"gasdens*.dat")) - len(glob.glob1(self.directory,"gasdens*_*.dat"))
-
-        if self.n_file==0:
-            raise FileNotFoundError("No data files (e.g., 'data.*.vtk' or 'gasdens*.dat') are found.")
+        #     self.n_file = len(glob.glob1(self.directory,"gasdens*.dat")) - len(glob.glob1(self.directory,"gasdens*_*.dat"))
+        #
+        # if self.n_file==0:
+        #     raise FileNotFoundError("No data files (e.g., 'data.*.vtk' or 'gasdens*.dat') are found.")
 
 class Mesh(Parameters):
     """
@@ -421,26 +455,25 @@ class FieldNonos(Mesh,Parameters):
         self.check=check
         self.config = config
         Mesh.__init__(self, config=self.config, directory=directory, paramfile=paramfile)       #All the Mesh attributes inside Field
-        Parameters.__init__(self, config=self.config, directory=directory, paramfile=paramfile, corotate=corotate, isPlanet=isPlanet) #All the Parameters attributes inside Field
-
-        if field is None:
-            field=self.config['field']
+        if corotate is None:
+            corotate=self.config['corotate']
+        self.corotate=corotate
+        if isPlanet is None:
+            isPlanet=self.config['isPlanet']
+        self.isPlanet=isPlanet
+        Parameters.__init__(self, config=self.config, directory=directory, paramfile=paramfile, corotate=self.corotate, isPlanet=self.isPlanet) #All the Parameters attributes inside Field
         if on is None:
             on=self.config['onStart']
+        if field is None:
+            field=self.config['field']
         if diff is None:
             diff=self.config['diff']
         if log is None:
             log=self.config['log']
-        if corotate is None:
-            corotate=self.config['corotate']
-        if isPlanet is None:
-            isPlanet=self.config['isPlanet']
 
         self.on = on
         self.diff=diff
         self.log=log
-        self.corotate=corotate
-        self.isPlanet=isPlanet
 
         self.field = field
         filedata = "data.%04d.vtk"%self.on
@@ -506,11 +539,11 @@ class FieldNonos(Mesh,Parameters):
         impossible to perform the following calculation (try/except)
         we therefore don't move the grid if the rotation speed is null
         """
-        if not(self.corotate and abs(self.on*self.vtk*self.omegagrid)>1.0e-16):
+        if not(self.corotate and abs(self.vtk*sum(self.omegagrid[:self.on]))>1.0e-16):
             return data
 
         P,R = np.meshgrid(self.y,self.x)
-        Prot=P-(self.on*self.vtk*self.omegagrid)%(2*np.pi)
+        Prot=P-(self.vtk*sum(self.omegagrid[:self.on]))%(2*np.pi)
         try:
             index=(np.where(Prot[0]>np.pi))[0].min()
         except ValueError:
@@ -1055,7 +1088,7 @@ def process_field(on, profile, field, mid, cart, avr, diff, log, corotate, strea
             vr = vx1on.data
             vphi = vx2on.data
             if isPlanet:
-                vphi -= vx2on.omegaplanet*vx2on.xmed[:,None,None]
+                vphi -= vx2on.omegaplanet[on]*vx2on.xmed[:,None,None]
             if stype=="lic":
                 streams=streamon.get_lic_streams(vr,vphi)
                 streamon.plot_lic(ax,streams,cartesian=cart, cmap='gray', alpha=0.3)
@@ -1392,7 +1425,7 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
                 vr = vx1on.data
                 vphi = vx2on.data
                 if args.isp:
-                    vphi -= vx2on.omegaplanet*vx2on.xmed[:,None,None]
+                    vphi -= vx2on.omegaplanet[args.on]*vx2on.xmed[:,None,None]
                 if args.stype=="lic":
                     streams=streamon.get_lic_streams(vr,vphi)
                     streamon.plot_lic(ax,streams,cartesian=args.cart, cmap='gray', alpha=0.3)
