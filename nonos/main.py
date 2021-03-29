@@ -44,6 +44,7 @@ import lic
 #        (average=True+corotate=True) & (average=True+corotate=False) should be identical
 # TODO: check how the class arguments (arg=None) are defined between different classes
 # TODO: test averaging procedure (to compare with theroetical surface density profiles)
+# TODO: think how to check is_averageSafe when average=True
 
 class DataStructure:
     """
@@ -1021,14 +1022,14 @@ def is_averageSafe(sigma0,sigmaSlope,plot=False):
     init = InitParamNonos() # initialize the major parameters
     fieldon = FieldNonos(init, field='RHO', on=0) # fieldon object with the density field at on=0
     datarz=np.mean(fieldon.data,axis=1) # azimuthally-averaged density field
-    error=(sigma0*pow(fieldon.xmed,-sigmaSlope)-np.mean(datarz, axis=1)*(fieldon.z.max()-fieldon.z.min()))/(sigma0*pow(fieldon.xmed,-sigmaSlope)) # comparison between Sigma(R) profile and integral of rho(R,z) between zmin and zmax
+    error=(sigma0*pow(fieldon.xmed,-sigmaSlope)-np.mean(datarz, axis=1)*next(item for item in [fieldon.z.max()-fieldon.z.min(),1.0] if item!=0))/(sigma0*pow(fieldon.xmed,-sigmaSlope)) # comparison between Sigma(R) profile and integral of rho(R,z) between zmin and zmax
     if any(100*abs(error)>3):
         print("With a maximum of %.1f percents of error, the averaging procedure may not be safe.\nzmax/h is probably too small.\nUse rather average=False (-noavr) or increase zmin/zmax."%np.max(100*abs(error)))
     else:
         print("Only %.1f percents of error maximum in the averaging procedure."%np.max(100*abs(error)))
     if plot:
         fig, ax = plt.subplots()
-        ax.plot(fieldon.xmed, np.mean(datarz, axis=1)*(fieldon.z.max()-fieldon.z.min()), label=r'$\int_{z_{min}}^{z_{max}} \rho(R,z)dz$ = (z$_{max}$-z$_{min}$)$\langle\rho\rangle_z$')
+        ax.plot(fieldon.xmed, np.mean(datarz, axis=1)*next(item for item in [fieldon.z.max()-fieldon.z.min(),1.0] if item!=0), label=r'$\int_{z_{min}}^{z_{max}} \rho(R,z)dz$ = (z$_{max}$-z$_{min}$)$\langle\rho\rangle_z$')
         ax.plot(fieldon.xmed, sigma0*pow(fieldon.xmed,-sigmaSlope), label=r'$\Sigma_0$R$^{-\sigma}$')
         # ax.plot(fieldon.xmed, np.mean(datarz, axis=1)*(fieldon.z.max()-fieldon.z.min()), label='integral of data using mean and zmin/zmax')
         # ax.plot(fieldon.xmed, sigma0*pow(fieldon.xmed,-sigmaSlope), label='theoretical reference')
