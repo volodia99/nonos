@@ -29,7 +29,7 @@ import lic
 # TODO: check in plot function if corotate=True works for all vtk and dpl
 #        (initial planet location) -> computation to calculate the grid rotation speed
 # TODO: compute gas surface density and not just gas volume density :
-#        something like self.data*=np.sqrt(2*np.pi)*self.aspectratio*self.y
+#        something like self.data*=np.sqrt(2*np.pi)*self.aspectratio*self.xmed
 # TODO: compute vortensity
 # TODO: compute vertical flows (cf vertical_flows.txt)
 # TODO: re-check if each condition works fine
@@ -43,6 +43,7 @@ import lic
 # TODO: create a test that compares when midplane=False
 #        (average=True+corotate=True) & (average=True+corotate=False) should be identical
 # TODO: check how the class arguments (arg=None) are defined between different classes
+# TODO: test averaging procedure (to compare with theroetical surface density profiles)
 
 class DataStructure:
     """
@@ -551,8 +552,17 @@ class PlotNonos(FieldNonos):
     def __init__(self, init, directory="", field=None, on=None, diff=None, log=None, corotate=None, isPlanet=None, check=True):
         FieldNonos.__init__(self,init=init,field=field,on=on,directory=directory, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet, check=check) #All the Parameters attributes inside Field
 
-    def axiplot(self, ax, vmin=None, vmax=None, fontsize=None, **karg):
-        dataProfile=np.mean(np.mean(self.data,axis=1),axis=1)
+    def axiplot(self, ax, vmin=None, vmax=None, average=None, fontsize=None, **karg):
+        if average is None:
+            average=self.init.config['average']
+        if average:
+            dataRZ=np.mean(self.data,axis=1)
+            dataR=np.mean(dataRZ,axis=1)*next(item for item in [self.z.max()-self.z.min(),1.0] if item!=0)
+            dataProfile=dataR
+        else:
+            dataRZ=self.data[:,self.ny//2,:]
+            dataR=dataRZ[:,self.imidplane]
+            dataProfile=dataR
         if vmin is None:
             vmin=self.init.config['vmin']
             if not self.diff:
@@ -619,7 +629,8 @@ class PlotNonos(FieldNonos):
                 X = R*np.cos(P)
                 Y = R*np.sin(P)
                 if average:
-                    im=ax.pcolormesh(X,Y,np.mean(self.data,axis=2),
+                    # next() function chooses ZMAX-ZMIN if 3D simulation, otherwise chooses 1.0
+                    im=ax.pcolormesh(X,Y,np.mean(self.data,axis=2)*next(item for item in [self.z.max()-self.z.min(),1.0] if item!=0),
                               cmap=cmap,vmin=vmin,vmax=vmax,**karg)
                 else:
                     im=ax.pcolormesh(X,Y,self.data[:,:,self.imidplane],
@@ -635,8 +646,8 @@ class PlotNonos(FieldNonos):
                     ax.plot(X.transpose(),Y.transpose(),c='k',linewidth=0.07)
             else:
                 P,R = np.meshgrid(self.y,self.x)
-                if self.init.config['average']:
-                    im=ax.pcolormesh(R,P,np.mean(self.data,axis=2),
+                if average:
+                    im=ax.pcolormesh(R,P,np.mean(self.data,axis=2)*next(item for item in [self.z.max()-self.z.min(),1.0] if item!=0),
                               cmap=cmap,vmin=vmin,vmax=vmax,**karg)
                 else:
                     im=ax.pcolormesh(R,P,self.data[:,:,self.imidplane],
@@ -672,7 +683,6 @@ class PlotNonos(FieldNonos):
                 raise IndexError("No radial direction, the simulation is not 3D.\nTry midplane=True")
             if self.z.shape[0]<=1:
                 raise IndexError("No vertical direction, the simulation is not 3D.\nTry midplane=True")
-            Z,R = np.meshgrid(self.z,self.x)
             if cartesian:
                 Z,R = np.meshgrid(self.z,self.x)
                 if average:
@@ -710,7 +720,7 @@ class PlotNonos(FieldNonos):
                 Z,R = np.meshgrid(self.z,self.x)
                 r = np.sqrt(R**2+Z**2)
                 t = np.arctan2(R,Z)
-                if self.init.config['average']:
+                if average:
                     im=ax.pcolormesh(t,r,np.mean(self.data,axis=1),
                               cmap=cmap,vmin=vmin,vmax=vmax,**karg)
                 else:
@@ -1007,6 +1017,44 @@ class StreamNonos(FieldNonos):
             if self.check:
                 raise NotImplementedError("For now, we do not compute streamlines in the (R,z) plane")
 
+def is_averageSafe(sigma0,sigmaSlope,plot=False):
+    init = InitParamNonos() # initialize the major parameters
+    fieldon = FieldNonos(init, field='RHO', on=0) # fieldon object with the density field at on=0
+    datarz=np.mean(fieldon.data,axis=1) # azimuthally-averaged density field
+    error=(sigma0*pow(fieldon.xmed,-sigmaSlope)-np.mean(datarz, axis=1)*(fieldon.z.max()-fieldon.z.min()))/(sigma0*pow(fieldon.xmed,-sigmaSlope)) # comparison between Sigma(R) profile and integral of rho(R,z) between zmin and zmax
+    if any(100*abs(error)>3):
+        print("With a maximum of %.1f percents of error, the averaging procedure may not be safe.\nzmax/h is probably too small.\nUse rather average=False (-noavr) or increase zmin/zmax."%np.max(100*abs(error)))
+    else:
+        print("Only %.1f percents of error maximum in the averaging procedure."%np.max(100*abs(error)))
+    if plot:
+        fig, ax = plt.subplots()
+        ax.plot(fieldon.xmed, np.mean(datarz, axis=1)*(fieldon.z.max()-fieldon.z.min()), label=r'$\int_{z_{min}}^{z_{max}} \rho(R,z)dz$ = (z$_{max}$-z$_{min}$)$\langle\rho\rangle_z$')
+        ax.plot(fieldon.xmed, sigma0*pow(fieldon.xmed,-sigmaSlope), label=r'$\Sigma_0$R$^{-\sigma}$')
+        # ax.plot(fieldon.xmed, np.mean(datarz, axis=1)*(fieldon.z.max()-fieldon.z.min()), label='integral of data using mean and zmin/zmax')
+        # ax.plot(fieldon.xmed, sigma0*pow(fieldon.xmed,-sigmaSlope), label='theoretical reference')
+        ax.xaxis.set_visible(True)
+        ax.yaxis.set_visible(True)
+        ax.set_ylabel(r'$\Sigma_0(R)$', family='monospace', fontsize=10)
+        ax.set_xlabel('Radius', family='monospace', fontsize=10)
+        ax.tick_params('both', labelsize=10)
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.xaxis.set_ticks_position('both')
+        ax.yaxis.set_ticks_position('both')
+        ax.legend(frameon=False, prop={'size': 10, 'family': 'monospace'})
+        fig2, ax2 = plt.subplots()
+        ax2.plot(fieldon.xmed, abs(error)*100)
+        ax2.xaxis.set_visible(True)
+        ax2.yaxis.set_visible(True)
+        ax2.set_ylabel(r'Error (%)', family='monospace', fontsize=10)
+        ax2.set_xlabel('Radius', family='monospace', fontsize=10)
+        ax2.tick_params('both', labelsize=10)
+        ax2.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax2.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax2.xaxis.set_ticks_position('both')
+        ax2.yaxis.set_ticks_position('both')
+        plt.show()
+
 def find_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
@@ -1099,7 +1147,7 @@ def process_field(on, init, profile, field, mid, cart, avr, diff, log, corotate,
 
     # plot the 1D profile
     if profile=="1d":
-        ploton.axiplot(ax, vmin=vmin, vmax=vmax, fontsize=ft)
+        ploton.axiplot(ax, vmin=vmin, vmax=vmax, average=avr, fontsize=ft)
         plt.savefig("saxi_log%s%04d.png"%(log,on))
 
     plt.close()
@@ -1430,7 +1478,7 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
 
         # plot the 1D profile
         if args.p=="1d":
-            ploton.axiplot(ax, vmin=args.vmin, vmax=args.vmax, fontsize=args.ft)
+            ploton.axiplot(ax, vmin=args.vmin, vmax=args.vmax, average=args.avr, fontsize=args.ft)
 
         if show:
             plt.show()
