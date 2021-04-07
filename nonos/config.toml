@@ -1,7 +1,7 @@
 # [data]
 
 dir                =  ""                                                        # directory where the simulation results are stored
-mode               =  "display"                                                 # mode can be display, film
+mode               =  "d"                                                       # mode can be d (display), f (film)
 field              =  "RHO"                                                     # which field?
 profile            =  "2d"                                                      # 1D axisymmetric porfile or 2D field
 onStart            =  1                                                         # first 'on' if partial film, only 'on' if display
