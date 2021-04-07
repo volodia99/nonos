@@ -1195,7 +1195,7 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
         '-mod',
         type=str,
         choices=["","d","f"],
-        default="",
+        default=pconfig['mode'],
         help="display d or film f",
         )
     parser.add_argument(
