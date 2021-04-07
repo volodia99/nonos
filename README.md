@@ -28,6 +28,27 @@ fig, ax = plt.subplots()
 ploton.plot(ax, cartesian=True, fontsize=8)
 plt.show()
 ````
+#### Example of (R,z) plot with quiver
+````python
+from nonos import InitParamNonos, FieldNonos, PlotNonos, StreamNonos
+import matplotlib.pyplot as plt
+import numpy as np
+
+init = InitParamNonos(isPlanet=True, corotate=True)
+
+ploton = PlotNonos(init, field='RHO', on=25, diff=True)
+streamon = StreamNonos(init, on=25)
+vx1on = FieldNonos(init, field='VX1', on=25, diff=False, log=False)
+vr = vx1on.data
+vx2on = FieldNonos(init, field='VX3', on=25, diff=False, log=False)
+vz = vx2on.data
+
+fig, ax = plt.subplots()
+ploton.plot(ax, vmin=-0.15, vmax=0.15, midplane=False, cartesian=True, fontsize=8)
+Z,R = np.meshgrid(ploton.zmed,ploton.xmed)
+ax.quiver(R[:,::2],Z[:,::2],vr[:,ploton.ny//2,::2],vz[:,ploton.ny//2,::2])
+plt.show()
+````
 #### Example of plot with streamlines with a planet
 ````python
 from nonos import InitParamNonos, FieldNonos, PlotNonos, StreamNonos
