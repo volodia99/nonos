@@ -1142,14 +1142,14 @@ def process_field(on, init, profile, field, mid, cart, avr, diff, log, corotate,
                 streamon.plot_streams(ax,streams,cartesian=cart,color='k', linewidth=2, alpha=0.5)
 
         if mid:
-            plt.savefig("sRphi_log%s_c%s%04d.png"%(log,cart,on))
+            plt.savefig("Rphi_%s_diff%slog%s_c%s%04d.png"%(field,diff,log,cart,on))
         else:
-            plt.savefig("sRz_log%s_c%s%04d.png"%(log,cart,on))
+            plt.savefig("Rz_%s_diff%slog%s_c%s%04d.png"%(field,diff,log,cart,on))
 
     # plot the 1D profile
     if profile=="1d":
         ploton.axiplot(ax, vmin=vmin, vmax=vmax, average=avr, fontsize=ft)
-        plt.savefig("saxi_log%s%04d.png"%(log,on))
+        plt.savefig("axi_%s_diff%slog%s%04d.png"%(field,diff,log,on))
 
     plt.close()
 
@@ -1172,7 +1172,10 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
 
     pconfig=analysis.config
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog='nonos',
+                                     usage='%(prog)s -mod d/f [options]',
+                                     description='Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates)',
+                                     )
     # analysis = AnalysisNonos(directory=args.dir)
     parser.add_argument(
         '-info',
@@ -1191,9 +1194,9 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
     parser.add_argument(
         '-mod',
         type=str,
-        choices=["display","film"],
-        default=pconfig['mode'],
-        help="default: pconfig['mode']",
+        choices=["","d","f"],
+        default="",
+        help="display d or film f",
         )
     parser.add_argument(
         '-on',
@@ -1434,7 +1437,7 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
         print_warn("TODO: check what is the length argument in StreamNonos().get_lic_streams ?")
 
     # mode for just displaying a field for a given output number
-    if args.mod=='display':
+    if args.mod=="d":
         if (args.pol and args.rz):
             print_warn('plot not optimized for now in the (R,z) plane in polar.\nCheck in cartesian coordinates to be sure')
             fig = plt.figure(figsize=(9,8))
@@ -1487,7 +1490,7 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
             plt.close()
 
     # mode for creating a movie of the temporal evolution of a given field
-    elif args.mod=='film':
+    elif args.mod=="f":
         # do we compute the full movie or a partial movie given by "on"
         if args.partial:
             init.config['onarray']=np.arange(args.on,args.onend+1)
@@ -1548,7 +1551,32 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
             tserie=time.time()-start
             print("time in serie : %f" %tserie)
 
-    else:
-        print("everything's loaded")
+    elif args.mod=="":
+        print("""
+                                                             `!)}$$$$})!`
+         `,!>|))|!,                                        :}&#&$}{{}$&#&};`
+      ~)$&&$$}}$$&#$).                                   '}#&}|~'.```.'!($#$+
+   `=$&$(^,..``.'~=$&&=                                `|&#}!'`         `'?$#}.
+  !$&}:.`         `.!$#$'                             :$#$^'`       ``     .$#$`
+ ^&&+.              `'(&$!                          `)&&),`                 !##!
+`$#^      `.   `     `={$&{`                       ^$&$(!'  ``     `,.  ``  !##!
+,#$ ``                 .>}&${?!:'`   ```..'',:!+|{$&${:`   `'`             `}&}`
+`$$`                       ,;|{}$$$&&&&&$$$$}}()<!,`   '`                 `}&}`
+ +&}`   `   ,${`'.   ^$,`''.      `.```                                  :$$!
+  !$$'`!}|  :#$$+    |#:                                         `.    .{#$
+   '$&})$:  :#|,$}'  |#:                                              '$$#}
+    `}#&;   :#| `|$+ |#:                                              :$)&$`
+    `{&!    :#|   ,$}{#:                                               :!{&}`
+   :$$,     :#|     +&#: .,,`                                           `:}#}`
+  ^&$.      `!.   '` .!` ```   ```.,,'''.````'`     `` ,,`                .$#^
+ +&$.                 ``'^)}$$$$$({}}}$$$$$$$$$$}}(|>!.`~:,.               }#)
+'&#|                 ,|$##$>'`                `'~!)$##$$$)?^,`          ` :&&:
+,&#}`  ``       .` `:{$&}:                          ~}&$)^^+=^`  `` ..  .|&#)
+ |&#$:```   `` '::!}$&},                              !$&$|++^^:,:~',!!($#&^
+  ,}&#${^~,,,:!|}$&&(.                                  ^$#$}{)|?|)(}$&#$?`
+    :{&##$$$$$&##$).                                      ~($&#&&##&$}=,
+      `:|}$$$$}):`                                           `',,,.`
+              """)
+        print("Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates)")
 
     return 0
