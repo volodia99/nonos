@@ -15,10 +15,10 @@ It works seamlessly with vtu-formatted data from Pluto, Fargo3D and Idefix.
 
 ## Installation
 
-:warning: Nonos requires Python 3.8 or newer.
+:warning: Nonos requires Python 3.8 or newer. The easiest installation method is
 
 ```bash
-python -m pip install git:https://github.com/volodia99/nonos.git@main
+pip install nonos
 ```
 
 ## Usage
