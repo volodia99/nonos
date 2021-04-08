@@ -21,18 +21,18 @@ Not implemented yet :
 
 with python>=3.8.
 
-````bash
+```bash
 git clone https://github.com/volodia99/nonos.git
 cd nonos
 python -m pip install .
-````
+```
 
 ### 1. Use of the command line tool
 
 The default parameters are provided in config.toml file. Don't change this file directly.
-````bash
+```bash
 nonos -mod d/f [options]
-````
+```
 `-info`: give the default parameters in the config.toml file.  
 `-dir`: where .vtk files and the inifile are stored (`"."` by default).  
 `-mod [d/f]`: display/film (`""` home page by default).  
@@ -64,25 +64,25 @@ nonos -mod d/f [options]
 
 ### 2. Use of the local mode
 
-````bash
+```bash
 nonos -l
-````
+```
 will copy locally the config.toml file. You can then open it directly (e.g., `atom config.toml`), and change the parameters.
 Then run again:
-````bash
+```bash
 nonos -l
-````
+```
 
 ### 3. Use of functions & classes
 
 #### Example of field
-````python
+```python
 from nonos import InitParamNonos, FieldNonos
 init = InitParamNonos(info=True) #info=True gives the default parameters in the param file config.toml
 fieldon = FieldNonos(init, field='RHO', on=25, diff=True)
-````
+```
 #### Example of plot without streamlines
-````python
+```python
 from nonos import InitParamNonos, PlotNonos
 import matplotlib.pyplot as plt
 
@@ -92,9 +92,9 @@ ploton = PlotNonos(init, field='RHO', on=25, diff=True)
 fig, ax = plt.subplots()
 ploton.plot(ax, cartesian=True, fontsize=8)
 plt.show()
-````
+```
 #### Example of (R,z) plot with quiver
-````python
+```python
 from nonos import InitParamNonos, FieldNonos, PlotNonos, StreamNonos
 import matplotlib.pyplot as plt
 import numpy as np
@@ -113,9 +113,9 @@ ploton.plot(ax, vmin=-0.15, vmax=0.15, midplane=False, cartesian=True, fontsize=
 Z,R = np.meshgrid(ploton.zmed,ploton.xmed)
 ax.quiver(R[:,::2],Z[:,::2],vr[:,ploton.ny//2,::2],vz[:,ploton.ny//2,::2])
 plt.show()
-````
+```
 #### Example of plot with streamlines with a planet
-````python
+```python
 from nonos import InitParamNonos, FieldNonos, PlotNonos, StreamNonos
 import matplotlib.pyplot as plt
 
@@ -134,9 +134,9 @@ fig, ax = plt.subplots()
 ploton.plot(ax, cartesian=True, fontsize=8)
 streamon.plot_streams(ax,streams,cartesian=True, color='k', linewidth=2, alpha=0.5)
 plt.show()
-````
+```
 #### Example of plot with a comparison between several simulations
-````python
+```python
 from nonos import InitParamNonos, PlotNonos
 import matplotlib.pyplot as plt
 
@@ -150,4 +150,4 @@ for i in range(len(dirpath)):
     ploton.plot(ax[i], cartesian=True, fontsize=6)
 
 plt.show()
-````
+```
