@@ -2,6 +2,21 @@
 
 [under construction]
 
+### Presentation
+
+A tool to analyze results from idefix/pluto/fargo3d simulations (for protoplanetary disks more specifically in 2D and 3D ONLY in cylindrical coordinates for now).
+
+three possibilities : 
+* use the command line tool
+* use the local mode with the config.toml file
+* create a script with functions/classes that are provided
+
+Not implemented yet : 
+* spherical coordinates
+* error: `streamlines` & `midplane=False` -> not yet implemented
+* warning: `isPlanet=False` & `corotate=True` -> we don't rotate the grid if there is no planet for now. `omegagrid` = 0.
+* warning: `cartesian=False` & `midplane=False` -> plot not optimized for now in the (R,z) plane in polar.
+
 ### Installation
 
 with python>=3.8.
@@ -11,21 +26,6 @@ git clone https://github.com/volodia99/nonos.git
 cd nonos
 python -m pip install .
 ````
-
-A tool to analyze results from idefix/pluto/fargo3d simulations (for protoplanetary disks more specifically in 2D and 3D ONLY in cylindrical coordinates for now).
-
-three possibilities : 
-* use the command line tool
-* use the local mode with the config.toml file
-* create a script with functions/classes that are provided
-
-TODO: write readme for the command line tool mode (ex: nonos -diff -on 10) / local mode (nonos -l + config.toml file)
-
-Not implemented yet : 
-* spherical coordinates
-* error: `streamlines` & `midplane=False` -> not yet implemented
-* warning: `isPlanet=False` & `corotate=True` -> we don't rotate the grid if there is no planet for now. `omegagrid` = 0.
-* warning: `cartesian=False` & `midplane=False` -> plot not optimized for now in the (R,z) plane in polar.
 
 ### 1. Use of the command line tool
 
