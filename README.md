@@ -28,8 +28,6 @@ There are three ways to use nonos:
 2) use the local mode with the config.toml file
 3) write a Python script using the nonos library
 
-TMP: I don't get how the second way is fundamnetally different from the first (it's still command line, right ?)
-
 ### 1. On the command line
 
 To get help, run
@@ -37,8 +35,7 @@ To get help, run
 $ nonos --help
 ```
 
-nonos -mod d/f [options]
-```
+`nonos -mod d/f [options]`  
 `-info`: give the default parameters in the config.toml file.  
 `-dir`: where .vtk files and the inifile are stored (`"."` by default).  
 `-mod [d/f]`: display/film (`""` home page by default).  
@@ -67,7 +64,6 @@ nonos -mod d/f [options]
 `-multi`: load and save figures in parallel when `-mod f` (`false` by default).  
 `-cpu [int]`: number of cpus if `-multi` (`4` by default).  
 `-l`: local mode.  
-```
 
 ### 2. Use of the local mode
 
