@@ -1,4 +1,5 @@
 # nonos
+[![PyPI](https://img.shields.io/pypi/v/nonos)](https://pypi.org/project/nonos/)
 
 nonos is a 2D visualization command line application for planet-disk hydro simulations, as well as a Python library.
 It works seamlessly with vtu-formatted data from Pluto, Fargo3D and Idefix.
