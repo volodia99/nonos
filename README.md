@@ -1,5 +1,7 @@
 # nonos
 
+[under construction]
+
 ### Installation
 
 with python>=3.8.
@@ -9,8 +11,6 @@ git clone https://github.com/volodia99/nonos.git
 cd nonos
 python -m pip install .
 ````
-
-[under construction]
 
 A tool to analyze results from idefix/pluto/fargo3d simulations (for protoplanetary disks more specifically in 2D and 3D ONLY in cylindrical coordinates for now).
 
