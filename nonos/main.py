@@ -1178,105 +1178,107 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
                                      )
     # analysis = AnalysisNonos(directory=args.dir)
     parser.add_argument(
-        '-info',
-        action="store_true",
-        )
-    parser.add_argument(
         '-l',
         action="store_true",
+        help="local mode",
+        )
+    parser.add_argument(
+        '-info',
+        action="store_true",
+        help="give the default parameters in the config.toml file.",
         )
     parser.add_argument(
         '-dir',
         type=str,
         default=pconfig['dir'],
-        help="default: pconfig['dir']",
+        help="where .vtk files and the inifile are stored ("." by default).",
         )
     parser.add_argument(
         '-mod',
         type=str,
         choices=["","d","f"],
         default="",
-        help="display d or film f",
+        help="display/film ("" home page by default).",
         )
     parser.add_argument(
         '-on',
         type=int,
         default=pconfig['onStart'],
-        help="default: pconfig['onStart']",
+        help="if -mod d, we plot the field of the data.on.vtk file (1 by default).",
         )
     parser.add_argument(
         '-f',
         type=str.lower,
         default=pconfig['field'],
-        help="default: pconfig['field']",
+        help="field (for now RHO, VX1 and VX2 in 2D, + VX3 in 3D, RHO by default).",
         )
     parser.add_argument(
         '-vmin',
         type=float,
         default=None,
-        help="default: pconfig['vmin'] or calculated",
+        help="minimum value for the data (-0.5 by default or calculated.",
         )
     parser.add_argument(
         '-vmax',
         type=float,
         default=None,
-        help="default: pconfig['vmax'] or calculated",
+        help="maximum value for the data (0.5 by default or calculated.",
         )
     parser.add_argument(
         '-onend',
         type=int,
         default=pconfig['onEnd'],
-        help="default: pconfig['onEnd']",
+        help="if -mod f and -partial (15 by default).",
         )
     parser.add_argument(
         '-diff',
         action="store_true",
-        help="default: False",
+        help="plot the relative perturbation of the field f, i.e. (f-f0)/f0 (false by default).",
         )
     parser.add_argument(
         '-log',
         action="store_true",
-        help="default: False",
+        help="plot the log of the field f, i.e. log(f) (false by default).",
         )
     parser.add_argument(
         '-cor',
         action="store_true",
-        help="default: False",
+        help="does the grid corotate? For now, works in pair with -isp (false by default).",
         )
     parser.add_argument(
         '-s',
         action="store_true",
-        help="default: False",
+        help="do we compute streamlines? (false by default)",
         )
     parser.add_argument(
         '-stype',
         type=str,
         choices=["random","fixed","lic"],
         default=pconfig['streamtype'],
-        help="default: pconfig['streamtype']",
+        help="do we compute random, fixed streams, or do we use line integral convolution? (random by default)",
         )
     parser.add_argument(
         '-srmin',
         type=float,
         default=pconfig['rminStream'],
-        help="default: pconfig['rminStream']",
+        help="minimum radius for streamlines computation (0.7 by default).",
         )
     parser.add_argument(
         '-srmax',
         type=float,
         default=pconfig['rmaxStream'],
-        help="default: pconfig['rmaxStream']",
+        help="maximum radius for streamlines computation (1.3 by default).",
         )
     parser.add_argument(
         '-sn',
         type=int,
         default=pconfig['nstream'],
-        help="default: pconfig['nstream']",
+        help="number of streamlines (50 by default).",
         )
     parser.add_argument(
         '-isp',
         action="store_true",
-        help="default: False",
+        help="is there a planet in the grid ? (false by default)",
         )
 
     groupmid = parser.add_mutually_exclusive_group()
@@ -1284,39 +1286,39 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
         '-mid',
         action="store_true",
         default=pconfig['midplane'],
-        help="default: pconfig['midplane']",
+        help="2D plot in the (R-phi) plane (true by default).",
         )
     groupmid.add_argument(
         '-rz',
         action="store_true",
         default=False,
-        help="default: False",
+        help="2D plot in the (R-z) plane (false by default).",
         )
     groupcart = parser.add_mutually_exclusive_group()
     groupcart.add_argument(
         '-cart',
         action="store_true",
         default=pconfig['cartesian'],
-        help="default: pconfig['cartesian']",
+        help="2D plot in cartesian coordinates (true by default).",
         )
     groupcart.add_argument(
         '-pol',
         action="store_true",
         default=False,
-        help="default: False",
+        help="2D plot in polar coordinates (false by default).",
         )
     groupavr = parser.add_mutually_exclusive_group()
     groupavr.add_argument(
         '-avr',
         action="store_true",
         default=pconfig['average'],
-        help="default: pconfig['average']",
+        help="do we average in the 3rd dimension, i.e. vertically when -mid and azimuthally when -rz (true by default).",
         )
     groupavr.add_argument(
         '-noavr',
         action="store_true",
         default=False,
-        help="default: False",
+        help="do we consider a specific plane, i.e. at the midplane (z=0) when -mid and at phi=0 when -rz (false by default).",
         )
 
     parser.add_argument(
@@ -1324,41 +1326,41 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
         type=str,
         choices=["2d","1d"],
         default=pconfig['profile'],
-        help="default: pconfig['profile']",
+        help="1D axisymmetric radial profile or 2D field (2d by default).",
         )
     parser.add_argument(
         '-ft',
         type=float,
         default=pconfig['fontsize'],
-        help="default: pconfig['fontsize']",
+        help="fontsize in the graph (11 by default).",
         )
     parser.add_argument(
         '-cmap',
         type=str,
         default=pconfig['cmap'],
-        help="default: pconfig['cmap']",
+        help="choice of colormap for the -p 2d maps (RdYlBu_r by default).",
         )
     parser.add_argument(
         '-partial',
         action="store_true",
         default=False,
-        help="default: False",
+        help="if -mod f, partial movie between -on and -onend (false by default).",
         )
     parser.add_argument(
         '-pbar',
         action="store_true",
-        help="default: False",
+        help="do we display the progress bar when -mod f? (false by default)",
         )
     parser.add_argument(
         '-multi',
         action="store_true",
-        help="default: False",
+        help="load and save figures in parallel when -mod f (false by default).",
         )
     parser.add_argument(
         '-cpu',
         type=int,
         default=pconfig['nbcpu'],
-        help="default: pconfig['nbcpu']",
+        help="number of cpus if -multi (4 by default).",
         )
 
     args = parser.parse_args(argv)
