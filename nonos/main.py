@@ -309,14 +309,9 @@ class AnalysisNonos():
         self.config = toml.load(config_file)
 
         if info:
-            print('\n')
             print('--------------------------------------')
-            for keys in self.config:
-                print("config['%s'] = %s"%(keys,self.config[keys]))
-                # for subkeys in config[keys]:
-                #     print("config['%s']['%s'] = %s"%(keys,subkeys,config[keys][subkeys]))
+            print(toml.dumps(self.config))
             print('--------------------------------------')
-            print('\n')
 
 class InitParamNonos(AnalysisNonos,Parameters):
     """
