@@ -1191,14 +1191,14 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
         '-dir',
         type=str,
         default=pconfig['dir'],
-        help="where .vtk files and the inifile are stored ("." by default).",
+        help="where .vtk files and the inifile are stored ('.' by default).",
         )
     parser.add_argument(
         '-mod',
         type=str,
         choices=["","d","f"],
         default="",
-        help="display/film ("" home page by default).",
+        help="display/film ('' home page by default).",
         )
     parser.add_argument(
         '-on',
