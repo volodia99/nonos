@@ -1,14 +1,50 @@
 # nonos
-A tool to analyze results from idefix/pluto/fargo3d simulations (for protoplanetary disks more specifically, 2D ok, 3D cylindrical)
+
+### Installation
+
+with python>=3.8.
+
+````bash
+git clone https://github.com/volodia99/nonos.git
+cd nonos
+python -m pip install .
+````
+
+[under construction]
+
+A tool to analyze results from idefix/pluto/fargo3d simulations (for protoplanetary disks more specifically in 2D and 3D ONLY in cylindrical coordinates for now).
+
+three possibilities : 
+* use the command line tool
+* use the local mode with the config.toml file
+* create a script with functions/classes that are provided
+
 TODO: write readme for the command line tool mode (ex: nonos -diff -on 10) / local mode (nonos -l + config.toml file)
 
-to be tested: the function/class part of the programm (cf the example here to start with)
+Not implemented yet : 
+* spherical coordinates
+* error: ````streamlines```` & ````midplane=False```` -> not yet implemented
+* warning: ````isPlanet=False```` & ````corotate=True```` -> we don't rotate the grid if there is no planet for now.\nomegagrid = 0.
+* warning: ````cartesian=False```` & ````midplane=False```` -> plot not optimized for now in the (R,z) plane in polar.
 
-error: ````streamlines```` & ````midplane=False```` -> not yet implemented
+### 1. Use of the command line tool
+the default parameters are provided in config.toml file. Don't change this file directly.
+````python
+nonos -mod d/f [options]
+-info: give the default parameters in the config.toml file.
+-dir: where .vtk files and the inifile are stored ("." by default).
+-mod [d/f]: display/film
+-f [str]: field (for now 'RHO', 'VX1' and 'VX2' in 2D, + 'VX3' in 3D)
+-on [int]: if -mod d -> we plot the field of the data.on.vtk file
+-onend [int]: if -mod f and -partial
+-partial: if -mod f -> partial movie between -on and -onend
+-vmin [float]: minimum value for the data
+-vmax [float]: maximum value for the data
+````
 
-warning: ````isPlanet=False```` & ````corotate=True```` -> we don't rotate the grid if there is no planet for now.\nomegagrid = 0.
+### 2. Use of the local mode
 
-warning: ````cartesian=False```` & ````midplane=False```` -> plot not optimized for now in the (R,z) plane in polar.
+### 3. Use of functions & classes
 
 #### Example of field
 ````python
