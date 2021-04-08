@@ -23,26 +23,55 @@ TODO: write readme for the command line tool mode (ex: nonos -diff -on 10) / loc
 
 Not implemented yet : 
 * spherical coordinates
-* error: ````streamlines```` & ````midplane=False```` -> not yet implemented
-* warning: ````isPlanet=False```` & ````corotate=True```` -> we don't rotate the grid if there is no planet for now.\nomegagrid = 0.
-* warning: ````cartesian=False```` & ````midplane=False```` -> plot not optimized for now in the (R,z) plane in polar.
+* error: `streamlines` & `midplane=False` -> not yet implemented
+* warning: `isPlanet=False` & `corotate=True` -> we don't rotate the grid if there is no planet for now. `omegagrid` = 0.
+* warning: `cartesian=False` & `midplane=False` -> plot not optimized for now in the (R,z) plane in polar.
 
 ### 1. Use of the command line tool
-the default parameters are provided in config.toml file. Don't change this file directly.
-````python
+
+The default parameters are provided in config.toml file. Don't change this file directly.
+````bash
 nonos -mod d/f [options]
--info: give the default parameters in the config.toml file.
--dir: where .vtk files and the inifile are stored ("." by default).
--mod [d/f]: display/film
--f [str]: field (for now 'RHO', 'VX1' and 'VX2' in 2D, + 'VX3' in 3D)
--on [int]: if -mod d -> we plot the field of the data.on.vtk file
--onend [int]: if -mod f and -partial
--partial: if -mod f -> partial movie between -on and -onend
--vmin [float]: minimum value for the data
--vmax [float]: maximum value for the data
 ````
+`-info`: give the default parameters in the config.toml file.  
+`-dir`: where .vtk files and the inifile are stored (`"."` by default).  
+`-mod [d/f]`: display/film (`""` home page by default).  
+`-f [str]`: field (for now `RHO`, `VX1` and `VX2` in 2D, + `VX3` in 3D, `RHO` by default).  
+`-on [int]`: if `-mod d` -> we plot the field of the data.on.vtk file (`1` by default).  
+`-onend [int]`: if `-mod f` and `-partial` (`15` by default).  
+`-partial`: if `-mod f` -> partial movie between `-on` and `-onend` (`false` by default).  
+`-vmin [float]`: minimum value for the data (`-0.5` by default).  
+`-vmax [float]`: maximum value for the data (`0.5` by default).  
+`-diff`: plot the relative perturbation of the field f, i.e. `(f-f0)/f0` (`false` by default).  
+`-log`: plot the log of the field f, i.e. `log(f)` (`false` by default).  
+`-cor`: does the grid corotate? For now, works in pair with `-isp` (`false` by default).  
+`-isp`: is there a planet in the grid ? (`false` by default)  
+`-p [1d/2d]`: 1D axisymmetric radial profile or 2D field (`2d` by default).  
+`-mid`/`-rz`: 2D plot in the (R-phi) plane or in the (R-z) plane (`-mid` by default).  
+`-cart`/`-pol`: 2D plot in cartesian or polar coordinates (`-cart` by default).  
+`-avr`/`-noavr`: do we average is the 3rd dimension, i.e. vertically when `-mid` and azimuthally when `-rz` (`-avr` by default).  
+`-s`: do we compute streamlines? (`false` by default)  
+`-stype [random/fixed/lic]`: do we compute random, fixed streams, or do we use line integral convolution? (`random` by default)  
+`-srmin [float]`: minimum radius for streamlines computation (`0.7` by default).  
+`-srmax [float]`: maximum radius for streamlines computation (`1.3` by default).  
+`-sn [int]`: number of streamlines (`50` by default).  
+`-ft [float]`: fontsize in the graph (`11` by default).  
+`-cmap [str]`: choice of colormap for the `-p 2d` maps (`RdYlBu_r` by default).  
+`-pbar`: do we display the progress bar when `-mod f`? (`false` by default)  
+`-multi`: load and save figures in parallel when `-mod f` (`false` by default).  
+`-cpu [int]`: number of cpus if `-multi` (`4` by default).  
+`-l`: local mode.  
 
 ### 2. Use of the local mode
+
+````bash
+nonos -l
+````
+will copy locally the config.toml file. You can then open it directly (e.g., `atom config.toml`), and change the parameters.
+Then run again:
+````bash
+nonos -l
+````
 
 ### 3. Use of functions & classes
 
