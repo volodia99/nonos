@@ -24,7 +24,7 @@ import inifix as ix
 from rich import print as rprint
 from rich.progress import track
 import lic
-
+from copy import copy
 # TODO: recheck in 3D
 # TODO: check in plot function if corotate=True works for all vtk and dpl
 #        (initial planet location) -> computation to calculate the grid rotation speed
@@ -193,19 +193,25 @@ class Parameters():
     input: string -> name of the parfile, normally *.ini
     """
     def __init__(self, config, directory=None, paramfile=None, corotate=None, isPlanet=None):
-        if directory is None:
-            directory=config['dir']
-        if corotate is None:
-            corotate=config['corotate']
-        if isPlanet is None:
-            isPlanet=config['isPlanet']
-        if paramfile is None:
+        self.config = copy(config)
+
+        if directory is not None:
+            self.config['dir'] = directory
+        if corotate is not None:
+            self.config['corotate'] = corotate
+        if isPlanet is not None:
+            self.config['isPlanet'] = isPlanet
+
+        self.paramfile = paramfile
+
+    def load(self):
+        if self.paramfile is None:
             lookup_table = {
                 "idefix.ini" : "idefix",
                 "pluto.ini": "pluto",
                 "variables.par": "fargo3d",
             }
-            found = {paramfile: Path(directory).joinpath(paramfile).is_file() for paramfile in lookup_table}
+            found = {paramfile: Path(self.config['dir']).joinpath(paramfile).is_file() for paramfile in lookup_table}
             nfound = sum(list(found.values()))
             if nfound == 0:
                 raise FileNotFoundError("idefix.ini, pluto.ini or variables.par not found.")
@@ -217,13 +223,13 @@ class Parameters():
             raise FileNotFoundError("For now, impossible to choose your parameter file.\nBy default, the code searches idefix.ini, pluto.ini or variables.par.")
 
         self.paramfile = paramfile
-        self.iniconfig = ix.load(os.path.join(directory,self.paramfile))
+        self.iniconfig = ix.load(os.path.join(self.config['dir'], self.paramfile))
 
         if self.code=='idefix':
-            self.n_file = len(glob.glob1(directory,"data.*.vtk"))
+            self.n_file = len(glob.glob1(self.config['dir'], "data.*.vtk"))
             # self.h0 = self.iniconfig["Setup"]["h0"]
-            if isPlanet:
-                if Path(directory).joinpath("planet0.dat").is_file():
+            if self.config["isPlanet"]:
+                if Path(self.config["dir"]).joinpath("planet0.dat").is_file():
                     with open('planet0.dat','r') as f1:
                         datafile = f1.readlines()
                         self.qpl = np.array([float(line.split()[7]) for line in datafile])
@@ -236,43 +242,43 @@ class Parameters():
                     self.dpl = np.array([self.iniconfig["Planet"]["dpl"] for i in range(self.n_file)])
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
 
-            if corotate:
+            if self.config["corotate"]:
                 self.vtk = self.iniconfig["Output"]["vtk"]
-                if isPlanet:
+                if self.config["isPlanet"]:
                     self.omegagrid = self.omegaplanet
                 else:
                     self.omegagrid = np.array([0.0 for i in range(self.n_file)])
 
         elif self.code=='pluto':
-            self.n_file = len(glob.glob1(directory,"data.*.vtk"))
+            self.n_file = len(glob.glob1(self.config["dir"],"data.*.vtk"))
             # self.h0 = 0.05
-            if isPlanet:
+            if self.config["isPlanet"]:
                 self.qpl = np.array([self.iniconfig["Parameters"]["Mplanet"]/self.iniconfig["Parameters"]["Mstar"] for i in range(self.n_file)])
                 print_warn("Initial distance not defined in pluto.ini.\nBy default, dpl=1.0 for the computation of omegaP\n")
                 self.dpl = np.array([1.0 for i in range(self.n_file)])
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
 
-            if corotate:
+            if self.config["corotate"]:
                 self.vtk = self.iniconfig["Static Grid Output"]["vtk"][0]
-                if isPlanet:
+                if self.config["isPlanet"]:
                     self.omegagrid = self.omegaplanet
                 else:
                     self.omegagrid = np.array([0.0 for i in range(self.n_file)])
 
         elif self.code=='fargo3d':
-            self.n_file = len(glob.glob1(directory,"gasdens*.dat")) - len(glob.glob1(directory,"gasdens*_*.dat"))
-            nfound = len(glob.glob1(directory,"*.cfg"))
+            self.n_file = len(glob.glob1(self.config["dir"],"gasdens*.dat")) - len(glob.glob1(self.config["dir"],"gasdens*_*.dat"))
+            nfound = len(glob.glob1(self.config["dir"],"*.cfg"))
             if nfound==0:
-                raise FileNotFoundError("*.cfg file (FARGO3D planet parameters) does not exist in '%s' directory"%directory)
+                raise FileNotFoundError("*.cfg file (FARGO3D planet parameters) does not exist in '%s' directory"%self.config["dir"])
             elif nfound>1:
                 raise RuntimeError("found more than one possible .cfg file.")
 
-            cfgfile = glob.glob1(directory,"*.cfg")[0]
+            cfgfile = glob.glob1(self.config["dir"],"*.cfg")[0]
 
-            self.cfgconfig = ix.load(os.path.join(directory,cfgfile))
+            self.cfgconfig = ix.load(os.path.join(self.config["dir"],cfgfile))
             # self.h0 = self.iniconfig["ASPECTRATIO"]
-            if isPlanet:
-                if Path(directory).joinpath("planet0.dat").is_file():
+            if self.config["isPlanet"]:
+                if Path(self.config["dir"]).joinpath("planet0.dat").is_file():
                     with open('planet0.dat','r') as f1:
                         datafile = f1.readlines()
                         self.qpl = np.array([float(line.split()[7]) for line in datafile])
@@ -284,9 +290,9 @@ class Parameters():
                     self.qpl = np.array([self.cfgconfig[list(self.cfgconfig)[0]][1] for i in range(self.n_file)])
                     self.dpl = np.array([self.cfgconfig[list(self.cfgconfig)[0]][0] for i in range(self.n_file)])
                 self.omegaplanet = np.sqrt((1.0+self.qpl)/self.dpl/self.dpl/self.dpl)
-            if corotate:
+            if self.config["corotate"]:
                 self.vtk = self.iniconfig["NINTERM"]*self.iniconfig["DT"]
-                if isPlanet:
+                if self.config["isPlanet"]:
                     self.omegagrid = self.omegaplanet
                 else:
                     self.omegagrid = np.array([0.0 for i in range(self.n_file)])
@@ -309,10 +315,10 @@ class AnalysisNonos():
         self.config = toml.load(config_file)
 
         if info:
-            print('--------------------------------------')
-            print(toml.dumps(self.config))
-            print('--------------------------------------')
+            print(self)
 
+    def __repr__(self) -> str:
+        return toml.dumps(self.config)
 class InitParamNonos(AnalysisNonos,Parameters):
     """
     Call the AnalysisNonos class to define the config dictionary
@@ -330,9 +336,12 @@ class InitParamNonos(AnalysisNonos,Parameters):
             isPlanet=self.config['isPlanet']
         self.isPlanet=isPlanet
         Parameters.__init__(self, config=self.config, directory=self.directory, paramfile=paramfile, corotate=self.corotate, isPlanet=self.isPlanet) #All the Parameters attributes inside Field
+
+
+    def load(self, info:bool):
+        super().load()
         if info:
             print(self.code.upper(), "analysis")
-
         if (self.code=='idefix' or self.code=='pluto'):
             domain=readVTKPolar(os.path.join(self.directory,'data.0000.vtk'), cell="edges")
             list_keys=list(domain.data.keys())
@@ -1178,11 +1187,6 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
         help="local mode",
         )
     parser.add_argument(
-        '-info',
-        action="store_true",
-        help="give the default parameters in the config.toml file.",
-        )
-    parser.add_argument(
         '-dir',
         type=str,
         default=pconfig['dir'],
@@ -1357,6 +1361,17 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
         default=pconfig['nbcpu'],
         help="number of cpus if -multi (4 by default).",
         )
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        '-info',
+        action="store_true",
+        help="give the default parameters in the config.toml file.",
+        )
+    group.add_argument(
+        '-config',
+        action="store_true",
+        help="show configuration and return."
+    )
 
     args = parser.parse_args(argv)
 
@@ -1367,11 +1382,9 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
             copyfile(pathconfig, "config.toml")
             print_warn("config.toml file copied in working directory.\nYou can now open it and choose the parameters")
             return 0
-        try:
-            init = InitParamNonos(directory=args.dir, directory_of_script="", info=args.info)
-        except (FileNotFoundError,RuntimeError,ValueError) as exc:
-            print_err(exc)
-            return 1
+
+        init = InitParamNonos(directory=args.dir, directory_of_script="", info=args.info)
+
         args.dir=init.config["dir"]
         args.mod=init.config["mode"]
         args.on=init.config["onStart"]
@@ -1406,11 +1419,18 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
         args.multi=init.config["parallel"]
         args.cpu=init.config["nbcpu"]
     else:
-        try:
-            init = InitParamNonos(directory=args.dir, info=args.info)
-        except (FileNotFoundError,RuntimeError,ValueError) as exc:
-            print_err(exc)
-            return 1
+        init = InitParamNonos(directory=args.dir, info=args.info)
+
+    if args.config:
+        print(init)
+        return 0
+
+    try:
+        init.load(args.info)
+    except (FileNotFoundError,RuntimeError,ValueError) as exc:
+        print_err(exc)
+        return 1
+
 
     n_file=init.n_file
     diran=init.directory
