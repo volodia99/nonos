@@ -7,15 +7,30 @@ from nonos.main import main
 def test_data_dir():
     return Path(__file__).parent / "data"
 
-def test_plot_simple(test_data_dir, capsys):
+ARGS_TO_CHECK = {
+    "vanilla_conf": [],
+    "diff": ["-diff"],
+    "log": ["-log"],
+    "movie": ["-mod", "f", "-pol"],
+    "movie_with_diff": ["-mod", "f", "-diff"],
+    "movie_with_multiproc": ["-mod", "f", "-ncpu", "2"],
+}
+
+@pytest.mark.parametrize("argv", ARGS_TO_CHECK.values(), ids=ARGS_TO_CHECK.keys())
+def test_plot_simple(argv, test_data_dir, capsys):
     # just check that the call returns no err
     os.chdir(test_data_dir / "idefix_rwi") 
-    ret = main(["-mod", "d"], show=False)
-    assert ret == 0
+    ret = main(argv, show=False)
 
     out, err = capsys.readouterr()
-    assert out == ""
+    print(out)
     assert err == ""
+    if "f" in argv:
+        assert out.startswith("time")
+        assert out.count("\n") == 1
+    else:
+        assert out == ""
+    assert ret == 0
 
 def test_plot_simple_corotation(test_data_dir, capsys):
     # just check that the call returns no err

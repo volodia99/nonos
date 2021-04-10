@@ -1,5 +1,9 @@
-from nonos.main import main, AnalysisNonos
+from nonos.main import main, InitParamNonos
+from nonos import __version__
 import os
+import toml
+import textwrap
+import pytest
 
 def test_no_inifile(capsys, tmp_path):
     os.chdir(tmp_path)
@@ -20,4 +24,51 @@ def test_default_conf(capsys, tmp_path):
     # validate output is reusable
     with open("config.toml", "w") as fh:
         fh.write(out)
-    AnalysisNonos(directory_of_script=".")
+    InitParamNonos(paramfile="config.toml")
+
+
+def test_version(capsys, tmp_path):
+    os.chdir(tmp_path)
+    ret = main(["-version"])
+    assert ret == 0
+
+    out, err = capsys.readouterr()
+    assert err == ""
+    assert out == str(__version__) + "\n"
+
+def test_logo(capsys, tmp_path):
+    os.chdir(tmp_path)
+    ret = main(["-logo"])
+
+    assert ret == 0
+    out, err = capsys.readouterr()
+    expected = textwrap.dedent("""
+                                                                     `!)}$$$$})!`
+                 `,!>|))|!,                                        :}&#&$}{{}$&#&};`
+              ~)$&&$$}}$$&#$).                                   '}#&}|~'.```.'!($#$+
+           `=$&$(^,..``.'~=$&&=                                `|&#}!'`         `'?$#}.
+          !$&}:.`         `.!$#$'                             :$#$^'`       ``     .$#$`
+         ^&&+.              `'(&$!                          `)&&),`                 !##!
+        `$#^      `.   `     `={$&{`                       ^$&$(!'  ``     `,.  ``  !##!
+        ,#$ ``                 .>}&${?!:'`   ```..'',:!+|{$&${:`   `'`             `}&}`
+        `$$`                       ,;|{}$$$&&&&&$$$$}}()<!,`   '`                 `}&}`
+         +&}`   `   |:|.\    |:|            `.```                                  :$$!
+          !$$'`!}|  |:|\.\   |:|      __                      __       ___       .{#$
+           '$&})$:  |:| \.\  |:|   /./  \.\   |:|.\  |:|   /./  \.\   |:|  \.\  '$$#}
+            `}#&;   |:|  \.\ |:|  |:|    |:|  |:|\.\ |:|  |:|    |:|  |:|___     :$)&$`
+            `{&!    |:|   \.\|:|  |:|    |:|  |:| \.\|:|  |:|    |:|       |:|    :!{&}`
+           :$$,     |:|    \.|:|   \.\__/./   |:|  \.|:|   \.\__/./   \.\__|:|     `:}#}`
+          ^&$.                                                                       .$#^
+          +&$.                 ``'^)}$$$$$({}}}$$$$$$$$$$}}(|>!.`~:,.                 }#)
+         '&#|                 ,|$##$>'`                `'~!)$##$$$)?^,`           ` :&&:
+         ,&#}`  ``       .` `:{$&}:                          ~}&$)^^+=^`  `` ..  .|&#)
+          |&#$:```   `` '::!}$&},                              !$&$|++^^:,:~',!!($#&^
+           ,}&#${^~,,,:!|}$&&(.                                  ^$#$}{)|?|)(}$&#$?`
+             :{&##$$$$$&##$).                                      ~($&#&&##&$}=,
+               `:|}$$$$}):`
+
+        Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
+        """.lstrip("\n"))
+    expected += f"Version {__version__}\n"
+    assert out == expected
+    assert err == ""
