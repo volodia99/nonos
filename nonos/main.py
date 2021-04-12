@@ -379,7 +379,8 @@ class Mesh(Parameters):
     Input: directory [string] -> this is where the domain files are.
     """
     def __init__(self, config, directory=None, paramfile=None):
-        Parameters.__init__(self, config=config, directory=directory, paramfile=paramfile) #All the Parameters attributes inside Field
+        super().__init__(config=config, directory=directory, paramfile=paramfile) #All the Parameters attributes inside Field
+        super().load()
         if (self.code=='idefix' or self.code=='pluto'):
             domain=readVTKPolar(os.path.join(directory,'data.0000.vtk'), cell="edges")
             self.domain = domain
