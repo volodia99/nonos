@@ -526,6 +526,7 @@ class FieldNonos(Mesh,Parameters):
         """
         Reading the data
         """
+        super().load()
         if(self.code=='idefix' or self.code=='pluto'):
             data = readVTKPolar(f, cell='edges').data[self.field]
             data = np.concatenate((data[:,self.ny//2:self.ny,:], data[:,0:self.ny//2,:]), axis=1)
