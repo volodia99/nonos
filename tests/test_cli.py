@@ -1,6 +1,5 @@
 from nonos.main import main, AnalysisNonos
 import os
-import toml
 
 def test_no_inifile(capsys, tmp_path):
     os.chdir(tmp_path)

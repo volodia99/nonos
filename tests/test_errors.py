@@ -1,5 +1,4 @@
-from nonos import InitParamNonos, FieldNonos
-import os
+from nonos import InitParamNonos
 import pytest
 
 def test_init_params_wo_a_file(tmp_path):

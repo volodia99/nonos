@@ -4,7 +4,7 @@
 adapted from pbenitez-llambay, gwafflard-fernandez, cmt robert & glesur
 """
 
-from multiprocessing import Pool, Value
+from multiprocessing import Pool
 from pathlib import Path
 from shutil import copyfile
 import functools
@@ -868,7 +868,8 @@ class StreamNonos(FieldNonos):
             sign = -1
         vr = self.get_v(vx,x,y)
         vt = self.get_v(vy,x,y)
-        if vt == None or vr == None: #Avoiding problems...
+        if None in (vt, vr):
+            #Avoiding problems...
             return None,None
 
         l = np.min((((self.x.max()-self.x.min())/self.nx),((self.y.max()-self.y.min())/self.ny)))
