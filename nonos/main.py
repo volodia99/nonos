@@ -1053,7 +1053,7 @@ def print_err(message):
 
 # process function for parallisation purpose with progress bar
 # counterParallel = Value('i', 0) # initialization of a counter
-def process_field(on, init, dim, field, mid, geometry, avr, diff, log, corotate, stype, srmin, srmax, nstream, vmin, vmax, ft, cmap, isPlanet, pbar, parallel, directory):
+def process_field(on, init, dim, field, mid, geometry, avr, diff, log, corotate, stype, srmin, srmax, nstream, vmin, vmax, ft, cmap, isPlanet, pbar, directory):
     ploton=PlotNonos(init, field=field, on=on, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet, directory=directory, check=False)
     try:
         if not is_unset(stype):
