@@ -1053,7 +1053,7 @@ def print_err(message):
 
 # process function for parallisation purpose with progress bar
 # counterParallel = Value('i', 0) # initialization of a counter
-def process_field(on, init, dim, field, mid, geometry, avr, diff, log, corotate, stype, srmin, srmax, nstream, vmin, vmax, ft, cmap, isPlanet, pbar, directory):
+def process_field(on, init, dim, field, mid, geometry, avr, diff, log, corotate, stype, srmin, srmax, nstream, vmin, vmax, ft, cmap, isPlanet, pbar, parallel, directory):
     ploton=PlotNonos(init, field=field, on=on, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet, directory=directory, check=False)
     try:
         if not is_unset(stype):
@@ -1453,7 +1453,7 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
             nbcpuReal = min((int(args['ncpu']),os.cpu_count()))
             if args['progressBar']:
                 with Pool(nbcpuReal) as pool:   # Create a multiprocessing Pool with a security on the number of cpus
-                    list(track(pool.imap(functools.partial(process_field, init=init, dim=args['dimensionality'], field=args['field'], mid=not args['rz'], geometry=args['geometry'], avr=not args['noaverage'], diff=args['diff'], log=args['log'], corotate=args['corotate'], stype=args['streamtype'], srmin=args['rminStream'], srmax=args['rmaxStream'], nstream=args['nstreamlines'], vmin=args['vmin'], vmax=args['vmax'], ft=args['fontsize'], cmap=args['cmap'], isPlanet=args['isPlanet'], pbar=args['progressBar'], directory=args['datadir']), onarray), total=len(onarray)))
+                    list(track(pool.imap(functools.partial(process_field, init=init, dim=args['dimensionality'], field=args['field'], mid=not args['rz'], geometry=args['geometry'], avr=not args['noaverage'], diff=args['diff'], log=args['log'], corotate=args['corotate'], stype=args['streamtype'], srmin=args['rminStream'], srmax=args['rmaxStream'], nstream=args['nstreamlines'], vmin=args['vmin'], vmax=args['vmax'], ft=args['fontsize'], cmap=args['cmap'], isPlanet=args['isPlanet'], pbar=args['progressBar'], parallel=args['ncpu']>1, directory=args['datadir']), onarray), total=len(onarray)))
             else:
                 pool = Pool(nbcpuReal)   # Create a multiprocessing Pool with a security on the number of cpus
                 pool.map(functools.partial(process_field, init=init, dim=args['dimensionality'], field=args['field'], mid=not args['rz'], geometry=args['geometry'], avr=not args['noaverage'], diff=args['diff'], log=args['log'], corotate=args['corotate'], stype=args['streamtype'], srmin=args['rminStream'], srmax=args['rmaxStream'], nstream=args['nstreamlines'], vmin=args['vmin'], vmax=args['vmax'], ft=args['fontsize'], cmap=args['cmap'], isPlanet=args['isPlanet'], pbar=args['progressBar'], parallel=args['ncpu']>1, directory=args['datadir']), onarray)
