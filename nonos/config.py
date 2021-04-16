@@ -1,18 +1,12 @@
 DEFAULTS = {
     # directory where the simulation results are stored
     'datadir': '.',
-    # mode can be d (display), f (film)
-    'mode': 'd',
     # which field?
     'field': 'RHO',
     # 1D axisymmetric porfile or 2D map
     'dimensionality': 2,
-    # first output number ('on') to plot
-    'onStart': 1,
-    # last output number to use in film mode
-    'onEnd': 'unset',
-    # output number interval between used snapshot in film mode
-    'onStep': 1,
+    # a single output number ('on') to display or a range (min, max, [step])
+    'on': 'unset',
     # perturbation of field
     'diff': False,
     # field in log
