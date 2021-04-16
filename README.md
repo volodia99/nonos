@@ -8,9 +8,9 @@ It works seamlessly with vtu-formatted data from Pluto, Fargo3D and Idefix.
 ## Ongoing progress
 
 * spherical coordinates
-* error: `streamlines` & `midplane=False` -> not yet implemented
+* error: `streamlines` & `rz=True` -> not yet implemented
 * warning: `isPlanet=False` & `corotate=True` -> we don't rotate the grid if there is no planet for now. `omegagrid` = 0.
-* warning: `cartesian=False` & `midplane=False` -> plot not optimized for now in the (R,z) plane in polar.
+* warning: `geometry="polar"` & `rz=True` -> plot not optimized for now in the (R,z) plane in polar.
 
 
 ## Installation
@@ -18,66 +18,132 @@ It works seamlessly with vtu-formatted data from Pluto, Fargo3D and Idefix.
 :warning: Nonos requires Python 3.8 or newer. The easiest installation method is
 
 ```bash
-pip install nonos
+$ pip install nonos
 ```
 
 ## Usage
-There are three ways to use nonos:
-
-1) use the command line tool
-2) use the local mode with the config.toml file
-3) write a Python script using the nonos library
-
 ### 1. On the command line
+
+The nonos CLI gets its parameters from three sources:
+- command line parameters
+- a configuration file
+- default values
+
+Command line parameters take priority over the configuration file, which itself takes priority over default values.
 
 To get help, run
 ```shell
 $ nonos --help
 ```
-
-`nonos -mod d/f [options]`  
-`-info`: give the default parameters in the config.toml file.  
-`-dir`: where .vtk files and the inifile are stored (`"."` by default).  
-`-mod [d/f]`: display/film (`""` home page by default).  
-`-f [str]`: field (for now `RHO`, `VX1` and `VX2` in 2D, + `VX3` in 3D, `RHO` by default).  
-`-on [int]`: if `-mod d` -> we plot the field of the data.on.vtk file (`1` by default).  
-`-onend [int]`: if `-mod f` and `-partial` (`15` by default).  
-`-partial`: if `-mod f` -> partial movie between `-on` and `-onend` (`false` by default).  
-`-vmin [float]`: minimum value for the data (`-0.5` by default).  
-`-vmax [float]`: maximum value for the data (`0.5` by default).  
-`-diff`: plot the relative perturbation of the field f, i.e. `(f-f0)/f0` (`false` by default).  
-`-log`: plot the log of the field f, i.e. `log(f)` (`false` by default).  
-`-cor`: does the grid corotate? For now, works in pair with `-isp` (`false` by default).  
-`-isp`: is there a planet in the grid ? (`false` by default)  
-`-p [1d/2d]`: 1D axisymmetric radial profile or 2D field (`2d` by default).  
-`-mid`/`-rz`: 2D plot in the (R-phi) plane or in the (R-z) plane (`-mid` by default).  
-`-cart`/`-pol`: 2D plot in cartesian or polar coordinates (`-cart` by default).  
-`-avr`/`-noavr`: do we average is the 3rd dimension, i.e. vertically when `-mid` and azimuthally when `-rz` (`-avr` by default).  
-`-s`: do we compute streamlines? (`false` by default)  
-`-stype [random/fixed/lic]`: do we compute random, fixed streams, or do we use line integral convolution? (`random` by default)  
-`-srmin [float]`: minimum radius for streamlines computation (`0.7` by default).  
-`-srmax [float]`: maximum radius for streamlines computation (`1.3` by default).  
-`-sn [int]`: number of streamlines (`50` by default).  
-`-ft [float]`: fontsize in the graph (`11` by default).  
-`-cmap [str]`: choice of colormap for the `-p 2d` maps (`RdYlBu_r` by default).  
-`-pbar`: do we display the progress bar when `-mod f`? (`false` by default)  
-`-multi`: load and save figures in parallel when `-mod f` (`false` by default).  
-`-cpu [int]`: number of cpus if `-multi` (`4` by default).  
-`-l`: local mode.  
-
-### 2. Use of the local mode
-
-Run the following command to copy the default `config.toml` file to the current working directory.
-```shell
-$ nonos -l
 ```
-You can then edit it directly, and change the parameters.
-Then run again:
-```shell
-$ nonos -l
+usage: nonos [-h] [-mode {d,f}] [-dir DATADIR] [-on ONSTART] [-field {RHO,VX1,VX2,VX3}] [-vmin VMIN] [-vmax VMAX] [-diff] [-log] [-isp] [-corotate]
+             [-grid] [-streamlines] [-rz] [-noavr] [-pbar] [-stype {random,fixed,lic}] [-srmin RMINSTREAM] [-srmax RMAXSTREAM] [-sn NSTREAMLINES]
+             [-geom {cartesian,polar} | -pol] [-dim {1,2}] [-ft FONTSIZE] [-cmap CMAP] [-cpu NCPU] [-onEnd ONEND] [-onStep ONSTEP]
+             [-input INPUT | -isolated] [-version | -logo | -config]
+
+Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -mode {d,f}           [d]isplay a single frame (default), or save a [f]ilm (sequence of frames).
+  -dir DATADIR          location of output files and param files (default: '.').
+  -on ONSTART, -onStart ONSTART
+                        output number (on) of the data file (default: 1).
+  -field {RHO,VX1,VX2,VX3}
+                        name of field to plot (default: 'RHO').
+  -vmin VMIN            min value in -diff mode (default: -0.5)
+  -vmax VMAX            max value in -diff mode (default: -0.5)
+  -geom {cartesian,polar}
+  -pol                  shortcut for -geom=polar
+  -dim {1,2}            dimensionality in projection: 1 for a line plot, 2 (default) for a map.
+  -ft FONTSIZE          fontsize in the graph (default: 11).
+  -cmap CMAP            choice of colormap for the -dim 2 maps (default: 'RdYlBu_r').
+
+boolean flags:
+  -diff                 plot the relative perturbation of the field f, i.e. (f-f0)/f0.
+  -log                  plot the log10 of the field f, i.e. log(f).
+  -isp                  is there a planet in the grid ?
+  -corotate             does the grid corotate? Works in pair with -isp.
+  -grid                 show the computational grid.
+  -streamlines          plot streamlines.
+  -rz                   2D plot in the (R-z) plane (default: represent the midplane).
+  -noavr, -noaverage    do not perform averaging along the third dimension.
+  -pbar                 show a progress bar in film mode.
+
+streamlines options:
+  -stype {random,fixed,lic}, -streamtype {random,fixed,lic}
+                        streamlines method (default: 'unset')
+  -srmin RMINSTREAM     minimum radius for streamlines computation (default: 0.7).
+  -srmax RMAXSTREAM     maximum radius for streamlines computation (default: 1.3).
+  -sn NSTREAMLINES      number of streamlines (default: 50).
+
+film mode options:
+  -cpu NCPU, -ncpu NCPU
+                        number of parallel processes (default: 1).
+  -onEnd ONEND          specify the last output number (last one available by default).
+  -onStep ONSTEP        render every `onStep` output number (default: 1).
+
+CLI-only options:
+  -input INPUT, -i INPUT
+                        specify a configuration file.
+  -isolated             ignore any existing 'nonos.toml' file.
+  -version, --version   show raw version number and exit
+  -logo                 show Nonos logo with version number, and exit.
+  -config               show configuration and exit.
 ```
 
-### 3. Programmatic usage
+#### Using a configuration file
+
+The CLI will read parameters from a local file named `nonos.toml` if it exists,
+or any other name specified using the `-i/-input` parameter.
+To ignore any existing `nonos.toml` file, use the `-isolated` flag.
+
+One way to configure nonos is to use
+```shell
+$ nonos -config
+```
+
+which prints the current configuration to stdout.
+You can then redirect it to get a working configuration file as
+```shell
+$ nonos -config > nonos.toml
+```
+This method can also be used to store a complete configuration file from command line arguments:
+```shell
+$ nonos -ncpu 8 -cmap viridis -rz -diff -vmin=-10 -vmax=+100 -config
+```
+As of Nonos 0.2.0, this will print
+```
+# Generated with nonos 0.2.0
+datadir               =  "."
+mode                  =  "d"
+field                 =  "RHO"
+dimensionality        =  2
+onStart               =  1
+onEnd                 =  "unset"
+onStep                =  1
+diff                  =  true
+log                   =  false
+vmin                  =  -10.0
+vmax                  =  100.0
+rz                    =  true
+noaverage             =  false
+streamlines           =  false
+streamtype            =  "random"
+rminStream            =  0.7
+rmaxStream            =  1.3
+nstreamlines          =  50
+progressBar           =  false
+grid                  =  false
+geometry              =  "cartesian"
+isPlanet              =  false
+corotate              =  false
+ncpu                  =  8
+fontsize              =  11
+cmap                  =  "viridis"
+````
+
+### 2. Programmatic usage
 
 Here are some example Python scripts using nonos' api.
 #### Example of field

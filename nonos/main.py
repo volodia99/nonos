@@ -1,16 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-adapted from pbenitez-llambay, gwafflard-fernandez, cmt robert & glesur
+Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
 """
+# adapted from pbenitez-llambay, gwafflard-fernandez, cmt robert & glesur
 
+
+from collections import ChainMap
 from multiprocessing import Pool
 from pathlib import Path
-from shutil import copyfile
 import functools
 import pkg_resources
 import glob
-from typing import List, Optional
+from typing import List, Optional, Any, Tuple, Dict
 import argparse
 import os
 import sys
@@ -25,6 +27,9 @@ from rich import print as rprint
 from rich.progress import track
 import lic
 from copy import copy
+
+from nonos.config import DEFAULTS
+from nonos.__version__ import __version__
 # TODO: recheck in 3D
 # TODO: check in plot function if corotate=True works for all vtk and dpl
 #        (initial planet location) -> computation to calculate the grid rotation speed
@@ -196,7 +201,7 @@ class Parameters():
         self.config = copy(config)
 
         if directory is not None:
-            self.config['dir'] = directory
+            self.config['datadir'] = directory
         if corotate is not None:
             self.config['corotate'] = corotate
         if isPlanet is not None:
@@ -205,31 +210,30 @@ class Parameters():
         self.paramfile = paramfile
 
     def load(self):
+        lookup_table = {
+            "idefix.ini" : "idefix",
+            "pluto.ini": "pluto",
+            "variables.par": "fargo3d",
+        }
         if self.paramfile is None:
-            lookup_table = {
-                "idefix.ini" : "idefix",
-                "pluto.ini": "pluto",
-                "variables.par": "fargo3d",
-            }
-            found = {paramfile: Path(self.config['dir']).joinpath(paramfile).is_file() for paramfile in lookup_table}
+            found = {paramfile: Path(self.config['datadir']).joinpath(paramfile).is_file() for paramfile in lookup_table}
             nfound = sum(list(found.values()))
             if nfound == 0:
                 raise FileNotFoundError("idefix.ini, pluto.ini or variables.par not found.")
             elif nfound > 1:
                 raise RuntimeError("found more than one possible ini file.")
-            paramfile = list(lookup_table.keys())[list(found.values()).index(True)]
-            self.code = lookup_table[paramfile]
-        else:
+            self.paramfile = list(lookup_table.keys())[list(found.values()).index(True)]
+        elif self.paramfile not in lookup_table:
             raise FileNotFoundError("For now, impossible to choose your parameter file.\nBy default, the code searches idefix.ini, pluto.ini or variables.par.")
 
-        self.paramfile = paramfile
-        self.iniconfig = ix.load(os.path.join(self.config['dir'], self.paramfile))
+        self.code = lookup_table[self.paramfile]
+        self.iniconfig = ix.load(os.path.join(self.config['datadir'], self.paramfile))
 
         if self.code=='idefix':
-            self.n_file = len(glob.glob1(self.config['dir'], "data.*.vtk"))
+            self.n_file = len(glob.glob1(self.config['datadir'], "data.*.vtk"))
             # self.h0 = self.iniconfig["Setup"]["h0"]
             if self.config["isPlanet"]:
-                if Path(self.config["dir"]).joinpath("planet0.dat").is_file():
+                if Path(self.config["datadir"]).joinpath("planet0.dat").is_file():
                     with open('planet0.dat','r') as f1:
                         datafile = f1.readlines()
                         self.qpl = np.array([float(line.split()[7]) for line in datafile])
@@ -250,7 +254,7 @@ class Parameters():
                     self.omegagrid = np.array([0.0 for i in range(self.n_file)])
 
         elif self.code=='pluto':
-            self.n_file = len(glob.glob1(self.config["dir"],"data.*.vtk"))
+            self.n_file = len(glob.glob1(self.config["datadir"],"data.*.vtk"))
             # self.h0 = 0.05
             if self.config["isPlanet"]:
                 self.qpl = np.array([self.iniconfig["Parameters"]["Mplanet"]/self.iniconfig["Parameters"]["Mstar"] for i in range(self.n_file)])
@@ -266,19 +270,19 @@ class Parameters():
                     self.omegagrid = np.array([0.0 for i in range(self.n_file)])
 
         elif self.code=='fargo3d':
-            self.n_file = len(glob.glob1(self.config["dir"],"gasdens*.dat")) - len(glob.glob1(self.config["dir"],"gasdens*_*.dat"))
-            nfound = len(glob.glob1(self.config["dir"],"*.cfg"))
+            self.n_file = len(glob.glob1(self.config["datadir"],"gasdens*.dat")) - len(glob.glob1(self.config["datadir"],"gasdens*_*.dat"))
+            nfound = len(glob.glob1(self.config["datadir"],"*.cfg"))
             if nfound==0:
-                raise FileNotFoundError("*.cfg file (FARGO3D planet parameters) does not exist in '%s' directory"%self.config["dir"])
+                raise FileNotFoundError("*.cfg file (FARGO3D planet parameters) does not exist in '%s' directory"%self.config["datadir"])
             elif nfound>1:
                 raise RuntimeError("found more than one possible .cfg file.")
 
-            cfgfile = glob.glob1(self.config["dir"],"*.cfg")[0]
+            cfgfile = glob.glob1(self.config["datadir"],"*.cfg")[0]
 
-            self.cfgconfig = ix.load(os.path.join(self.config["dir"],cfgfile))
+            self.cfgconfig = ix.load(os.path.join(self.config["datadir"],cfgfile))
             # self.h0 = self.iniconfig["ASPECTRATIO"]
             if self.config["isPlanet"]:
-                if Path(self.config["dir"]).joinpath("planet0.dat").is_file():
+                if Path(self.config["datasdir"]).joinpath("planet0.dat").is_file():
                     with open('planet0.dat','r') as f1:
                         datafile = f1.readlines()
                         self.qpl = np.array([float(line.split()[7]) for line in datafile])
@@ -300,34 +304,14 @@ class Parameters():
         if self.n_file==0:
             raise FileNotFoundError("No data files (e.g., 'data.*.vtk' or 'gasdens*.dat') are found.")
 
-class AnalysisNonos():
-    """
-    read the .toml file
-    find parameters in config.toml (same directory as script)
-    compute the number of data.*.vtk files in working directory
-    """
-    def __init__(self, directory_of_script=None, info=False):
-        if directory_of_script is None:
-            config_file = pkg_resources.resource_filename("nonos", "config.toml")
-        else:
-            config_file = os.path.join(directory_of_script, 'config.toml')
 
-        self.config = toml.load(config_file)
+class InitParamNonos(Parameters):
+    def __init__(self, directory=None, paramfile=None, corotate=None, isPlanet=None):
+        config_buffer = {} if paramfile is None else toml.load(paramfile)
+        self.config = ChainMap(config_buffer, DEFAULTS)
 
-        if info:
-            print(self)
-
-    def __repr__(self) -> str:
-        return toml.dumps(self.config)
-class InitParamNonos(AnalysisNonos,Parameters):
-    """
-    Call the AnalysisNonos class to define the config dictionary
-    and use it to call the Parameters class to initialize important parameters.
-    """
-    def __init__(self, directory=None, directory_of_script=None, info=False, paramfile=None, corotate=None, isPlanet=None):
-        AnalysisNonos.__init__(self, directory_of_script=directory_of_script, info=info)
         if directory is None:
-            directory=self.config['dir']
+            directory=self.config['datadir']
         self.directory=directory
         if corotate is None:
             corotate=self.config['corotate']
@@ -335,42 +319,8 @@ class InitParamNonos(AnalysisNonos,Parameters):
         if isPlanet is None:
             isPlanet=self.config['isPlanet']
         self.isPlanet=isPlanet
-        Parameters.__init__(self, config=self.config, directory=self.directory, paramfile=paramfile, corotate=self.corotate, isPlanet=self.isPlanet) #All the Parameters attributes inside Field
+        super().__init__(config=self.config, directory=self.directory, paramfile=paramfile, corotate=self.corotate, isPlanet=self.isPlanet) #All the Parameters attributes inside Field
 
-
-    def load(self, info:bool):
-        super().load()
-        if info:
-            print(self.code.upper(), "analysis")
-        if (self.code=='idefix' or self.code=='pluto'):
-            domain=readVTKPolar(os.path.join(self.directory,'data.0000.vtk'), cell="edges")
-            list_keys=list(domain.data.keys())
-            if info:
-                print("\nWORKS IN POLAR COORDINATES")
-                print("Possible fields: ", list_keys)
-                print('nR=%d, np=%d, nz=%d' % (domain.nx,domain.ny,domain.nz))
-
-        elif self.code=='fargo3d':
-            nfound_x = len(glob.glob1(self.directory,"domain_x.dat"))
-            if nfound_x!=1:
-                raise FileNotFoundError("domain_x.dat not found.")
-            nfound_y = len(glob.glob1(self.directory,"domain_y.dat"))
-            if nfound_y!=1:
-                raise FileNotFoundError("domain_y.dat not found.")
-            nfound_z = len(glob.glob1(self.directory,"domain_z.dat"))
-            if nfound_z!=1:
-                raise FileNotFoundError("domain_z.dat not found.")
-
-            domain_x = np.loadtxt(os.path.join(self.directory,"domain_x.dat"))
-            #We avoid ghost cells
-            domain_y = np.loadtxt(os.path.join(self.directory,"domain_y.dat"))[3:-3]
-            domain_z = np.loadtxt(os.path.join(self.directory,"domain_z.dat"))
-            if domain_z.shape[0]>6:
-                domain_z=domain_z[3:-3]
-
-            if info:
-                print("\nWORKS IN POLAR COORDINATES")
-                print('nR=%d, np=%d, nz=%d' % (len(domain_y)-1,len(domain_x)-1,len(domain_z)-1))
 
 class Mesh(Parameters):
     """
@@ -452,6 +402,7 @@ class FieldNonos(Mesh,Parameters):
     def __init__(self, init, directory=None, field=None, on=None, paramfile=None, diff=None, log=None, corotate=None, isPlanet=None, check=True):
         self.check=check
         self.init=init
+        # TODO: simplify this block
         if directory is None:
             directory=self.init.directory
         if corotate is None:
@@ -492,20 +443,21 @@ class FieldNonos(Mesh,Parameters):
             filedata = "gas%s%d.dat"%(self.field,self.on)
             filedata0 = "gas%s0.dat"%self.field
 
-        if self.check:
-            if(not(self.isPlanet) and self.corotate):
-                print_warn("We don't rotate the grid if there is no planet for now.\nomegagrid = 0.")
+        # FIXME: reactivate this warning
+        #if self.corotate and not(self.isPlanet):
+        #    warnings.warn("We don't rotate the grid if there is no planet for now.\nomegagrid = 0.")
 
-        nfdat = len(glob.glob1(self.init.directory,filedata))
-        if nfdat!=1:
-            raise FileNotFoundError(os.path.join(self.init.directory,filedata)+" not found")
-        self.data = self.__open_field(os.path.join(self.init.directory,filedata)) #The scalar data is here.
+        datafile = os.path.join(directory, filedata)
+
+        if not os.path.isfile(datafile):
+            raise FileNotFoundError(datafile)
+        self.data = self.__open_field(datafile) #The scalar data is here.
 
         if self.diff:
-            nfdat0 = len(glob.glob1(self.init.directory,filedata0))
-            if nfdat0!=1:
-                raise FileNotFoundError(os.path.join(self.init.directory,filedata0)+" not found")
-            self.data0 = self.__open_field(os.path.join(self.init.directory,filedata0))
+            datafile = os.path.join(self.init.directory,filedata0)
+            if not os.path.isfile(datafile):
+                raise FileNotFoundError(datafile)
+            self.data0 = self.__open_field(datafile)
 
         if self.log:
             if self.diff:
@@ -533,7 +485,6 @@ class FieldNonos(Mesh,Parameters):
         elif self.code=='fargo3d':
             data = np.fromfile(f, dtype='float64')
             data=(data.reshape(self.nz,self.nx,self.ny)).transpose(1,2,0) #rad, pĥi, theta
-
         """
         if we try to rotate a grid at 0 speed
         and if the domain is exactly [-pi,pi],
@@ -552,13 +503,22 @@ class FieldNonos(Mesh,Parameters):
         data=np.concatenate((data[:,index:self.ny,:],data[:,0:index,:]),axis=1)
         return data
 
+def is_unset(v) -> bool:
+    return v in ("unset", None)
+
+def parse_vmin_vmax(vmin, vmax, diff:bool, data:np.ndarray, defaults:Dict[str, Any]) -> Tuple[float, float]:
+    if is_unset(vmin):
+        vmin = data.min() if not diff else defaults['vmin']
+        assert not is_unset(vmin)
+    if is_unset(vmax):
+        vmax = data.max() if not diff else defaults['vmax']
+        assert not is_unset(vmax)
+    return vmin, vmax
+
 class PlotNonos(FieldNonos):
     """
     Plot class which uses Field to compute different graphs.
     """
-    def __init__(self, init, directory="", field=None, on=None, diff=None, log=None, corotate=None, isPlanet=None, check=True):
-        FieldNonos.__init__(self,init=init,field=field,on=on,directory=directory, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet, check=check) #All the Parameters attributes inside Field
-
     def axiplot(self, ax, vmin=None, vmax=None, average=None, fontsize=None, **karg):
         if average is None:
             average=self.init.config['average']
@@ -570,22 +530,10 @@ class PlotNonos(FieldNonos):
             dataRZ=self.data[:,self.ny//2,:]
             dataR=dataRZ[:,self.imidplane]
             dataProfile=dataR
-        if vmin is None:
-            vmin=self.init.config['vmin']
-            if not self.diff:
-                vmin=dataProfile.min()
-        if vmax is None:
-            vmax=self.init.config['vmax']
-            if not self.diff:
-                vmax=dataProfile.max()
+        vmin, vmax = parse_vmin_vmax(vmin, vmax, diff=self.diff, data=dataProfile, defaults=self.init.config)
+
         if fontsize is None:
             fontsize=self.init.config['fontsize']
-
-        if self.init.config['writeAxi']:
-            axifile=open("axi%s%04d.csv"%(self.field.lower(),self.on),'w')
-            for i in range(len(self.xmed)):
-                axifile.write('%f,%f\n' %(self.xmed[i],dataProfile[i]))
-            axifile.close()
 
         ax.plot(self.xmed,dataProfile,**karg)
 
@@ -602,22 +550,14 @@ class PlotNonos(FieldNonos):
         ax.set_ylabel(self.title, fontsize=fontsize)
         # plt.legend(frameon=False)
 
-    def plot(self, ax, vmin=None, vmax=None, midplane=None, cartesian=None, average=None, fontsize=None, cmap=None, **karg):
+    def plot(self, ax, vmin=None, vmax=None, midplane=None, geometry="cartesian", average=None, fontsize=None, cmap=None, **karg):
         """
         A layer for pcolormesh function.
         """
-        if vmin is None:
-            vmin=self.init.config['vmin']
-            if not self.diff:
-                vmin=self.data.min()
-        if vmax is None:
-            vmax=self.init.config['vmax']
-            if not self.diff:
-                vmax=self.data.max()
+        vmin, vmax = parse_vmin_vmax(vmin, vmax, diff=self.diff, data=self.data, defaults=self.init.config)
+
         if midplane is None:
             midplane=self.init.config['midplane']
-        if cartesian is None:
-            cartesian=self.init.config['cartesian']
         if average is None:
             average=self.init.config['average']
         if fontsize is None:
@@ -625,19 +565,20 @@ class PlotNonos(FieldNonos):
         if cmap is None:
             cmap=self.init.config['cmap']
 
+        zspan = self.z.ptp() or 1.0
+
         # (R,phi) plane
         if midplane:
             if self.x.shape[0]<=1:
                 raise IndexError("No radial direction, the simulation is not 3D.\nTry midplane=False")
             if self.y.shape[0]<=1:
                 raise IndexError("No azimuthal direction, the simulation is not 3D.\nTry midplane=False")
-            if cartesian:
+            if geometry == "cartesian":
                 P,R = np.meshgrid(self.y,self.x)
                 X = R*np.cos(P)
                 Y = R*np.sin(P)
                 if average:
-                    # next() function chooses ZMAX-ZMIN if 3D simulation, otherwise chooses 1.0
-                    im=ax.pcolormesh(X,Y,np.mean(self.data,axis=2)*next(item for item in [self.z.max()-self.z.min(),1.0] if item!=0),
+                    im=ax.pcolormesh(X,Y,np.mean(self.data,axis=2)*zspan,
                               cmap=cmap,vmin=vmin,vmax=vmax,**karg)
                 else:
                     im=ax.pcolormesh(X,Y,self.data[:,:,self.imidplane],
@@ -651,10 +592,10 @@ class PlotNonos(FieldNonos):
                 if self.init.config['grid']:
                     ax.plot(X,Y,c='k',linewidth=0.07)
                     ax.plot(X.transpose(),Y.transpose(),c='k',linewidth=0.07)
-            else:
+            elif geometry == "polar":
                 P,R = np.meshgrid(self.y,self.x)
                 if average:
-                    im=ax.pcolormesh(R,P,np.mean(self.data,axis=2)*next(item for item in [self.z.max()-self.z.min(),1.0] if item!=0),
+                    im=ax.pcolormesh(R,P,np.mean(self.data,axis=2)*zspan,
                               cmap=cmap,vmin=vmin,vmax=vmax,**karg)
                 else:
                     im=ax.pcolormesh(R,P,self.data[:,:,self.imidplane],
@@ -669,6 +610,8 @@ class PlotNonos(FieldNonos):
                 if self.init.config['grid']:
                     ax.plot(R,P,c='k',linewidth=0.07)
                     ax.plot(R.transpose(),P.transpose(),c='k',linewidth=0.07)
+            else:
+                raise ValueError(f"Unknown geometry '{geometry}'")
 
             # ax.set_xlim(0.5,1.5)
             # ax.set_ylim(-0.8,0.8)
@@ -690,7 +633,7 @@ class PlotNonos(FieldNonos):
                 raise IndexError("No radial direction, the simulation is not 3D.\nTry midplane=True")
             if self.z.shape[0]<=1:
                 raise IndexError("No vertical direction, the simulation is not 3D.\nTry midplane=True")
-            if cartesian:
+            if geometry == "cartesian":
                 Z,R = np.meshgrid(self.z,self.x)
                 if average:
                     im=ax.pcolormesh(R,Z,np.mean(self.data,axis=1),
@@ -994,15 +937,17 @@ class StreamNonos(FieldNonos):
             cter2 += 1
         return streams
 
-    def plot_streams(self, ax, streams, midplane=True, cartesian=True, **kargs):
+    def plot_streams(self, ax, streams, midplane=True, geometry="cartesian", **kargs):
         for stream in streams:
             for sub_stream in stream:
                 # sub_stream[0]*=unit_code.length/unit.AU
                 if midplane:
-                    if cartesian:
+                    if geometry == "cartesian":
                         ax.plot(sub_stream[0]*np.cos(sub_stream[1]),sub_stream[0]*np.sin(sub_stream[1]),**kargs)
-                    else:
+                    elif geometry == "polar":
                         ax.plot(sub_stream[0],sub_stream[1],**kargs)
+                    else:
+                        raise ValueError(f"Unknown geometry '{geometry}'")
                 else:
                     if self.check:
                         raise NotImplementedError("For now, we do not compute streamlines in the (R,z) plane")
@@ -1011,16 +956,18 @@ class StreamNonos(FieldNonos):
         get_lic=lic.lic(vx[:,:,self.imidplane],vy[:,:,self.imidplane],length=30)
         return get_lic
 
-    def plot_lic(self, ax, streams, midplane=True, cartesian=True, **kargs):
+    def plot_lic(self, ax, streams, midplane=True, geometry="cartesian", **kargs):
         if midplane:
-            if cartesian:
+            if geometry == "cartesian":
                 P,R = np.meshgrid(self.y,self.x)
                 X = R*np.cos(P)
                 Y = R*np.sin(P)
                 ax.pcolormesh(X,Y,streams,**kargs)
-            else:
+            elif geometry == "polar":
                 P,R = np.meshgrid(self.y,self.x)
                 ax.pcolormesh(R,P,streams,**kargs)
+            else:
+                raise ValueError(f"Unknown geometry '{geometry}'")
         else:
             if self.check:
                 raise NotImplementedError("For now, we do not compute streamlines in the (R,z) plane")
@@ -1031,7 +978,7 @@ def is_averageSafe(sigma0,sigmaSlope,plot=False):
     datarz=np.mean(fieldon.data,axis=1) # azimuthally-averaged density field
     error=(sigma0*pow(fieldon.xmed,-sigmaSlope)-np.mean(datarz, axis=1)*next(item for item in [fieldon.z.max()-fieldon.z.min(),1.0] if item!=0))/(sigma0*pow(fieldon.xmed,-sigmaSlope)) # comparison between Sigma(R) profile and integral of rho(R,z) between zmin and zmax
     if any(100*abs(error)>3):
-        print("With a maximum of %.1f percents of error, the averaging procedure may not be safe.\nzmax/h is probably too small.\nUse rather average=False (-noavr) or increase zmin/zmax."%np.max(100*abs(error)))
+        print("With a maximum of %.1f percents of error, the averaging procedure may not be safe.\nzmax/h is probably too small.\nUse rather average=False (-noaverage) or increase zmin/zmax."%np.max(100*abs(error)))
     else:
         print("Only %.1f percents of error maximum in the averaging procedure."%np.max(100*abs(error)))
     if plot:
@@ -1106,10 +1053,10 @@ def print_err(message):
 
 # process function for parallisation purpose with progress bar
 # counterParallel = Value('i', 0) # initialization of a counter
-def process_field(on, init, profile, field, mid, cart, avr, diff, log, corotate, streamlines, stype, srmin, srmax, nstream, vmin, vmax, ft, cmap, isPlanet, pbar, parallel, directory):
+def process_field(on, init, dim, field, mid, geometry, avr, diff, log, corotate, stype, srmin, srmax, nstream, vmin, vmax, ft, cmap, isPlanet, pbar, parallel, directory):
     ploton=PlotNonos(init, field=field, on=on, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet, directory=directory, check=False)
     try:
-        if streamlines:
+        if not is_unset(stype):
             streamon=StreamNonos(init, field=field, on=on, directory=directory, check=False)
             vx1on = FieldNonos(init, field='VX1', on=on, diff=False, log=False, corotate=corotate, isPlanet=isPlanet, directory=directory, check=False)
             vx2on = FieldNonos(init, field='VX2', on=on, diff=False, log=False, corotate=corotate, isPlanet=isPlanet, directory=directory, check=False)
@@ -1117,7 +1064,7 @@ def process_field(on, init, profile, field, mid, cart, avr, diff, log, corotate,
         print_err(exc)
         return 1
 
-    if (not cart and not mid):
+    if geometry != "cartesian" and not mid:
         print_warn('plot not optimized for now in the (R,z) plane in polar.\nCheck in cartesian coordinates to be sure')
         fig = plt.figure(figsize=(9,8))
         ax = fig.add_subplot(111, polar=True)
@@ -1127,382 +1074,347 @@ def process_field(on, init, profile, field, mid, cart, avr, diff, log, corotate,
     plt.ioff()
 
     # plot the field
-    if profile=="2d":
+    if dim == 2:
         try:
-            ploton.plot(ax, vmin=vmin, vmax=vmax, midplane=mid, cartesian=cart, average=avr, fontsize=ft, cmap=cmap)
+            ploton.plot(ax, vmin=vmin, vmax=vmax, midplane=mid, geometry=geometry, average=avr, fontsize=ft, cmap=cmap)
         except IndexError as exc:
             print_err(exc)
             return 1
-        if streamlines:
+        if not is_unset(stype):
             vr = vx1on.data
             vphi = vx2on.data
             if isPlanet:
                 vphi -= vx2on.omegaplanet[on]*vx2on.xmed[:,None,None]
             if stype=="lic":
                 streams=streamon.get_lic_streams(vr,vphi)
-                streamon.plot_lic(ax,streams,cartesian=cart, cmap='gray', alpha=0.3)
+                streamon.plot_lic(ax,streams,cartesian=geometry=="cartesian", cmap='gray', alpha=0.3)
             elif stype=="random":
                 streams=streamon.get_random_streams(vr,vphi,xmin=srmin,xmax=srmax, n=nstream)
-                streamon.plot_streams(ax,streams,cartesian=cart,color='k', linewidth=2, alpha=0.5)
+                streamon.plot_streams(ax,streams,cartesian=geometry=="cartesian",color='k', linewidth=2, alpha=0.5)
             elif stype=="fixed":
                 streams=streamon.get_fixed_streams(vr,vphi,xmin=srmin,xmax=srmax, n=nstream)
-                streamon.plot_streams(ax,streams,cartesian=cart,color='k', linewidth=2, alpha=0.5)
+                streamon.plot_streams(ax,streams,cartesian=geometry=="cartesian",color='k', linewidth=2, alpha=0.5)
 
         if mid:
-            plt.savefig("Rphi_%s_diff%slog%s_c%s%04d.png"%(field,diff,log,cart,on))
+            plt.savefig("Rphi_%s_diff%slog%s_c%s%04d.png"%(field,diff,log,geometry,on))
         else:
-            plt.savefig("Rz_%s_diff%slog%s_c%s%04d.png"%(field,diff,log,cart,on))
+            plt.savefig("Rz_%s_diff%slog%s_c%s%04d.png"%(field,diff,log,geometry,on))
 
     # plot the 1D profile
-    if profile=="1d":
+    elif dim == 1:
         ploton.axiplot(ax, vmin=vmin, vmax=vmax, average=avr, fontsize=ft)
         plt.savefig("axi_%s_diff%slog%s%04d.png"%(field,diff,log,on))
 
     plt.close()
 
-    # if pbar:
-    #     if parallel:
-    #         global counterParallel
-    #         printProgressBar(counterParallel.value, len(config['onarray'])-1, prefix = 'Progress:', suffix = 'Complete', length = 50) # progress bar when parallelization is included
-    #         with counterParallel.get_lock():
-    #             counterParallel.value += 1  # incrementation of the counter
-    #     else:
-    #         printProgressBar(on-config['onarray'][0], len(config['onarray'])-1, prefix = 'Progress:', suffix = 'Complete', length = 50)
-
 def main(argv: Optional[List[str]] = None, show=True) -> int:
-    # read the .toml file
-    try:
-        analysis = AnalysisNonos()
-    except FileNotFoundError as exc:
-        print_err(exc)
-        return 1
-
-    pconfig=analysis.config
 
     parser = argparse.ArgumentParser(prog='nonos',
-                                     usage='%(prog)s -mod d/f [options]',
-                                     description='Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates)',
+                                     description=__doc__,
                                      )
-    # analysis = AnalysisNonos(directory=args.dir)
+
     parser.add_argument(
-        '-l',
-        action="store_true",
-        help="local mode",
+        '-mode',
+        choices=["d","f"],
+        help="[d]isplay a single frame (default), or save a [f]ilm (sequence of frames).",
+    )
+    parser.add_argument(
+        '-dir', dest='datadir',
+        help=f"location of output files and param files (default: '{DEFAULTS['datadir']}').",
         )
     parser.add_argument(
-        '-dir',
-        type=str,
-        default=pconfig['dir'],
-        help="where .vtk files and the inifile are stored ('.' by default).",
-        )
-    parser.add_argument(
-        '-mod',
-        type=str,
-        choices=["","d","f"],
-        default="",
-        help="display/film ('' home page by default).",
-        )
-    parser.add_argument(
-        '-on',
+        '-on', '-onStart', dest="onStart",
         type=int,
-        default=pconfig['onStart'],
-        help="if -mod d, we plot the field of the data.on.vtk file (1 by default).",
+        help=f"output number (on) of the data file (default: {DEFAULTS['onStart']}).",
         )
     parser.add_argument(
-        '-f',
-        type=str.lower,
-        default=pconfig['field'],
-        help="field (for now RHO, VX1 and VX2 in 2D, + VX3 in 3D, RHO by default).",
+        '-field',
+        choices=['RHO', 'VX1', 'VX2', 'VX3'],
+        help=f"name of field to plot (default: '{DEFAULTS['field']}').",
         )
     parser.add_argument(
         '-vmin',
         type=float,
-        default=None,
-        help="minimum value for the data (-0.5 by default or calculated.",
+        help=f"min value in -diff mode (default: {DEFAULTS['vmin']})",
         )
     parser.add_argument(
         '-vmax',
         type=float,
-        default=None,
-        help="maximum value for the data (0.5 by default or calculated.",
+        help=f"max value in -diff mode (default: {DEFAULTS['vmin']})",
         )
-    parser.add_argument(
-        '-onend',
-        type=int,
-        default=pconfig['onEnd'],
-        help="if -mod f and -partial (15 by default).",
-        )
-    parser.add_argument(
+
+    # boolean flags use False as a default value (...by default)
+    # forcing them to None instead will allow them to be pruned
+    # when we build the ChainMap config
+    flag_group = parser.add_argument_group("boolean flags")
+    flag_group.add_argument(
         '-diff',
         action="store_true",
-        help="plot the relative perturbation of the field f, i.e. (f-f0)/f0 (false by default).",
+        default=None,
+        help="plot the relative perturbation of the field f, i.e. (f-f0)/f0.",
         )
-    parser.add_argument(
+    flag_group.add_argument(
         '-log',
         action="store_true",
-        help="plot the log of the field f, i.e. log(f) (false by default).",
+        default=None,
+        help="plot the log10 of the field f, i.e. log(f).",
         )
-    parser.add_argument(
-        '-cor',
+    flag_group.add_argument(
+        '-isp', dest="isPlanet",
         action="store_true",
-        help="does the grid corotate? For now, works in pair with -isp (false by default).",
+        default=None,
+        help="is there a planet in the grid ?",
         )
-    parser.add_argument(
-        '-s',
+    flag_group.add_argument(
+        '-corotate',
         action="store_true",
-        help="do we compute streamlines? (false by default)",
+        default=None,
+        help="does the grid corotate? Works in pair with -isp.",
         )
-    parser.add_argument(
-        '-stype',
-        type=str,
-        choices=["random","fixed","lic"],
-        default=pconfig['streamtype'],
-        help="do we compute random, fixed streams, or do we use line integral convolution? (random by default)",
-        )
-    parser.add_argument(
-        '-srmin',
-        type=float,
-        default=pconfig['rminStream'],
-        help="minimum radius for streamlines computation (0.7 by default).",
-        )
-    parser.add_argument(
-        '-srmax',
-        type=float,
-        default=pconfig['rmaxStream'],
-        help="maximum radius for streamlines computation (1.3 by default).",
-        )
-    parser.add_argument(
-        '-sn',
-        type=int,
-        default=pconfig['nstream'],
-        help="number of streamlines (50 by default).",
-        )
-    parser.add_argument(
-        '-isp',
+    flag_group.add_argument(
+        '-grid',
         action="store_true",
-        help="is there a planet in the grid ? (false by default)",
-        )
-
-    groupmid = parser.add_mutually_exclusive_group()
-    groupmid.add_argument(
-        '-mid',
+        default=None,
+        help="show the computational grid."
+    )
+    flag_group.add_argument(
+        '-streamlines',
         action="store_true",
-        default=pconfig['midplane'],
-        help="2D plot in the (R-phi) plane (true by default).",
+        default=None,
+        help="plot streamlines.",
         )
-    groupmid.add_argument(
+    flag_group.add_argument(
         '-rz',
         action="store_true",
-        default=False,
-        help="2D plot in the (R-z) plane (false by default).",
+        default=None,
+        help="2D plot in the (R-z) plane (default: represent the midplane).",
         )
-    groupcart = parser.add_mutually_exclusive_group()
-    groupcart.add_argument(
-        '-cart',
+    flag_group.add_argument(
+        '-noavr', '-noaverage', dest="noaverage",
         action="store_true",
-        default=pconfig['cartesian'],
-        help="2D plot in cartesian coordinates (true by default).",
+        default=None,
+        help="do not perform averaging along the third dimension. "
         )
-    groupcart.add_argument(
-        '-pol',
+    flag_group.add_argument(
+        '-pbar', dest="progressBar",
         action="store_true",
-        default=False,
-        help="2D plot in polar coordinates (false by default).",
-        )
-    groupavr = parser.add_mutually_exclusive_group()
-    groupavr.add_argument(
-        '-avr',
-        action="store_true",
-        default=pconfig['average'],
-        help="do we average in the 3rd dimension, i.e. vertically when -mid and azimuthally when -rz (true by default).",
-        )
-    groupavr.add_argument(
-        '-noavr',
-        action="store_true",
-        default=False,
-        help="do we consider a specific plane, i.e. at the midplane (z=0) when -mid and at phi=0 when -rz (false by default).",
+        default=None,
+        help="show a progress bar in film mode.",
         )
 
-    parser.add_argument(
-        '-p',
-        type=str,
-        choices=["2d","1d"],
-        default=pconfig['profile'],
-        help="1D axisymmetric radial profile or 2D field (2d by default).",
+    stream_group = parser.add_argument_group("streamlines options")
+    stream_group.add_argument(
+        '-stype', "-streamtype", dest="streamtype",
+        choices=["random","fixed","lic"],
+        help=f"streamlines method (default: '{DEFAULTS['streamtype']}')",
         )
-    parser.add_argument(
-        '-ft',
+    stream_group.add_argument(
+        '-srmin', dest="rminStream",
         type=float,
-        default=pconfig['fontsize'],
-        help="fontsize in the graph (11 by default).",
+        help=f"minimum radius for streamlines computation (default: {DEFAULTS['rminStream']}).",
+        )
+    stream_group.add_argument(
+        '-srmax', dest="rmaxStream",
+        type=float,
+        help=f"maximum radius for streamlines computation (default: {DEFAULTS['rmaxStream']}).",
+        )
+    stream_group.add_argument(
+        '-sn', dest="nstreamlines",
+        type=int,
+        help=f"number of streamlines (default: {DEFAULTS['nstreamlines']}).",
+        )
+
+    geom_group = parser.add_mutually_exclusive_group()
+    geom_group.add_argument(
+        "-geom", dest="geometry",
+        choices=["cartesian", "polar"],
+        )
+    geom_group.add_argument(
+        "-pol",
+        action="store_true",
+        help="shortcut for -geom=polar",
+        )
+
+
+    parser.add_argument(
+        "-dim", dest="dimensionality",
+        type=int,
+        choices=[1, 2],
+        help="dimensionality in projection: 1 for a line plot, 2 (default) for a map.",
+    )
+    parser.add_argument(
+        '-ft', dest='fontsize',
+        type=float,
+        help=f"fontsize in the graph (default: {DEFAULTS['fontsize']}).",
         )
     parser.add_argument(
         '-cmap',
-        type=str,
-        default=pconfig['cmap'],
-        help="choice of colormap for the -p 2d maps (RdYlBu_r by default).",
+        help=f"choice of colormap for the -dim 2 maps (default: '{DEFAULTS['cmap']}').",
         )
-    parser.add_argument(
-        '-partial',
-        action="store_true",
-        default=False,
-        help="if -mod f, partial movie between -on and -onend (false by default).",
-        )
-    parser.add_argument(
-        '-pbar',
-        action="store_true",
-        help="do we display the progress bar when -mod f? (false by default)",
-        )
-    parser.add_argument(
-        '-multi',
-        action="store_true",
-        help="load and save figures in parallel when -mod f (false by default).",
-        )
-    parser.add_argument(
-        '-cpu',
+
+    film_group = parser.add_argument_group("film mode options")
+    film_group.add_argument(
+        '-cpu', '-ncpu', dest="ncpu",
         type=int,
-        default=pconfig['nbcpu'],
-        help="number of cpus if -multi (4 by default).",
+        help=f"number of parallel processes (default: {DEFAULTS['ncpu']}).",
+    )
+    film_group.add_argument(
+        '-onEnd',
+        type=int,
+        help="specify the last output number "
+             "(last one available by default).",
         )
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument(
-        '-info',
-        action="store_true",
-        help="give the default parameters in the config.toml file.",
-        )
-    group.add_argument(
-        '-config',
-        action="store_true",
-        help="show configuration and return."
+    film_group.add_argument(
+        '-onStep',
+        type=int,
+        help=f"render every `onStep` output number (default: {DEFAULTS['onStep']})."
     )
 
-    args = parser.parse_args(argv)
+    cli_only_group = parser.add_argument_group("CLI-only options")
+    cli_input_group = cli_only_group.add_mutually_exclusive_group()
+    cli_input_group.add_argument(
+        "-input", "-i", dest="input",
+        type=str,
+        help="specify a configuration file."
+    )
+    cli_input_group.add_argument(
+        "-isolated",
+        action="store_true",
+        help="ignore any existing 'nonos.toml' file."
+    )
+    cli_action_group = cli_only_group.add_mutually_exclusive_group()
+    cli_action_group.add_argument(
+        "-version", "--version",
+        action="store_true",
+        help="show raw version number and exit",
+    )
+    cli_action_group.add_argument(
+        "-logo",
+        action="store_true",
+        help="show Nonos logo with version number, and exit."
+    )
+    cli_action_group.add_argument(
+        '-config',
+        action="store_true",
+        help="show configuration and exit."
+    )
 
-    if args.l:
-        rprint("[bold white]Local mode")
-        if len(glob.glob1("","config.toml"))!=1:
-            pathconfig = pkg_resources.resource_filename("nonos", "config.toml")
-            copyfile(pathconfig, "config.toml")
-            print_warn("config.toml file copied in working directory.\nYou can now open it and choose the parameters")
-            return 0
+    clargs = vars(parser.parse_args(argv))
 
-        init = InitParamNonos(directory=args.dir, directory_of_script="", info=args.info)
+    # special cases: destructively consume CLI-only arguments with dict.pop
+    if clargs.pop("pol"):
+        clargs["geometry"] = "polar"
 
-        args.dir=init.config["dir"]
-        args.mod=init.config["mode"]
-        args.on=init.config["onStart"]
-        args.f=init.config["field"]
-        args.onend=init.config["onEnd"]
-        args.diff=init.config["diff"]
-        args.log=init.config["log"]
-        if args.diff:
-            args.vmin=init.config["vmin"]
-            args.vmax=init.config["vmax"]
-        else:
-            args.vmin=None
-            args.vmax=None
-        args.cor=init.config["corotate"]
-        args.s=init.config["streamlines"]
-        args.stype=init.config["streamtype"]
-        args.srmin=init.config["rminStream"]
-        args.srmax=init.config["rmaxStream"]
-        args.sn=init.config["nstream"]
-        args.isp=init.config["isPlanet"]
-        args.mid=init.config["midplane"]
-        args.rz=not args.mid
-        args.cart=init.config["cartesian"]
-        args.pol=not args.cart
-        args.avr=init.config["average"]
-        args.noavr=not args.avr
-        args.p=init.config["profile"]
-        args.ft=init.config["fontsize"]
-        args.cmap=init.config["cmap"]
-        args.partial=not init.config["fullfilm"]
-        args.pbar=init.config["progressBar"]
-        args.multi=init.config["parallel"]
-        args.cpu=init.config["nbcpu"]
-    else:
-        init = InitParamNonos(directory=args.dir, info=args.info)
-
-    if args.config:
-        print(init)
+    if clargs.pop('logo'):
+        with open(pkg_resources.resource_filename("nonos", "logo.txt")) as fh:
+            logo = fh.read()
+        print(f"{logo}{__doc__}Version {__version__}")
         return 0
 
+    if clargs.pop('version'):
+        print(__version__)
+        return 0
+
+    if clargs.pop("isolated"):
+        ifile = None
+    else:
+        if (ifile := clargs.pop("input")) is not None:
+            if not os.path.isfile(ifile):
+                print_err(f"Couldn't find requested input file '{ifile}'.")
+                return 1
+        elif os.path.isfile("nonos.toml"):
+            ifile = "nonos.toml"
+
+    init = InitParamNonos(paramfile=ifile, directory=clargs['datadir'])
+
+    # check that every parameter in the configuration is also exposed to the CLI
+    assert not set(DEFAULTS).difference(set(clargs))
+
+    # squeeze out any unset value form cli config to leave room for file parameters
+    clargs = {k: v for k,v in clargs.items() if v is not None}
+
+    # NOTE: init.config is also a ChainMap instance with a default layer
+    # this may be seen either as hyperstatism (good thing) or error prone redundancy (bad thing)
+    args = ChainMap(clargs, init.config, DEFAULTS)
+
+    if clargs.pop("config"):
+        from inifix.format import _tidy as iniformat
+        conf_repr = {}
+        for key in DEFAULTS:
+            conf_repr[key] = args[key]
+        print(f"# Generated with nonos {__version__}")
+        print(iniformat(toml.dumps(conf_repr)))
+        return 0
+
+    # check that every CLI-only argument was consumed at this point
+    assert not set(clargs).difference(set(DEFAULTS))
+
     try:
-        init.load(args.info)
+        init.load()
     except (FileNotFoundError,RuntimeError,ValueError) as exc:
         print_err(exc)
         return 1
 
+    args['field'] = args['field'].upper()
 
-    n_file=init.n_file
-    diran=init.directory
-
-    args.f=args.f.upper()
-    if args.rz:
-        args.mid=False
-    if args.pol:
-        args.cart=False
-    if args.noavr:
-        args.avr=False
-
-    if(not(args.mid) and args.s):
+    if args['rz'] and not is_unset(args['streamtype']):
         print_err("For now, we do not compute streamlines in the (R,z) plane")
         return 1
 
-    if(not(args.isp) and args.cor):
+    if args['corotate'] and not args['isPlanet']:
         print_warn("We don't rotate the grid if there is no planet for now.\nomegagrid = 0.")
 
-    if(args.s and args.stype=='lic'):
+    if args['streamtype']=='lic':
         print_warn("TODO: check what is the length argument in StreamNonos().get_lic_streams ?")
 
     # mode for just displaying a field for a given output number
-    if args.mod=="d":
-        if (args.pol and args.rz):
+    if args['mode']=="d":
+        if args['geometry'] == "polar" and args['rz']:
             print_warn('plot not optimized for now in the (R,z) plane in polar.\nCheck in cartesian coordinates to be sure')
             fig = plt.figure(figsize=(9,8))
             ax = fig.add_subplot(111, polar=True)
         else:
             fig, ax=plt.subplots(figsize=(9,8))#, sharex=True, sharey=True)
         plt.ioff()
-        # print("on = ", args.on)
+        # print("on = ", args['onStart'])
         # loading the field
 
         try:
-            ploton = PlotNonos(init, field=args.f, on=args.on, diff=args.diff, log=args.log, corotate=args.cor, isPlanet=args.isp, directory=diran, check=False)
-            if args.s:
-                streamon=StreamNonos(init, field=args.f, on=args.on, directory=diran, check=False)
-                vx1on = FieldNonos(init, field='VX1', on=args.on, diff=False, log=False, corotate=args.cor, isPlanet=args.isp, directory=diran, check=False)
-                vx2on = FieldNonos(init, field='VX2', on=args.on, diff=False, log=False, corotate=args.cor, isPlanet=args.isp, directory=diran, check=False)
+            ploton = PlotNonos(init, field=args['field'], on=args['onStart'], diff=args['diff'], log=args['log'], corotate=args['corotate'], isPlanet=args['isPlanet'], directory=args['datadir'], check=False)
+            if not is_unset(args['streamtype']):
+                streamon=StreamNonos(init, field=args['field'], on=args['onStart'], directory=args['datadir'], check=False)
+                vx1on = FieldNonos(init, field='VX1', on=args['onStart'], diff=False, log=False, corotate=args['corotate'], isPlanet=args['isPlanet'], directory=args['datadir'], check=False)
+                vx2on = FieldNonos(init, field='VX2', on=args['onStart'], diff=False, log=False, corotate=args['corotate'], isPlanet=args['isPlanet'], directory=args['datadir'], check=False)
         except FileNotFoundError as exc:
+            print("CRASHED")
             print_err(exc)
             return 1
 
         # plot the field
-        if args.p=="2d":
+        if args['dimensionality'] == 2:
             try:
-                ploton.plot(ax, vmin=args.vmin, vmax=args.vmax, midplane=args.mid, cartesian=args.cart, average=args.avr, fontsize=args.ft, cmap=args.cmap)
+                ploton.plot(ax, vmin=args['vmin'], vmax=args['vmax'], midplane=not args['rz'], geometry=args['geometry'], average=not args['noaverage'], fontsize=args['fontsize'], cmap=args['cmap'])
             except IndexError as exc:
                 print_err(exc)
                 return 1
-            if args.s:
+            if not is_unset(args['streamtype']):
                 vr = vx1on.data
                 vphi = vx2on.data
-                if args.isp:
-                    vphi -= vx2on.omegaplanet[args.on]*vx2on.xmed[:,None,None]
-                if args.stype=="lic":
+                if args['isPlanet']:
+                    vphi -= vx2on.omegaplanet[args['onStart']]*vx2on.xmed[:,None,None]
+                if args['streamtype']=="lic":
                     streams=streamon.get_lic_streams(vr,vphi)
-                    streamon.plot_lic(ax,streams,cartesian=args.cart, cmap='gray', alpha=0.3)
-                elif args.stype=="random":
-                    streams=streamon.get_random_streams(vr,vphi,xmin=args.srmin,xmax=args.srmax, n=args.sn)
-                    streamon.plot_streams(ax,streams,cartesian=args.cart,color='k', linewidth=2, alpha=0.5)
-                elif args.stype=="fixed":
-                    streams=streamon.get_fixed_streams(vr,vphi,xmin=args.srmin,xmax=args.srmax, n=args.sn)
-                    streamon.plot_streams(ax,streams,cartesian=args.cart,color='k', linewidth=2, alpha=0.5)
+                    streamon.plot_lic(ax,streams, geometry=args['geometry'], cmap='gray', alpha=0.3)
+                elif args['streamtype']=="random":
+                    streams=streamon.get_random_streams(vr,vphi,xmin=args['rminStream'],xmax=args['rmaxStream'], n=args['nstreamlines'])
+                    streamon.plot_streams(ax,streams, geometry=args['geometry'], color='k', linewidth=2, alpha=0.5)
+                elif args['streamtype']=="fixed":
+                    streams=streamon.get_fixed_streams(vr,vphi,xmin=args['rminStream'],xmax=args['rmaxStream'], n=args['nstreamlines'])
+                    streamon.plot_streams(ax,streams, geometry=args['geometry'], color='k', linewidth=2, alpha=0.5)
 
         # plot the 1D profile
-        if args.p=="1d":
-            ploton.axiplot(ax, vmin=args.vmin, vmax=args.vmax, average=args.avr, fontsize=args.ft)
+        elif args['dimensionality'] == 1:
+            ploton.axiplot(ax, vmin=args['vmin'], vmax=args['vmax'], average=not args['noaverage'], fontsize=args['fontsize'])
 
         if show:
             plt.show()
@@ -1510,93 +1422,49 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
             plt.close()
 
     # mode for creating a movie of the temporal evolution of a given field
-    elif args.mod=="f":
-        # do we compute the full movie or a partial movie given by "on"
-        if args.partial:
-            init.config['onarray']=np.arange(args.on,args.onend+1)
-        else:
-            init.config['onarray']=range(n_file)
+    elif args['mode']=="f":
+        if is_unset(args['onEnd']):
+            args['onEnd'] = init.n_file - 1
 
-        # calculation of the min/max
-        if args.diff:
-            if args.vmin is None:
-                args.vmin=init.config['vmin']
-            if args.vmax is None:
-                args.vmax=init.config['vmax']
+        onarray = np.arange(args['onStart'], args['onEnd'] +1 , args['onStep'])
+
         # In that case we choose a file in the middle (len(onarray)//2) and compute the MIN/MAX
-        else:
+        if not args['diff']:
             try:
-                fieldon = FieldNonos(init, field=args.f, on=init.config['onarray'][len(init.config['onarray'])//2], directory=diran, diff=False, check=False)
+                fieldon = FieldNonos(init, field=args['field'], on=onarray[len(onarray)//2], directory=args['datadir'], diff=False, check=False)
             except FileNotFoundError as exc:
                 print_err(exc)
                 return 1
-            if args.p=="2d":
-                if args.vmin is None:
-                    args.vmin=fieldon.data.min()
-                if args.vmax is None:
-                    args.vmax=fieldon.data.max()
-            elif args.p=="1d":
-                if args.vmin is None:
-                    args.vmin=(np.mean(np.mean(fieldon.data,axis=1),axis=1)).min()
-                if args.vmax is None:
-                    args.vmax=(np.mean(np.mean(fieldon.data,axis=1),axis=1)).max()
+            if args['dimensionality'] == 2:
+                if args['vmin'] is None:
+                    args['vmin']=fieldon.data.min()
+                if args['vmax'] is None:
+                    args['vmax']=fieldon.data.max()
+            elif args['dimensionality'] == 1:
+                if args['vmin'] is None:
+                    args['vmin']=(np.mean(np.mean(fieldon.data,axis=1),axis=1)).min()
+                if args['vmax'] is None:
+                    args['vmax']=(np.mean(np.mean(fieldon.data,axis=1),axis=1)).max()
 
         # call of the process_field function, whether it be in parallel or not
-        # if args.pbar:
-        #     printProgressBar(0, len(pconfig['onarray'])-1, prefix = 'Progress:', suffix = 'Complete', length = 50) # progress bar when parallelization is included
-        # if args.multi:
-        #     # determines the minimum between nbcpu and the nb max of cpus in the user's system
-        #     nbcpuReal = min((int(args.cpu),os.cpu_count()))
-        #     pool = Pool(nbcpuReal)   # Create a multiprocessing Pool with a security on the number of cpus
-        #     pool.map(functools.partial(process_field, profile=args.p, field=args.f, mid=args.mid, cart=args.cart, avr=args.avr, diff=args.diff, log=args.log, corotate=args.cor, streamlines=args.s, stype=args.stype, srmin=args.srmin, srmax=args.srmax, nstream=args.sn, config=pconfig, vmin=args.vmin, vmax=args.vmax, ft=args.ft, cmap=args.cmap, isPlanet=args.isp, pbar=args.pbar, parallel=args.multi, directory=diran), pconfig['onarray'])
-        #     tpara=time.time()-start
-        #     print("time in parallel : %f" %tpara)
         start=time.time()
-        if args.multi:
+        if args['ncpu'] > 1:
             # determines the minimum between nbcpu and the nb max of cpus in the user's system
-            nbcpuReal = min((int(args.cpu),os.cpu_count()))
-            if args.pbar:
+            nbcpuReal = min((int(args['ncpu']),os.cpu_count()))
+            if args['progressBar']:
                 with Pool(nbcpuReal) as pool:   # Create a multiprocessing Pool with a security on the number of cpus
-                    list(track(pool.imap(functools.partial(process_field, init=init, profile=args.p, field=args.f, mid=args.mid, cart=args.cart, avr=args.avr, diff=args.diff, log=args.log, corotate=args.cor, streamlines=args.s, stype=args.stype, srmin=args.srmin, srmax=args.srmax, nstream=args.sn, vmin=args.vmin, vmax=args.vmax, ft=args.ft, cmap=args.cmap, isPlanet=args.isp, pbar=args.pbar, parallel=args.multi, directory=diran), init.config['onarray']), total=len(init.config['onarray'])))
+                    list(track(pool.imap(functools.partial(process_field, init=init, dim=args['dimensionality'], field=args['field'], mid=not args['rz'], geometry=args['geometry'], avr=not args['noaverage'], diff=args['diff'], log=args['log'], corotate=args['corotate'], stype=args['streamtype'], srmin=args['rminStream'], srmax=args['rmaxStream'], nstream=args['nstreamlines'], vmin=args['vmin'], vmax=args['vmax'], ft=args['fontsize'], cmap=args['cmap'], isPlanet=args['isPlanet'], pbar=args['progressBar'], directory=args['datadir']), onarray), total=len(onarray)))
             else:
                 pool = Pool(nbcpuReal)   # Create a multiprocessing Pool with a security on the number of cpus
-                pool.map(functools.partial(process_field, init=init, profile=args.p, field=args.f, mid=args.mid, cart=args.cart, avr=args.avr, diff=args.diff, log=args.log, corotate=args.cor, streamlines=args.s, stype=args.stype, srmin=args.srmin, srmax=args.srmax, nstream=args.sn, vmin=args.vmin, vmax=args.vmax, ft=args.ft, cmap=args.cmap, isPlanet=args.isp, pbar=args.pbar, parallel=args.multi, directory=diran), init.config['onarray'])
+                pool.map(functools.partial(process_field, init=init, dim=args['dimensionality'], field=args['field'], mid=not args['rz'], geometry=args['geometry'], avr=not args['noaverage'], diff=args['diff'], log=args['log'], corotate=args['corotate'], stype=args['streamtype'], srmin=args['rminStream'], srmax=args['rmaxStream'], nstream=args['nstreamlines'], vmin=args['vmin'], vmax=args['vmax'], ft=args['fontsize'], cmap=args['cmap'], isPlanet=args['isPlanet'], pbar=args['progressBar'], parallel=args['ncpu']>1, directory=args['datadir']), onarray)
             tpara=time.time()-start
-            print("time in parallel : %f" %tpara)
+            print("time in parallel : %fs" %tpara)
         else:
-            if args.pbar:
-                list(map(functools.partial(process_field, init=init, profile=args.p, field=args.f, mid=args.mid, cart=args.cart, avr=args.avr, diff=args.diff, log=args.log, corotate=args.cor, streamlines=args.s, stype=args.stype, srmin=args.srmin, srmax=args.srmax, nstream=args.sn, vmin=args.vmin, vmax=args.vmax, ft=args.ft, cmap=args.cmap, isPlanet=args.isp, pbar=args.pbar, parallel=args.multi, directory=diran), track(init.config['onarray'])))
+            if args['progressBar']:
+                list(map(functools.partial(process_field, init=init, dim=args['dimensionality'], field=args['field'], mid=not args['rz'], geometry=args['geometry'], avr=not args['noaverage'], diff=args['diff'], log=args['log'], corotate=args['corotate'], stype=args['streamtype'], srmin=args['rminStream'], srmax=args['rmaxStream'], nstream=args['nstreamlines'], vmin=args['vmin'], vmax=args['vmax'], ft=args['fontsize'], cmap=args['cmap'], isPlanet=args['isPlanet'], pbar=args['progressBar'], parallel=args['ncpu']>1, directory=args['datadir']), track(onarray)))
             else:
-                list(map(functools.partial(process_field, init=init, profile=args.p, field=args.f, mid=args.mid, cart=args.cart, avr=args.avr, diff=args.diff, log=args.log, corotate=args.cor, streamlines=args.s, stype=args.stype, srmin=args.srmin, srmax=args.srmax, nstream=args.sn, vmin=args.vmin, vmax=args.vmax, ft=args.ft, cmap=args.cmap, isPlanet=args.isp, pbar=args.pbar, parallel=args.multi, directory=diran), init.config['onarray']))
+                list(map(functools.partial(process_field, init=init, dim=args['dimensionality'], field=args['field'], mid=not args['rz'], geometry=args['geometry'], avr=not args['noaverage'], diff=args['diff'], log=args['log'], corotate=args['corotate'], stype=args['streamtype'], srmin=args['rminStream'], srmax=args['rmaxStream'], nstream=args['nstreamlines'], vmin=args['vmin'], vmax=args['vmax'], ft=args['fontsize'], cmap=args['cmap'], isPlanet=args['isPlanet'], pbar=args['progressBar'], parallel=args['ncpu']>1, directory=args['datadir']), onarray))
             tserie=time.time()-start
-            print("time in serie : %f" %tserie)
-
-    elif args.mod=="":
-        print("""
-                                                             `!)}$$$$})!`
-         `,!>|))|!,                                        :}&#&$}{{}$&#&};`
-      ~)$&&$$}}$$&#$).                                   '}#&}|~'.```.'!($#$+
-   `=$&$(^,..``.'~=$&&=                                `|&#}!'`         `'?$#}.
-  !$&}:.`         `.!$#$'                             :$#$^'`       ``     .$#$`
- ^&&+.              `'(&$!                          `)&&),`                 !##!
-`$#^      `.   `     `={$&{`                       ^$&$(!'  ``     `,.  ``  !##!
-,#$ ``                 .>}&${?!:'`   ```..'',:!+|{$&${:`   `'`             `}&}`
-`$$`                       ,;|{}$$$&&&&&$$$$}}()<!,`   '`                 `}&}`
- +&}`   `   |:|.\    |:|            `.```                                  :$$!
-  !$$'`!}|  |:|\.\   |:|      __                      __       ___       .{#$
-   '$&})$:  |:| \.\  |:|   /./  \.\   |:|.\  |:|   /./  \.\   |:|  \.\  '$$#}
-    `}#&;   |:|  \.\ |:|  |:|    |:|  |:|\.\ |:|  |:|    |:|  |:|___     :$)&$`
-    `{&!    |:|   \.\|:|  |:|    |:|  |:| \.\|:|  |:|    |:|       |:|    :!{&}`
-   :$$,     |:|    \.|:|   \.\__/./   |:|  \.|:|   \.\__/./   \.\__|:|     `:}#}`
-  ^&$.                                                                       .$#^
-  +&$.                 ``'^)}$$$$$({}}}$$$$$$$$$$}}(|>!.`~:,.                 }#)
- '&#|                 ,|$##$>'`                `'~!)$##$$$)?^,`           ` :&&:
- ,&#}`  ``       .` `:{$&}:                          ~}&$)^^+=^`  `` ..  .|&#)
-  |&#$:```   `` '::!}$&},                              !$&$|++^^:,:~',!!($#&^
-   ,}&#${^~,,,:!|}$&&(.                                  ^$#$}{)|?|)(}$&#$?`
-     :{&##$$$$$&##$).                                      ~($&#&&##&$}=,
-       `:|}$$$$}):`                                           `',,,.`
-              """)
-        print("Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates)")
+            print("time in serie : %fs" %tserie)
 
     return 0
