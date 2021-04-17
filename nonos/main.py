@@ -22,7 +22,8 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import toml
-import inifix as ix
+import inifix
+from inifix.format import iniformat
 from rich.progress import track
 import lic
 from copy import copy
@@ -228,7 +229,7 @@ class Parameters():
             raise FileNotFoundError("For now, impossible to choose your parameter file.\nBy default, the code searches idefix.ini, pluto.ini or variables.par.")
 
         self.code = lookup_table[self.paramfile]
-        self.iniconfig = ix.load(os.path.join(self.config['datadir'], self.paramfile))
+        self.iniconfig = inifix.load(os.path.join(self.config['datadir'], self.paramfile))
 
         if self.code=='idefix':
             self.n_file = len(glob.glob1(self.config['datadir'], "data.*.vtk"))
@@ -280,7 +281,7 @@ class Parameters():
 
             cfgfile = glob.glob1(self.config["datadir"],"*.cfg")[0]
 
-            self.cfgconfig = ix.load(os.path.join(self.config["datadir"],cfgfile))
+            self.cfgconfig = inifix.load(os.path.join(self.config["datadir"],cfgfile))
             # self.h0 = self.iniconfig["ASPECTRATIO"]
             if self.config["isPlanet"]:
                 if Path(self.config["datasdir"]).joinpath("planet0.dat").is_file():
@@ -1325,7 +1326,6 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
     args = ChainMap(clargs, init.config, DEFAULTS)
 
     if clargs.pop("config"):
-        from inifix.format import _tidy as iniformat
         conf_repr = {}
         for key in DEFAULTS:
             conf_repr[key] = args[key]
