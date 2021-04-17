@@ -23,13 +23,14 @@ from matplotlib.ticker import AutoMinorLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import toml
 import inifix as ix
-from rich import print as rprint
 from rich.progress import track
 import lic
 from copy import copy
 
 from nonos.config import DEFAULTS
+from nonos.logging import print_warn, print_err
 from nonos.__version__ import __version__
+
 # TODO: recheck in 3D
 # TODO: check in plot function if corotate=True works for all vtk and dpl
 #        (initial planet location) -> computation to calculate the grid rotation speed
@@ -1036,20 +1037,6 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
     # Print New Line on Complete
     if iteration == total:
         print()
-
-def print_warn(message):
-    """
-    adapted from idefix_cli (cmt robert)
-    https://github.com/neutrinoceros/idefix_cli
-    """
-    rprint(f"[bold red]Warning |[/] {message}", file=sys.stderr)
-
-def print_err(message):
-    """
-    adapted from idefix_cli (cmt robert)
-    https://github.com/neutrinoceros/idefix_cli
-    """
-    rprint(f"[bold white on red]Error |[/] {message}", file=sys.stderr)
 
 # process function for parallisation purpose with progress bar
 # counterParallel = Value('i', 0) # initialization of a counter

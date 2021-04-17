@@ -42,7 +42,7 @@ def test_plot_simple_corotation(test_data_dir, capsys):
     assert out == ""
     # ignore differences in text wrapping because they are an implementation detail
     # due to the fact we use rich to display warnings
-    assert err.strip().replace("\n", " ") == "Warning | We don't rotate the grid if there is no planet for now. omegagrid = 0."
+    assert err.strip().replace("\n", " ").endswith("We don't rotate the grid if there is no planet for now. omegagrid = 0.")
 
 def test_plot_planet_corotation(test_data_dir):
     from nonos import InitParamNonos, FieldNonos
