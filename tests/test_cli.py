@@ -11,7 +11,7 @@ def test_no_inifile(capsys, tmp_path):
     assert ret != 0
     out, err = capsys.readouterr()
     assert out == ""
-    assert err == "Error | idefix.ini, pluto.ini or variables.par not found.\n"
+    assert err.endswith("idefix.ini, pluto.ini or variables.par not found.\n")
 
 
 def test_default_conf(capsys, tmp_path):
