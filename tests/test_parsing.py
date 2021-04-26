@@ -1,7 +1,7 @@
 import re
 import pytest
 import numpy as np
-from nonos.parsing import parse_output_number_range, parse_vmin_vmax
+from nonos.parsing import parse_output_number_range, parse_vmin_vmax, parse_image_format
 
 @pytest.mark.parametrize(
     "received, expected", [
@@ -61,3 +61,22 @@ def test_nodiff_parse_vmin_vmax(data, expected):
 
 def test_diff_parse_vmin_vmax(data, expected):
     assert parse_vmin_vmax('unset', 'unset', diff=True, data=data) == expected
+
+@pytest.mark.parametrize(
+    "received, expected", [
+        (".png", "png"),
+        (".pdf", "pdf"),
+        ("png", "png"),
+        ("pdf", "pdf"),
+    ]
+)
+def test_image_format(received, expected):
+    assert parse_image_format(received) == expected
+
+def test_invalid_image_format():
+    fake_ext = ".pnd"
+    with pytest.raises(
+        ValueError,
+        match="^(Received unknown file format '{}'. Available formated are)".format(fake_ext)
+        ):
+        parse_image_format(fake_ext)
