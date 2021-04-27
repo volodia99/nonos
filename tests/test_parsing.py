@@ -41,23 +41,23 @@ def test_invalid_range(received):
         parse_output_number_range(received)
 
 @pytest.mark.parametrize(
-    "received, expected", [
+    "data, expected", [
         (np.array([0, 0, 1]), (0,1)),
         (np.array([0, 1, 1]), (0,1)),
         (np.array([-1, 0, 1]), (-1,1)),
     ]
 )
 
-def test_nodiff_parse_vmin_vmax(received, expected):
-    assert parse_vmin_vmax('unset', 'unset', diff=False, data=received) == expected
+def test_nodiff_parse_vmin_vmax(data, expected):
+    assert parse_vmin_vmax('unset', 'unset', diff=False, data=data) == expected
 
 @pytest.mark.parametrize(
-    "received, expected", [
+    "data, expected", [
         (np.array([0, -2, 1]), (-2,2)),
         (np.array([0, -2, 2]), (-2,2)),
         (np.array([0, 0, 0]), (0,0)),
     ]
 )
 
-def test_diff_parse_vmin_vmax(received, expected):
-    assert parse_vmin_vmax('unset', 'unset', diff=True, data=received) == expected
+def test_diff_parse_vmin_vmax(data, expected):
+    assert parse_vmin_vmax('unset', 'unset', diff=True, data=data) == expected
