@@ -521,7 +521,7 @@ class PlotNonos(FieldNonos):
             dataRZ=self.data[:,self.ny//2,:]
             dataR=dataRZ[:,self.imidplane]
             dataProfile=dataR
-        vmin, vmax = parse_vmin_vmax(vmin, vmax, diff=self.diff, data=dataProfile, defaults=self.init.config)
+        vmin, vmax = parse_vmin_vmax(vmin, vmax, diff=self.diff, data=dataProfile)
 
         if fontsize is None:
             fontsize=self.init.config['fontsize']
@@ -545,7 +545,7 @@ class PlotNonos(FieldNonos):
         """
         A layer for pcolormesh function.
         """
-        vmin, vmax = parse_vmin_vmax(vmin, vmax, diff=self.diff, data=self.data, defaults=self.init.config)
+        vmin, vmax = parse_vmin_vmax(vmin, vmax, diff=self.diff, data=self.data)
 
         if midplane is None:
             midplane=self.init.config['midplane']
@@ -1354,13 +1354,13 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
 
 
     ref_on = args['on'][len(args['on'])//2]
-    fieldon = FieldNonos(init, field=args['field'], on=ref_on, directory=args['datadir'], diff=False, check=False)
+    fieldon = FieldNonos(init, field=args['field'], on=ref_on, directory=args['datadir'], diff=args['diff'], check=False)
     if args['dimensionality'] == 2:
         data = fieldon.data
     elif args['dimensionality'] == 1:
         data = np.mean(np.mean(fieldon.data,axis=1),axis=1)
 
-    vmin, vmax = parse_vmin_vmax(args['vmin'], args['vmax'], args['diff'], data, DEFAULTS)
+    vmin, vmax = parse_vmin_vmax(args['vmin'], args['vmax'], args['diff'], data)
 
     if args['ncpu'] > (ncpu := min(args['ncpu'], os.cpu_count())):
         print_warn(f"Requested {args['ncpu']}, but the runner only has access to {ncpu}.")
