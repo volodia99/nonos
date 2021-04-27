@@ -28,9 +28,6 @@ def minimal_paramfile(tmp_path):
     return ifile
 
 def test_load_config_file(minimal_paramfile, capsys):
-    init = InitParamNonos(paramfile=minimal_paramfile)
-    assert init.config["dimensionality"] == 1
-
     os.chdir(minimal_paramfile.parent)
     ret = main(["-input", "nonos.toml", "-config"])
     

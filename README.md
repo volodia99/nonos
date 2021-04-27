@@ -36,52 +36,61 @@ To get help, run
 $ nonos --help
 ```
 ```
-usage: nonos [-h] [-mode {d,f}] [-dir DATADIR] [-on ONSTART] [-field {RHO,VX1,VX2,VX3}] [-vmin VMIN] [-vmax VMAX] [-diff] [-log] [-isp] [-corotate]
-             [-grid] [-streamlines] [-rz] [-noavr] [-pbar] [-stype {random,fixed,lic}] [-srmin RMINSTREAM] [-srmax RMAXSTREAM] [-sn NSTREAMLINES]
-             [-geom {cartesian,polar} | -pol] [-dim {1,2}] [-ft FONTSIZE] [-cmap CMAP] [-cpu NCPU] [-onEnd ONEND] [-onStep ONSTEP]
-             [-input INPUT | -isolated] [-version | -logo | -config]
+usage: nonos [-h] [-dir DATADIR] [-field {RHO,VX1,VX2,VX3}] [-vmin VMIN]
+             [-vmax VMAX] [-cpu NCPU] [-on ON [ON ...] | -all] [-diff] [-log]
+             [-isp] [-corotate] [-grid] [-streamlines] [-rz] [-noavr] [-pbar]
+             [-stype {random,fixed,lic}] [-srmin RMINSTREAM]
+             [-srmax RMAXSTREAM] [-sn NSTREAMLINES]
+             [-geom {cartesian,polar} | -pol] [-dim {1,2}] [-ft FONTSIZE]
+             [-cmap CMAP] [-input INPUT | -isolated]
+             [-version | -logo | -config]
 
 Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
 
 optional arguments:
   -h, --help            show this help message and exit
-  -mode {d,f}           [d]isplay a single frame (default), or save a [f]ilm (sequence of frames).
-  -dir DATADIR          location of output files and param files (default: '.').
-  -on ONSTART, -onStart ONSTART
-                        output number (on) of the data file (default: 1).
+  -dir DATADIR          location of output files and param files (default:
+                        '.').
   -field {RHO,VX1,VX2,VX3}
                         name of field to plot (default: 'RHO').
   -vmin VMIN            min value in -diff mode (default: -0.5)
   -vmax VMAX            max value in -diff mode (default: -0.5)
+  -cpu NCPU, -ncpu NCPU
+                        number of parallel processes (default: 1).
+  -on ON [ON ...]       output number(s) (on) to plot. This can be a single
+                        value or a range (start, end, [step]) where both ends
+                        are inclusive. (default: last output available).
+  -all                  save an image for every available snapshot (this will
+                        force show=False).
   -geom {cartesian,polar}
   -pol                  shortcut for -geom=polar
-  -dim {1,2}            dimensionality in projection: 1 for a line plot, 2 (default) for a map.
+  -dim {1,2}            dimensionality in projection: 1 for a line plot, 2
+                        (default) for a map.
   -ft FONTSIZE          fontsize in the graph (default: 11).
-  -cmap CMAP            choice of colormap for the -dim 2 maps (default: 'RdYlBu_r').
+  -cmap CMAP            choice of colormap for the -dim 2 maps (default:
+                        'RdYlBu_r').
 
 boolean flags:
-  -diff                 plot the relative perturbation of the field f, i.e. (f-f0)/f0.
+  -diff                 plot the relative perturbation of the field f, i.e.
+                        (f-f0)/f0.
   -log                  plot the log10 of the field f, i.e. log(f).
   -isp                  is there a planet in the grid ?
   -corotate             does the grid corotate? Works in pair with -isp.
   -grid                 show the computational grid.
   -streamlines          plot streamlines.
-  -rz                   2D plot in the (R-z) plane (default: represent the midplane).
+  -rz                   2D plot in the (R-z) plane (default: represent the
+                        midplane).
   -noavr, -noaverage    do not perform averaging along the third dimension.
-  -pbar                 show a progress bar in film mode.
+  -pbar                 display a progress bar
 
 streamlines options:
   -stype {random,fixed,lic}, -streamtype {random,fixed,lic}
                         streamlines method (default: 'unset')
-  -srmin RMINSTREAM     minimum radius for streamlines computation (default: 0.7).
-  -srmax RMAXSTREAM     maximum radius for streamlines computation (default: 1.3).
+  -srmin RMINSTREAM     minimum radius for streamlines computation (default:
+                        0.7).
+  -srmax RMAXSTREAM     maximum radius for streamlines computation (default:
+                        1.3).
   -sn NSTREAMLINES      number of streamlines (default: 50).
-
-film mode options:
-  -cpu NCPU, -ncpu NCPU
-                        number of parallel processes (default: 1).
-  -onEnd ONEND          specify the last output number (last one available by default).
-  -onStep ONSTEP        render every `onStep` output number (default: 1).
 
 CLI-only options:
   -input INPUT, -i INPUT
@@ -116,20 +125,16 @@ As of Nonos 0.2.0, this will print
 ```
 # Generated with nonos 0.2.0
 datadir               =  "."
-mode                  =  "d"
 field                 =  "RHO"
 dimensionality        =  2
-onStart               =  1
-onEnd                 =  "unset"
-onStep                =  1
+on                    =  "unset"
 diff                  =  true
 log                   =  false
 vmin                  =  -10.0
 vmax                  =  100.0
 rz                    =  true
 noaverage             =  false
-streamlines           =  false
-streamtype            =  "random"
+streamtype            =  "unset"
 rminStream            =  0.7
 rmaxStream            =  1.3
 nstreamlines          =  50
