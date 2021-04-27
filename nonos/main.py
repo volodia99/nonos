@@ -1030,7 +1030,7 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
 
 # process function for parallisation purpose with progress bar
 # counterParallel = Value('i', 0) # initialization of a counter
-def process_field(on, init, dim, field, mid, geometry, avr, diff, log, corotate, stype, srmin, srmax, nstream, vmin, vmax, ft, cmap, isPlanet, pbar, parallel, directory, save:bool, show:bool):
+def process_field(on, init, dim, field, mid, geometry, avr, diff, log, corotate, stype, srmin, srmax, nstream, vmin, vmax, ft, cmap, isPlanet, pbar, parallel, directory, save:bool, show:bool, dpi:int):
     ploton=PlotNonos(init, field=field, on=on, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet, directory=directory, check=False)
 
     fig = plt.figure(figsize=(9,8))
@@ -1072,7 +1072,7 @@ def process_field(on, init, dim, field, mid, geometry, avr, diff, log, corotate,
         filename = "axi_%s_diff%slog%s%04d.png"%(field,diff,log,on)
 
     if save:
-        fig.savefig(filename, bbox_inches="tight")
+        fig.savefig(filename, bbox_inches="tight", dpi=dpi)
     if show:
         plt.show()
     plt.close(fig)
@@ -1231,6 +1231,11 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
     parser.add_argument(
         '-cmap',
         help=f"choice of colormap for the -dim 2 maps (default: '{DEFAULTS['cmap']}').",
+        )
+    parser.add_argument(
+        '-dpi',
+        type=int,
+        help=f"image file resolution (default: DEFAULTS['dpi'])",
         )
 
     cli_only_group = parser.add_argument_group("CLI-only options")
@@ -1393,6 +1398,7 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
             directory=args["datadir"],
             save=len(args['on']) > 1,
             show=show,
+            dpi=args["dpi"],
         )
 
     tstart = time.time()

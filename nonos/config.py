@@ -43,4 +43,6 @@ DEFAULTS = {
     'fontsize': 11,
     # choice of colormap
     'cmap': 'RdYlBu_r',
+    # select image resolution
+    'dpi': 200,
 }
