@@ -35,6 +35,6 @@ def parse_vmin_vmax(vmin, vmax, diff:bool, data:np.ndarray) -> Tuple[float, floa
         vmin = data.min()
         assert is_set(vmin)
     if not is_set(vmax):
-        vmax = data.max() if not diff else -data.min()
+        vmax = -data.min() if diff else data.max()
         assert is_set(vmax)
     return vmin, vmax
