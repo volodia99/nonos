@@ -12,9 +12,9 @@ DEFAULTS = {
     # field in log
     'log': False,
     # default min field when diff
-    'vmin': -0.5,
+    'vmin': 'unset',
     # default max field when diff
-    'vmax': 0.5,
+    'vmax': 'unset',
     # plane to represent (default is midplane)
     'rz': False,
     # do we average in the 3rd dimension?

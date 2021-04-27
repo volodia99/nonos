@@ -30,11 +30,9 @@ def parse_output_number_range(on:Optional[Union[List[int], int, str]], maxval:Op
     return ret
 
 
-def parse_vmin_vmax(vmin, vmax, diff:bool, data:np.ndarray, defaults:Dict[str, Any]) -> Tuple[float, float]:
+def parse_vmin_vmax(vmin, vmax, diff:bool, data:np.ndarray) -> Tuple[float, float]:
     if not is_set(vmin):
-        vmin = data.min() if not diff else defaults['vmin']
-        assert is_set(vmin)
+        vmin = data.min()
     if not is_set(vmax):
-        vmax = data.max() if not diff else defaults['vmax']
-        assert is_set(vmax)
+        vmax = -data.min() if diff else data.max()
     return vmin, vmax
