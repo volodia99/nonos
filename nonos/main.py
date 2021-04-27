@@ -13,7 +13,7 @@ import functools
 import pkg_resources
 import glob
 import re
-from typing import List, Optional
+from typing import List, Optional, Sequence
 import os
 import time
 import numpy as np
@@ -199,25 +199,21 @@ def readVTKPolar(filename, field='RHO', cell='edges', computedata=True):
        
     return V
 
-class Parameters():
+class InitParamNonos:
     """
     Adapted from Pablo Benitez-Llambay
     Class for reading the simulation parameters.
     input: string -> name of the parfile, normally *.ini
     """
-    def __init__(self, config, directory=None, paramfile=None, corotate=None, isPlanet=None):
-        self.config = copy(config)
+    def __init__(self, nonos_config=None, sim_paramfile=None, **kwargs):
+        if nonos_config is None:
+            nonos_config = copy(DEFAULTS)
+        if (diff := set(kwargs).difference(set(DEFAULTS))):
+            raise TypeError(f"Received the following unsupported argument(s): {diff}")
 
-        if directory is not None:
-            self.config['datadir'] = directory
-        if corotate is not None:
-            self.config['corotate'] = corotate
-        if isPlanet is not None:
-            self.config['isPlanet'] = isPlanet
+        self.config = ChainMap(kwargs, nonos_config)
+        self.paramfile = sim_paramfile
 
-        self.paramfile = paramfile
-
-    def load(self):
         lookup_table = {
             "idefix.ini" : "idefix",
             "pluto.ini": "pluto",
@@ -235,6 +231,8 @@ class Parameters():
             raise FileNotFoundError("For now, impossible to choose your parameter file.\nBy default, the code searches idefix.ini, pluto.ini or variables.par.")
 
         self.code = lookup_table[self.paramfile]
+
+    def load(self):
         self.iniconfig = inifix.load(os.path.join(self.config['datadir'], self.paramfile))
 
         if self.code=='idefix':
@@ -313,35 +311,17 @@ class Parameters():
         if not self.data_files:
             raise FileNotFoundError("No data files were found.")
 
-
-class InitParamNonos(Parameters):
-    def __init__(self, directory=None, paramfile=None, corotate=None, isPlanet=None):
-        config_buffer = {} if paramfile is None else toml.load(paramfile)
-        self.config = ChainMap(config_buffer, DEFAULTS)
-
-        if directory is None:
-            directory=self.config['datadir']
-        self.directory=directory
-        if corotate is None:
-            corotate=self.config['corotate']
-        self.corotate=corotate
-        if isPlanet is None:
-            isPlanet=self.config['isPlanet']
-        self.isPlanet=isPlanet
-        super().__init__(config=self.config, directory=self.directory, paramfile=paramfile, corotate=self.corotate, isPlanet=self.isPlanet) #All the Parameters attributes inside Field
-
-
-class Mesh(Parameters):
+class Mesh(InitParamNonos):
     """
     Adapted from Pablo Benitez-Llambay
     Mesh class, for keeping all the mesh data.
     Input: directory [string] -> this is where the domain files are.
     """
-    def __init__(self, config, directory=None, paramfile=None):
-        super().__init__(config=config, directory=directory, paramfile=paramfile) #All the Parameters attributes inside Field
+    def __init__(self, nonos_config, sim_paramfile=None, **kwargs):
+        super().__init__(nonos_config=nonos_config, sim_paramfile=sim_paramfile, **kwargs) #All the InitParamNonos attributes inside Field
         super().load()
         if (self.code=='idefix' or self.code=='pluto'):
-            domain=readVTKPolar(os.path.join(directory,'data.0000.vtk'), cell="edges", computedata=False)
+            domain=readVTKPolar(os.path.join(self.config["datadir"],'data.0000.vtk'), cell="edges", computedata=False)
             self.domain = domain
 
             self.nx = self.domain.nx
@@ -400,7 +380,7 @@ class Mesh(Parameters):
         self.y = self.yedge
         self.z = self.zedge
 
-class FieldNonos(Mesh,Parameters):
+class FieldNonos(Mesh,InitParamNonos):
     """
     Inspired by Pablo Benitez-Llambay
     Field class, it stores the mesh, parameters and scalar data
@@ -408,75 +388,59 @@ class FieldNonos(Mesh,Parameters):
     Input: field [string] -> filename of the field
            directory='' [string] -> where filename is
     """
-    def __init__(self, init, directory=None, field=None, on=None, paramfile=None, diff=None, log=None, corotate=None, isPlanet=None, check=True):
+    def __init__(self, init, sim_paramfile=None, check=True, **kwargs):
         self.check=check
         self.init=init
-        # TODO: simplify this block
-        if directory is None:
-            directory=self.init.directory
-        if corotate is None:
-            corotate=self.init.corotate
-        if isPlanet is None:
-            isPlanet=self.init.isPlanet
-        Mesh.__init__(self, config=self.init.config, directory=directory, paramfile=paramfile)       #All the Mesh attributes inside Field
-        Parameters.__init__(self, config=self.init.config, directory=directory, paramfile=paramfile, corotate=corotate, isPlanet=isPlanet) #All the Parameters attributes inside Field
-        if on is None:
-            on=self.init.config['on'][0]
-        if field is None:
-            field=self.init.config['field']
-        if diff is None:
-            diff=self.init.config['diff']
-        if log is None:
-            log=self.init.config['log']
 
-        self.isPlanet = isPlanet
-        self.corotate = corotate
-        self.on = on
-        self.diff = diff
-        self.log = log
+        Mesh.__init__(self, nonos_config=self.init.config, sim_paramfile=sim_paramfile, **kwargs)       #All the Mesh attributes inside Field
+        InitParamNonos.__init__(self, nonos_config=self.init.config, sim_paramfile=sim_paramfile, **kwargs) #All the InitParamNonos attributes inside Field
 
-        self.field = field
-        filedata = "data.%04d.vtk"%self.on
-        filedata0 = "data.0000.vtk"
-        if self.code=='pluto':
-            self.field=self.field.lower()
-        elif self.code=='fargo3d':
-            if self.field=='RHO':
-                self.field='dens'
-            if self.field=='VX1':
-                self.field='vy'
-            if self.field=='VX2':
-                self.field='vx'
-            if self.field=='VX3':
-                self.field='vz'
+        if isinstance(self.config['on'], Sequence):
+            self.on = self.config['on'][0]
+        else:
+            self.on = self.config['on']
+
+        field = self.config["field"]
+        if self.code != "idefix":
+            field = field.lower()
+
+        if self.code=='fargo3d':
+            known_aliases = {"rho": "dens", "vx1": "vy", "vx2": "vx", "vx3": "vz"}
+            field = known_aliases[field]
             filedata = "gas%s%d.dat"%(self.field,self.on)
             filedata0 = "gas%s0.dat"%self.field
+        else:
+            # Idefix or Pluto
+            filedata = "data.%04d.vtk"%self.on
+            filedata0 = "data.0000.vtk"
+
+        self.field = field
 
         # FIXME: reactivate this warning
-        #if self.corotate and not(self.isPlanet):
+        #if self.config["corotate"] and not(self.config["isPlanet"]):
         #    warnings.warn("We don't rotate the grid if there is no planet for now.\nomegagrid = 0.")
 
-        datafile = os.path.join(directory, filedata)
+        datafile = os.path.join(self.config["datadir"], filedata)
 
         if not os.path.isfile(datafile):
             raise FileNotFoundError(datafile)
         self.data = self.__open_field(datafile) #The scalar data is here.
 
-        if self.diff:
-            datafile = os.path.join(self.init.directory,filedata0)
+        if self.config["diff"]:
+            datafile = os.path.join(self.config["datadir"],filedata0)
             if not os.path.isfile(datafile):
                 raise FileNotFoundError(datafile)
             self.data0 = self.__open_field(datafile)
 
-        if self.log:
-            if self.diff:
+        if self.config["log"]:
+            if self.config["diff"]:
                 self.data = np.log10(self.data/self.data0)
                 self.title = r'log($\frac{%s}{%s_0}$)'%(self.field,self.field)
             else:
                 self.data = np.log10(self.data)
                 self.title = 'log(%s)'%self.field
         else:
-            if self.diff:
+            if self.config["diff"]:
                 self.data = (self.data-self.data0)/self.data0
                 self.title = r'$\frac{%s - %s_0}{%s_0}$'%(self.field,self.field,self.field)
             else:
@@ -488,19 +452,21 @@ class FieldNonos(Mesh,Parameters):
         Reading the data
         """
         super().load()
-        if(self.code=='idefix' or self.code=='pluto'):
+        if self.code=='fargo3d':
+            data = np.fromfile(f, dtype='float64')
+            data=(data.reshape(self.nz,self.nx,self.ny)).transpose(1,2,0) #rad, pĥi, theta
+        else:
+            # Idefix or Pluto
             data = readVTKPolar(f, field=self.field, cell='edges').data[self.field].astype(np.float32)
             data = np.concatenate((data[:,self.ny//2:self.ny,:], data[:,0:self.ny//2,:]), axis=1)
-        elif self.code=='fargo3d':
-            data = np.fromfile(f, dtype='float32')
-            data=(data.reshape(self.nz,self.nx,self.ny)).transpose(1,2,0) #rad, pĥi, theta
+
         """
         if we try to rotate a grid at 0 speed
         and if the domain is exactly [-pi,pi],
         impossible to perform the following calculation (try/except)
         we therefore don't move the grid if the rotation speed is null
         """
-        if not(self.corotate and abs(self.vtk*sum(self.omegagrid[:self.on]))>1.0e-16):
+        if not(self.config["corotate"] and abs(self.vtk*sum(self.omegagrid[:self.on]))>1.0e-16):
             return data
 
         P,R = np.meshgrid(self.y,self.x)
@@ -528,14 +494,14 @@ class PlotNonos(FieldNonos):
             dataRZ=self.data[:,self.ny//2,:]
             dataR=dataRZ[:,self.imidplane]
             dataProfile=dataR
-        vmin, vmax = parse_vmin_vmax(vmin, vmax, diff=self.diff, data=dataProfile)
+        vmin, vmax = parse_vmin_vmax(vmin, vmax, diff=self.config["diff"], data=dataProfile)
 
         if fontsize is None:
             fontsize=self.init.config['fontsize']
 
         ax.plot(self.xmed,dataProfile,**karg)
 
-        if not self.log:
+        if not self.config["log"]:
             ax.xaxis.set_minor_locator(AutoMinorLocator(5))
             ax.yaxis.set_minor_locator(AutoMinorLocator(5))
         ax.set_ylim(vmin,vmax)
@@ -552,7 +518,7 @@ class PlotNonos(FieldNonos):
         """
         A layer for pcolormesh function.
         """
-        vmin, vmax = parse_vmin_vmax(vmin, vmax, diff=self.diff, data=self.data)
+        vmin, vmax = parse_vmin_vmax(vmin, vmax, diff=self.config["diff"], data=self.data)
 
         if midplane is None:
             midplane=self.init.config['midplane']
@@ -722,7 +688,7 @@ class StreamNonos(FieldNonos):
     Class which uses Field to compute streamlines.
     """
     def __init__(self, init, directory="", field=None, on=None, check=True):
-        FieldNonos.__init__(self,init=init,field=field,on=on,directory=directory, check=check) #All the Parameters attributes inside Field
+        FieldNonos.__init__(self,init=init,field=field,on=on,directory=directory, check=check) #All the InitParamNonos attributes inside Field
 
         if field is None:
             field=self.init.config['field']
@@ -1037,8 +1003,8 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
 
 # process function for parallisation purpose with progress bar
 # counterParallel = Value('i', 0) # initialization of a counter
-def process_field(on, init, dim, field, mid, geometry, avr, diff, log, corotate, stype, srmin, srmax, nstream, vmin, vmax, ft, cmap, isPlanet, pbar, parallel, directory, show:bool, dpi:int):
-    ploton=PlotNonos(init, field=field, on=on, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet, directory=directory, check=False)
+def process_field(on, init, dim, field, mid, geometry, avr, diff, log, corotate, stype, srmin, srmax, nstream, vmin, vmax, ft, cmap, isPlanet, pbar, parallel, datadir, show:bool, dpi:int):
+    ploton=PlotNonos(init, field=field, on=on, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet, datadir=datadir, check=False)
 
     fig = plt.figure(figsize=(9,8))
     if polar := (geometry != "cartesian" and not mid):
@@ -1049,8 +1015,8 @@ def process_field(on, init, dim, field, mid, geometry, avr, diff, log, corotate,
     if dim == 2:
         ploton.plot(ax, vmin=vmin, vmax=vmax, midplane=mid, geometry=geometry, average=avr, fontsize=ft, cmap=cmap)
         if is_set(stype):
-            streamon=StreamNonos(init, field=field, on=on, directory=directory, check=False)
-            vx1on, vx2on = (FieldNonos(init, field=f'VX{i}', on=on, diff=False, log=False, corotate=corotate, isPlanet=isPlanet, directory=directory, check=False) for i in (1, 2))
+            streamon=StreamNonos(init, field=field, on=on, datadir=datadir, check=False)
+            vx1on, vx2on = (FieldNonos(init, field=f'VX{i}', on=on, diff=False, log=False, corotate=corotate, isPlanet=isPlanet, datadir=datadir, check=False) for i in (1, 2))
 
             vr = vx1on.data
             vphi = vx2on.data
@@ -1309,8 +1275,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         config_file_args = {}
 
-    init = InitParamNonos(directory=clargs['datadir'])
-
     # check that every parameter in the configuration is also exposed to the CLI
     assert not set(DEFAULTS).difference(set(clargs))
 
@@ -1330,10 +1294,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 0
 
     try:
-        init.load()
+        init = InitParamNonos(nonos_config=args)
     except (FileNotFoundError,RuntimeError,ValueError) as exc:
         print_err(exc)
         return 1
+    init.load()
 
     available = set(int(re.search(r"\d+", fn).group()) for fn in init.data_files)
     if args.pop('all'):
@@ -1371,7 +1336,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 
     ref_on = args['on'][len(args['on'])//2]
-    fieldon = FieldNonos(init, field=args['field'], on=ref_on, directory=args['datadir'], diff=args['diff'], check=False)
+    fieldon = FieldNonos(init, on=ref_on, check=False)
     if args['dimensionality'] == 2:
         data = fieldon.data
     elif args['dimensionality'] == 1:
@@ -1390,6 +1355,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             return iterable
 
     # call of the process_field function, whether it be in parallel or not
+    # TODO: reduce this to the bare minimum
     func = functools.partial(
             process_field,
             init=init,
@@ -1412,7 +1378,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             isPlanet=args["isPlanet"],
             pbar=args["progressBar"],
             parallel=args["ncpu"] > 1,
-            directory=args["datadir"],
+            datadir=args["datadir"],
             show=show,
             dpi=args["dpi"],
         )

@@ -1,4 +1,4 @@
-from nonos.main import main, InitParamNonos
+from nonos.main import InitParamNonos, main
 from nonos import __version__
 import os
 import toml
@@ -22,9 +22,8 @@ def test_default_conf(capsys, tmp_path):
     assert err == ""
 
     # validate output is reusable
-    with open("config.toml", "w") as fh:
-        fh.write(out)
-    InitParamNonos(paramfile="config.toml")
+    (tmp_path / "idefix.ini").touch()
+    InitParamNonos(nonos_config=toml.loads(out))
 
 
 def test_version(capsys, tmp_path):
