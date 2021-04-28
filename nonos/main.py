@@ -1030,7 +1030,7 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
 
 # process function for parallisation purpose with progress bar
 # counterParallel = Value('i', 0) # initialization of a counter
-def process_field(on, init, dim, field, mid, geometry, avr, diff, log, corotate, stype, srmin, srmax, nstream, vmin, vmax, ft, cmap, isPlanet, pbar, parallel, directory, save:bool, show:bool, dpi:int):
+def process_field(on, init, dim, field, mid, geometry, avr, diff, log, corotate, stype, srmin, srmax, nstream, vmin, vmax, ft, cmap, isPlanet, pbar, parallel, directory, show:bool, dpi:int):
     ploton=PlotNonos(init, field=field, on=on, diff=diff, log=log, corotate=corotate, isPlanet=isPlanet, directory=directory, check=False)
 
     fig = plt.figure(figsize=(9,8))
@@ -1071,14 +1071,14 @@ def process_field(on, init, dim, field, mid, geometry, avr, diff, log, corotate,
         ploton.axiplot(ax, vmin=vmin, vmax=vmax, average=avr, fontsize=ft)
         filename = "axi_%s_diff%slog%s%04d.png"%(field,diff,log,on)
 
-    if save:
-        fig.savefig(filename, bbox_inches="tight", dpi=dpi)
     if show:
         plt.show()
+    else:
+        fig.savefig(filename, bbox_inches="tight", dpi=dpi)
     plt.close(fig)
 
 
-def main(argv: Optional[List[str]] = None, show=True) -> int:
+def main(argv: Optional[List[str]] = None) -> int:
 
     parser = argparse.ArgumentParser(prog='nonos',
                                      description=__doc__,
@@ -1252,6 +1252,11 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
     )
     cli_action_group = cli_only_group.add_mutually_exclusive_group()
     cli_action_group.add_argument(
+        "-d", "-display", dest="display",
+        action="store_true",
+        help="open a graphic window with the plot (only works with a single image)"
+    )
+    cli_action_group.add_argument(
         "-version", "--version",
         action="store_true",
         help="show raw version number and exit",
@@ -1324,7 +1329,6 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
     available = set(int(re.search(r"\d+", fn).group()) for fn in init.data_files)
     if args.pop('all'):
         requested = available
-        show = False
     else:
         try:
             requested = set(parse_output_number_range(args['on'], maxval=max(available)))
@@ -1332,13 +1336,17 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
             print_err(exc)
             return 1
 
-    # check that every CLI-only argument was consumed at this point
-    assert not set(clargs).difference(set(DEFAULTS))
-
     if not (toplot := list(requested.intersection(available))):
         print_err(f"No requested output file was found (requested {requested}, found {available}).")
         return 1
     args['on'] = toplot
+
+    if (show := clargs.pop('display')) and len(args['on']) > 1:
+        print_warn("display mode can not be used with multiple images, turning it off.")
+        show = False
+
+    # check that every CLI-only argument was consumed at this point
+    assert not set(clargs).difference(set(DEFAULTS))
 
     args['field'] = args['field'].upper()
 
@@ -1396,7 +1404,6 @@ def main(argv: Optional[List[str]] = None, show=True) -> int:
             pbar=args["progressBar"],
             parallel=args["ncpu"] > 1,
             directory=args["datadir"],
-            save=len(args['on']) > 1,
             show=show,
             dpi=args["dpi"],
         )

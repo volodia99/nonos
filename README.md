@@ -43,7 +43,7 @@ usage: nonos [-h] [-dir DATADIR] [-field {RHO,VX1,VX2,VX3}] [-vmin VMIN]
              [-srmax RMAXSTREAM] [-sn NSTREAMLINES]
              [-geom {cartesian,polar} | -pol] [-dim {1,2}] [-ft FONTSIZE]
              [-cmap CMAP] [-dpi DPI] [-input INPUT | -isolated]
-             [-version | -logo | -config]
+             [-d | -version | -logo | -config]
 
 Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
 
@@ -97,6 +97,8 @@ CLI-only options:
   -input INPUT, -i INPUT
                         specify a configuration file.
   -isolated             ignore any existing 'nonos.toml' file.
+  -d, -display          open a graphic window with the plot (only works with a
+                        single image)
   -version, --version   show raw version number and exit
   -logo                 show Nonos logo with version number, and exit.
   -config               show configuration and exit.

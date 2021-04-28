@@ -24,7 +24,7 @@ ARGS_TO_CHECK = {
 @pytest.mark.parametrize("argv", ARGS_TO_CHECK.values(), ids=ARGS_TO_CHECK.keys())
 def test_plot_simple(argv, simulation_dir, capsys):
     # just check that the call returns no err
-    ret = main(argv + ["-dir", str(simulation_dir)], show=False)
+    ret = main(argv + ["-dir", str(simulation_dir)])
 
     out, err = capsys.readouterr()
     assert err == ""
@@ -33,7 +33,7 @@ def test_plot_simple(argv, simulation_dir, capsys):
 
 def test_plot_simple_corotation(simulation_dir, capsys):
     # just check that the call returns no err
-    ret = main(["-cor", "-dir", str(simulation_dir)], show=False)
+    ret = main(["-cor", "-dir", str(simulation_dir)])
 
     out, err = capsys.readouterr()
     assert re.match(r"Operation took \d.\d\ds\n", out)
