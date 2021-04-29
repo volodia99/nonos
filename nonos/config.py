@@ -43,6 +43,8 @@ DEFAULTS = {
     'fontsize': 11,
     # choice of colormap
     'cmap': 'RdYlBu_r',
+    # select image file format
+    'format': "unset",
     # select image resolution
     'dpi': 200,
 }

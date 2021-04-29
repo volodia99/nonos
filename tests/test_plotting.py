@@ -1,7 +1,10 @@
 import os
 import re
+from glob import glob
 from pathlib import Path
+
 import pytest
+
 from nonos.main import main
 
 @pytest.fixture()
@@ -22,21 +25,33 @@ ARGS_TO_CHECK = {
 }
 
 @pytest.mark.parametrize("argv", ARGS_TO_CHECK.values(), ids=ARGS_TO_CHECK.keys())
-def test_plot_simple(argv, simulation_dir, capsys):
-    # just check that the call returns no err
+def test_plot_simple(argv, simulation_dir, capsys, tmp_path):
+    os.chdir(tmp_path)
     ret = main(argv + ["-dir", str(simulation_dir)])
 
     out, err = capsys.readouterr()
     assert err == ""
-    assert re.match(r"Operation took \d.\d\ds\n", out)
+    assert re.match(r"Operation took \d+.\d\ds\n", out)
     assert ret == 0
+    assert len(glob("*.png")) > 0
+
+@pytest.mark.parametrize("format", ["pdf", "png", "jpg"])
+def test_plot_simple(format, simulation_dir, capsys, tmp_path):
+    os.chdir(tmp_path)
+    ret = main(["-dir", str(simulation_dir), "-fmt", format])
+
+    out, err = capsys.readouterr()
+    assert err == ""
+    assert re.match(r"Operation took \d+.\d\ds\n", out)
+    assert ret == 0
+    assert len(glob(f"*.{format}")) == 1
 
 def test_plot_simple_corotation(simulation_dir, capsys):
     # just check that the call returns no err
     ret = main(["-cor", "-dir", str(simulation_dir)])
 
     out, err = capsys.readouterr()
-    assert re.match(r"Operation took \d.\d\ds\n", out)
+    assert re.match(r"Operation took \d+.\d\ds\n", out)
     # ignore differences in text wrapping because they are an implementation detail
     # due to the fact we use rich to display warnings
     assert err.strip().replace("\n", " ").endswith("We don't rotate the grid if there is no planet for now. omegagrid = 0.")

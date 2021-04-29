@@ -36,3 +36,18 @@ def parse_vmin_vmax(vmin, vmax, diff:bool, data:np.ndarray) -> Tuple[float, floa
     if not is_set(vmax):
         vmax = -data.min() if diff else data.max()
     return vmin, vmax
+
+
+def parse_image_format(s: Optional[str]) -> str:
+    from matplotlib.backend_bases import FigureCanvasBase
+
+    if not is_set(s):
+        return FigureCanvasBase.get_default_filetype()
+
+    _, _, ext = s.rpartition(".")
+    if not ext in (available:=list(FigureCanvasBase.get_supported_filetypes().keys())):
+        raise ValueError(
+            f"Received unknown file format '{s}'. "
+            f"Available formated are {available}."
+        )
+    return ext
