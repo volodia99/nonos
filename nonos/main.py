@@ -59,7 +59,7 @@ class DataStructure:
     """
     pass
 
-def readVTKPolar(filename, cell='edges'):
+def readVTKPolar(filename, field='RHO', cell='edges', computedata=True):
     """
     Adapted from Geoffroy Lesur
     Function that reads a vtk file in polar coordinates
@@ -165,31 +165,38 @@ def readVTKPolar(filename, cell='edges'):
         else:
             V.z=z
 
-    while 1:
-        s=fid.readline() # SCALARS/VECTORS name data_type (ex: SCALARS imagedata unsigned_char)
-        #print repr(s)
-        if len(s)<2:         # leave if end of file
-            break
-        slist=s.split()
-        datatype=str(slist[0],'utf-8')
-        varname=str(slist[1],'utf-8')
-        if datatype == "SCALARS":
-            fid.readline()  # LOOKUP TABLE
-            V.data[varname] = np.transpose(np.fromfile(fid,dt,V.nx*V.ny*V.nz).reshape(V.nz,V.ny,V.nx))
-        elif datatype == "VECTORS":
-            Q=np.fromfile(fid,dt,3*V.nx*V.ny*V.nz)
+    if computedata:
+        while 1:
+            s=fid.readline() # SCALARS/VECTORS name data_type (ex: SCALARS imagedata unsigned_char)
+            #print repr(s)
+            if len(s)<2:         # leave if end of file
+                break
+            slist=s.split()
+            datatype=str(slist[0],'utf-8')
+            varname=str(slist[1],'utf-8')
+            if datatype == "SCALARS":
+                fid.readline()  # LOOKUP TABLE
+                V.data[varname] = np.transpose(np.fromfile(fid,dt,V.nx*V.ny*V.nz).reshape(V.nz,V.ny,V.nx))
+            elif datatype == "VECTORS":
+                Q=np.fromfile(fid,dt,3*V.nx*V.ny*V.nz)
 
-            V.data[varname+'_X']=np.transpose(Q[::3].reshape(V.nz,V.ny,V.nx))
-            V.data[varname+'_Y']=np.transpose(Q[1::3].reshape(V.nz,V.ny,V.nx))
-            V.data[varname+'_Z']=np.transpose(Q[2::3].reshape(V.nz,V.ny,V.nx))
+                V.data[varname+'_X']=np.transpose(Q[::3].reshape(V.nz,V.ny,V.nx))
+                V.data[varname+'_Y']=np.transpose(Q[1::3].reshape(V.nz,V.ny,V.nx))
+                V.data[varname+'_Z']=np.transpose(Q[2::3].reshape(V.nz,V.ny,V.nx))
 
-        else:
-            raise ValueError("In readVTKPolar: Unknown datatype '%s', should be 'SCALARS' or 'VECTORS'" % datatype)
-            break
+            else:
+                raise ValueError("In readVTKPolar: Unknown datatype '%s', should be 'SCALARS' or 'VECTORS'" % datatype)
+                break
 
-        fid.readline()  #extra line feed
+            if varname!=field:
+                if datatype == "SCALARS":
+                    del V.data[varname]
+                elif datatype == "VECTORS":
+                    del V.data[varname+'_X'], V.data[varname+'_Y'], V.data[varname+'_Z']
+
+            fid.readline()  #extra line feed
     fid.close()
-
+       
     return V
 
 class Parameters():
@@ -334,7 +341,7 @@ class Mesh(Parameters):
         super().__init__(config=config, directory=directory, paramfile=paramfile) #All the Parameters attributes inside Field
         super().load()
         if (self.code=='idefix' or self.code=='pluto'):
-            domain=readVTKPolar(os.path.join(directory,'data.0000.vtk'), cell="edges")
+            domain=readVTKPolar(os.path.join(directory,'data.0000.vtk'), cell="edges", computedata=False)
             self.domain = domain
 
             self.nx = self.domain.nx
@@ -482,10 +489,10 @@ class FieldNonos(Mesh,Parameters):
         """
         super().load()
         if(self.code=='idefix' or self.code=='pluto'):
-            data = readVTKPolar(f, cell='edges').data[self.field]
+            data = readVTKPolar(f, field=self.field, cell='edges').data[self.field].astype(np.float32)
             data = np.concatenate((data[:,self.ny//2:self.ny,:], data[:,0:self.ny//2,:]), axis=1)
         elif self.code=='fargo3d':
-            data = np.fromfile(f, dtype='float64')
+            data = np.fromfile(f, dtype='float32')
             data=(data.reshape(self.nz,self.nx,self.ny)).transpose(1,2,0) #rad, pĥi, theta
         """
         if we try to rotate a grid at 0 speed
@@ -1079,6 +1086,8 @@ def process_field(on, init, dim, field, mid, geometry, avr, diff, log, corotate,
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    # import tracemalloc
+    # tracemalloc.start()
 
     parser = argparse.ArgumentParser(prog='nonos',
                                      description=__doc__,
@@ -1413,4 +1422,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         list(track(pool.imap(func, args['on']), description="Processing snapshots", total=len(args['on'])))
     if not show:
         print(f"Operation took {time.time() - tstart:.2f}s")
+    # current, peak = tracemalloc.get_traced_memory()
+    # print(f"Current memory usage is {current / 10**6}MB; Peak was {peak / 10**6}MB")
+    # tracemalloc.stop()
     return 0
