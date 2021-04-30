@@ -29,7 +29,12 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from nonos.__version__ import __version__
 from nonos.config import DEFAULTS
 from nonos.logging import print_err, print_warn
-from nonos.parsing import is_set, parse_output_number_range, parse_vmin_vmax
+from nonos.parsing import (
+    is_set,
+    parse_image_format,
+    parse_output_number_range,
+    parse_vmin_vmax,
+)
 
 # TODO: recheck in 3D
 # TODO: check in plot function if corotate=True works for all vtk and dpl
@@ -107,10 +112,11 @@ def readVTKPolar(filename, field="RHO", cell="edges", computedata=True):
     s = fid.readline()  # POINTS NXNYNZ float
     slist = s.split()
     npoints = int(slist[1])
+
     points = np.fromfile(fid, dt, 3 * npoints)
     s = fid.readline()  # EXTRA LINE FEED
 
-    V.points = points
+    # V.points=points
     if V.nx * V.ny * V.nz != npoints:
         raise ValueError(
             "In readVTKPolar: Grid size (%d) incompatible with number of points (%d) in the data set"
@@ -1316,6 +1322,7 @@ def process_field(
     datadir,
     show: bool,
     dpi: int,
+    fmt: str,
 ):
     ploton = PlotNonos(
         init,
@@ -1396,21 +1403,13 @@ def process_field(
                     linewidth=2,
                     alpha=0.5,
                 )
-
         prefix = "Rphi" if mid else "Rz"
-        filename = "%s_%s_diff%slog%s_%s%04d.png" % (
-            prefix,
-            field,
-            diff,
-            log,
-            geometry,
-            on,
-        )
 
     # plot the 1D profile
     elif dim == 1:
         ploton.axiplot(ax, vmin=vmin, vmax=vmax, average=avr, fontsize=ft)
-        filename = "axi_%s_diff%slog%s%04d.png" % (field, diff, log, on)
+        prefix = "axi"
+    filename = f"{prefix}_{field}{'_diff' if diff else ''}{'_log' if log else ''}{geometry if dim==2 else ''}{on:04d}.{fmt}"
 
     if show:
         plt.show()
@@ -1588,6 +1587,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         help=f"choice of colormap for the -dim 2 maps (default: '{DEFAULTS['cmap']}').",
     )
     parser.add_argument(
+        "-fmt",
+        "-format",
+        dest="format",
+        help=f"select output image file format (default: {DEFAULTS['format']})",
+    )
+    parser.add_argument(
         "-dpi",
         type=int,
         help=f"image file resolution (default: DEFAULTS['dpi'])",
@@ -1700,6 +1705,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         print_warn("display mode can not be used with multiple images, turning it off.")
         show = False
 
+    if not show:
+        try:
+            args["format"] = parse_image_format(args["format"])
+        except ValueError as exc:
+            print_err(exc)
+            return 1
+
     # check that every CLI-only argument was consumed at this point
     assert not set(clargs).difference(set(DEFAULTS))
 
@@ -1721,6 +1733,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     ref_on = args["on"][len(args["on"]) // 2]
     fieldon = FieldNonos(init, on=ref_on, check=False)
+
     if args["dimensionality"] == 2:
         data = fieldon.data
     elif args["dimensionality"] == 1:
@@ -1767,6 +1780,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         datadir=args["datadir"],
         show=show,
         dpi=args["dpi"],
+        fmt=args["format"],
     )
 
     tstart = time.time()

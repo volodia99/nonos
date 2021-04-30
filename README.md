@@ -42,7 +42,7 @@ usage: nonos [-h] [-dir DATADIR] [-field {RHO,VX1,VX2,VX3}] [-vmin VMIN]
              [-stype {random,fixed,lic}] [-srmin RMINSTREAM]
              [-srmax RMAXSTREAM] [-sn NSTREAMLINES]
              [-geom {cartesian,polar} | -pol] [-dim {1,2}] [-ft FONTSIZE]
-             [-cmap CMAP] [-dpi DPI] [-input INPUT | -isolated]
+             [-cmap CMAP] [-fmt FORMAT] [-dpi DPI] [-input INPUT | -isolated]
              [-d | -version | -logo | -config]
 
 Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
@@ -69,6 +69,8 @@ optional arguments:
   -ft FONTSIZE          fontsize in the graph (default: 11).
   -cmap CMAP            choice of colormap for the -dim 2 maps (default:
                         'RdYlBu_r').
+  -fmt FORMAT, -format FORMAT
+                        select output image file format (default: unset)
   -dpi DPI              image file resolution (default: DEFAULTS['dpi'])
 
 boolean flags:
