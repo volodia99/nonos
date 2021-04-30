@@ -1,12 +1,14 @@
 import os
 import re
+import sys
 
 import pytest
-import sys
-from nonos import InitParamNonos
-from nonos.main import main
-from nonos.config import DEFAULTS
 import toml
+
+from nonos import InitParamNonos
+from nonos.config import DEFAULTS
+from nonos.main import main
+
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="does not run on windows")
 def test_config_dir_not_found(tmp_path):
@@ -23,10 +25,11 @@ def minimal_paramfile(tmp_path):
         fh.write("dimensionality = 1")
     return ifile
 
+
 def test_load_config_file(minimal_paramfile, capsys):
     os.chdir(minimal_paramfile.parent)
     ret = main(["-input", "nonos.toml", "-config"])
-    
+
     assert ret == 0
     out, err = capsys.readouterr()
     assert err == ""

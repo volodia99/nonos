@@ -1,9 +1,12 @@
-from nonos.main import InitParamNonos, main
-from nonos import __version__
 import os
-import toml
 import textwrap
+
 import pytest
+import toml
+
+from nonos import __version__
+from nonos.main import InitParamNonos, main
+
 
 def test_no_inifile(capsys, tmp_path):
     os.chdir(tmp_path)
@@ -35,13 +38,15 @@ def test_version(capsys, tmp_path):
     assert err == ""
     assert out == str(__version__) + "\n"
 
+
 def test_logo(capsys, tmp_path):
     os.chdir(tmp_path)
     ret = main(["-logo"])
 
     assert ret == 0
     out, err = capsys.readouterr()
-    expected = textwrap.dedent("""
+    expected = textwrap.dedent(
+        r"""
                                                                      `!)}$$$$})!`
                  `,!>|))|!,                                        :}&#&$}{{}$&#&};`
               ~)$&&$$}}$$&#$).                                   '}#&}|~'.```.'!($#$+
@@ -67,7 +72,10 @@ def test_logo(capsys, tmp_path):
                `:|}$$$$}):`
 
         Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
-        """.lstrip("\n"))
+        """.lstrip(
+            "\n"
+        )
+    )
     expected += f"Version {__version__}\n"
     assert out == expected
     assert err == ""

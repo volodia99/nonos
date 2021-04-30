@@ -1,48 +1,48 @@
 DEFAULTS = {
     # directory where the simulation results are stored
-    'datadir': '.',
+    "datadir": ".",
     # which field?
-    'field': 'RHO',
+    "field": "RHO",
     # 1D axisymmetric porfile or 2D map
-    'dimensionality': 2,
+    "dimensionality": 2,
     # a single output number ('on') to display or a range (min, max, [step])
-    'on': 'unset',
+    "on": "unset",
     # perturbation of field
-    'diff': False,
+    "diff": False,
     # field in log
-    'log': False,
+    "log": False,
     # default min field when diff
-    'vmin': 'unset',
+    "vmin": "unset",
     # default max field when diff
-    'vmax': 'unset',
+    "vmax": "unset",
     # plane to represent (default is midplane)
-    'rz': False,
+    "rz": False,
     # do we average in the 3rd dimension?
-    'noaverage': False,
+    "noaverage": False,
     # do we compute random streams ("random"), fixed streams ("fixed") or lic ("lic")?
-    'streamtype': 'unset',
+    "streamtype": "unset",
     # min radius for streamlines computation
-    'rminStream': 0.7,
+    "rminStream": 0.7,
     # max radius for streamlines computation
-    'rmaxStream': 1.3,
+    "rmaxStream": 1.3,
     # number of streamlines to draw
-    'nstreamlines': 50,
+    "nstreamlines": 50,
     # do we display the progress (loading+plotting)
-    'progressBar': False,
+    "progressBar": False,
     # do we display the grid?
-    'grid': False,
+    "grid": False,
     # cartesian or polar coordinates
-    'geometry': "cartesian",
+    "geometry": "cartesian",
     # is there a planet in the grid?
-    'isPlanet': False,
+    "isPlanet": False,
     # do the grid rotate with the planet?
-    'corotate': False,
+    "corotate": False,
     # number of cpus to use
-    'ncpu': 1,
+    "ncpu": 1,
     # font size of text in graphs
-    'fontsize': 11,
+    "fontsize": 11,
     # choice of colormap
-    'cmap': 'RdYlBu_r',
+    "cmap": "RdYlBu_r",
     # select image resolution
-    'dpi': 200,
+    "dpi": 200,
 }

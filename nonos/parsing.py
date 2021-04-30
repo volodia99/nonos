@@ -1,10 +1,15 @@
-from typing import Sequence, Union, List, Any, Optional, Dict, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+
 import numpy as np
 
-def is_set(x:Any) -> bool:
-    return x not in (None, 'unset')
 
-def parse_output_number_range(on:Optional[Union[List[int], int, str]], maxval:Optional[int]=None) -> List[int]:
+def is_set(x: Any) -> bool:
+    return x not in (None, "unset")
+
+
+def parse_output_number_range(
+    on: Optional[Union[List[int], int, str]], maxval: Optional[int] = None
+) -> List[int]:
     if not is_set(on):
         if maxval is None:
             raise ValueError("Can't parse a range from unset values without a max.")
@@ -15,7 +20,9 @@ def parse_output_number_range(on:Optional[Union[List[int], int, str]], maxval:Op
             return [on]
 
     if len(on) > 3:
-        raise ValueError(f"Can't parse a range from sequence {on} with more than 3 values.")
+        raise ValueError(
+            f"Can't parse a range from sequence {on} with more than 3 values."
+        )
     if len(on) == 1:
         return on
 
@@ -26,11 +33,13 @@ def parse_output_number_range(on:Optional[Union[List[int], int, str]], maxval:Op
     on[1] += 1
     ret = list(range(*on))
     if maxval is not None and (max_requested := ret[-1]) > maxval:
-        raise ValueError(f"No output beyond {maxval} is available, but {max_requested} was requested.")
+        raise ValueError(
+            f"No output beyond {maxval} is available, but {max_requested} was requested."
+        )
     return ret
 
 
-def parse_vmin_vmax(vmin, vmax, diff:bool, data:np.ndarray) -> Tuple[float, float]:
+def parse_vmin_vmax(vmin, vmax, diff: bool, data: np.ndarray) -> Tuple[float, float]:
     if not is_set(vmin):
         vmin = data.min()
     if not is_set(vmax):
