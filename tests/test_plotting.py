@@ -52,7 +52,6 @@ def test_plot_simple(format, simulation_dir, capsys, tmp_path):
     assert len(glob(f"*.{format}")) == 1
 
 
-
 def test_plot_simple_corotation(simulation_dir, capsys):
     # just check that the call returns no err
     ret = main(["-cor", "-dir", str(simulation_dir)])
