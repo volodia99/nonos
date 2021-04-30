@@ -1,4 +1,3 @@
-import os
 import re
 from pathlib import Path
 
@@ -12,6 +11,7 @@ with open(SOURCE_DIR.joinpath("nonos", "main.py")) as fh:
 
 used_keys = set(re.findall(r"""args\[['"](\w+)['"]\]""", source))
 def_keys = set(DEFAULTS)
+
 
 # check that every key used is defined
 def test_no_undef_key():

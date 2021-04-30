@@ -1,7 +1,6 @@
 import sys
 
 from rich import print as rprint
-from rich.progress import track
 
 
 def print_warn(message):

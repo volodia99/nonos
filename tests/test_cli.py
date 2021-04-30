@@ -1,9 +1,6 @@
 import os
 import textwrap
 
-import pytest
-import toml
-
 from nonos import __version__
 from nonos.main import InitParamNonos, main
 
