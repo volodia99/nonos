@@ -1,18 +1,22 @@
 import os
 import re
+import sys
 
 import pytest
-import sys
-from nonos import InitParamNonos
-from nonos.main import main
-from nonos.config import DEFAULTS
 import toml
+
+from nonos import InitParamNonos
+from nonos.config import DEFAULTS
+from nonos.main import main
+
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="does not run on windows")
 def test_config_dir_not_found(tmp_path):
     with pytest.raises(
         FileNotFoundError,
-        match=re.escape(f"[Errno 2] No such file or directory: '{tmp_path / 'notafile'}'")
+        match=re.escape(
+            f"[Errno 2] No such file or directory: '{tmp_path / 'notafile'}'"
+        ),
     ):
         # the error is raised by toml.load
         InitParamNonos(paramfile=tmp_path / "notafile")
@@ -27,10 +31,11 @@ def minimal_paramfile(tmp_path):
         fh.write("dimensionality = 1")
     return ifile
 
+
 def test_load_config_file(minimal_paramfile, capsys):
     os.chdir(minimal_paramfile.parent)
     ret = main(["-input", "nonos.toml", "-config"])
-    
+
     assert ret == 0
     out, err = capsys.readouterr()
     assert err == ""

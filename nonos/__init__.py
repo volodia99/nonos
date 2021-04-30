@@ -1,2 +1,10 @@
-from .main import readVTKPolar, InitParamNonos, Parameters, Mesh, FieldNonos, PlotNonos, StreamNonos
 from .__version__ import __version__
+from .main import (
+    FieldNonos,
+    InitParamNonos,
+    Mesh,
+    Parameters,
+    PlotNonos,
+    StreamNonos,
+    readVTKPolar,
+)

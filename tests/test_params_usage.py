@@ -1,9 +1,10 @@
 import os
-from pathlib import Path
 import re
-import pytest
-from nonos.config import DEFAULTS
+from pathlib import Path
 
+import pytest
+
+from nonos.config import DEFAULTS
 
 SOURCE_DIR = Path(__file__).parents[1]
 with open(SOURCE_DIR.joinpath("nonos", "main.py")) as fh:
@@ -19,7 +20,10 @@ def test_no_undef_key():
         print("\n".join(list(missing)))
     assert not missing
 
-@pytest.mark.xfail(reason="at the moment, at least one arg (grid) isn't used externally but inside a class")
+
+@pytest.mark.xfail(
+    reason="at the moment, at least one arg (grid) isn't used externally but inside a class"
+)
 def test_no_unused_key():
     # TODO: remove the xfail marker and refactor as needed
     if missing := def_keys.difference(used_keys):
