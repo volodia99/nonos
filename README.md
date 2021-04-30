@@ -236,6 +236,3 @@ for dirp, ax in zip(dirpath, axes):
 
 plt.show()
 ```
-
-
-
