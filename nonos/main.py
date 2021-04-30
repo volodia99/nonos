@@ -101,10 +101,11 @@ def readVTKPolar(filename, field='RHO', cell='edges', computedata=True):
     s=fid.readline()    # POINTS NXNYNZ float
     slist=s.split()
     npoints=int(slist[1])
+
     points=np.fromfile(fid,dt,3*npoints)
     s=fid.readline()    # EXTRA LINE FEED
 
-    V.points=points
+    # V.points=points
     if V.nx*V.ny*V.nz != npoints:
         raise ValueError("In readVTKPolar: Grid size (%d) incompatible with number of points (%d) in the data set"%(V.nx*V.ny*V.nz,npoints))
 
@@ -112,7 +113,7 @@ def readVTKPolar(filename, field='RHO', cell='edges', computedata=True):
     x1d=points[::3]
     y1d=points[1::3]
     z1d=points[2::3]
-
+    
     xcart=np.transpose(x1d.reshape(V.nz,V.ny,V.nx))
     ycart=np.transpose(y1d.reshape(V.nz,V.ny,V.nx))
     zcart=np.transpose(z1d.reshape(V.nz,V.ny,V.nx))
