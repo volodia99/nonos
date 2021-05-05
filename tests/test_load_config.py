@@ -12,14 +12,8 @@ from nonos.main import main
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="does not run on windows")
 def test_config_dir_not_found(tmp_path):
-    with pytest.raises(
-        FileNotFoundError,
-        match=re.escape(
-            f"[Errno 2] No such file or directory: '{tmp_path / 'notafile'}'"
-        ),
-    ):
-        # the error is raised by toml.load
-        InitParamNonos(paramfile=tmp_path / "notafile")
+    with pytest.raises(FileNotFoundError):
+        InitParamNonos(sim_paramfile=tmp_path / "notafile")
 
 
 @pytest.fixture()
