@@ -1,6 +1,8 @@
 import os
 import textwrap
 
+import toml
+
 from nonos import __version__
 from nonos.main import InitParamNonos, main
 
