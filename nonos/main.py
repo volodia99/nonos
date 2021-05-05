@@ -1130,7 +1130,7 @@ class StreamNonos(FieldNonos):
         x = [x0]
         y = [y0]
 
-        for i in range(nmax):
+        for _ in range(nmax):
             ds = self.euler(vx, vy, x0, y0, reverse=reverse)
             if ds[0] is None:
                 # if(len(x)==1):
@@ -1648,7 +1648,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument(
         "-dpi",
         type=int,
-        help=f"image file resolution (default: DEFAULTS['dpi'])",
+        help="image file resolution (default: DEFAULTS['dpi'])",
     )
 
     cli_only_group = parser.add_argument_group("CLI-only options")

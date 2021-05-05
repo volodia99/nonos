@@ -41,7 +41,7 @@ def test_plot_simple(argv, simulation_dir, capsys, tmp_path):
 
 
 @pytest.mark.parametrize("format", ["pdf", "png", "jpg"])
-def test_plot_simple(format, simulation_dir, capsys, tmp_path):
+def test_common_image_formats(format, simulation_dir, capsys, tmp_path):
     os.chdir(tmp_path)
     ret = main(["-dir", str(simulation_dir), "-fmt", format])
 

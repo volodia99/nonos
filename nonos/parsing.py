@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -54,7 +54,7 @@ def parse_image_format(s: Optional[str]) -> str:
         return FigureCanvasBase.get_default_filetype()
 
     _, _, ext = s.rpartition(".")
-    if not ext in (
+    if ext not in (
         available := list(FigureCanvasBase.get_supported_filetypes().keys())
     ):
         raise ValueError(
