@@ -440,7 +440,9 @@ class Mesh(InitParamNonos):
 
             domain_x = np.loadtxt(os.path.join(self.config["datadir"], "domain_x.dat"))
             # We avoid ghost cells
-            domain_y = np.loadtxt(os.path.join(self.config["datadir"], "domain_y.dat"))[3:-3]
+            domain_y = np.loadtxt(os.path.join(self.config["datadir"], "domain_y.dat"))[
+                3:-3
+            ]
             domain_z = np.loadtxt(os.path.join(self.config["datadir"], "domain_z.dat"))
             if domain_z.shape[0] > 6:
                 domain_z = domain_z[3:-3]
