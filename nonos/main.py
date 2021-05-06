@@ -67,7 +67,7 @@ class DataStructure:
     pass
 
 
-def readVTKPolar(filename, field="RHO", cell="edges", computedata=True):
+def readVTKPolar(filename, cell="edges", computedata=True):
     """
     Adapted from Geoffroy Lesur
     Function that reads a vtk file in polar coordinates
@@ -113,7 +113,18 @@ def readVTKPolar(filename, field="RHO", cell="edges", computedata=True):
     slist = s.split()
     npoints = int(slist[1])
 
-    points = np.fromfile(fid, dt, 3 * npoints)
+    inipos = fid.tell()  # we store the file pointer position before computing points
+    # print(inipos)
+    # points = np.fromfile(fid, dt, 3 * npoints)
+    points = np.memmap(
+        fid, mode="r", dtype=dt, offset=inipos, shape=3 * npoints
+    )  # some smart memory efficient way to store the array
+    # print(fid.tell())
+    newpos = (
+        np.float32().nbytes * 3 * npoints + inipos
+    )  # we calculate the offset that we would expect normally with a np.fromfile
+    fid.seek(newpos, os.SEEK_SET)  # we set the file pointer position to this offset
+    # print(fid.tell())
     s = fid.readline()  # EXTRA LINE FEED
 
     # V.points=points
@@ -196,11 +207,38 @@ def readVTKPolar(filename, field="RHO", cell="edges", computedata=True):
             varname = str(slist[1], "utf-8")
             if datatype == "SCALARS":
                 fid.readline()  # LOOKUP TABLE
-                V.data[varname] = np.transpose(
-                    np.fromfile(fid, dt, V.nx * V.ny * V.nz).reshape(V.nz, V.ny, V.nx)
-                )
+
+                inipos = (
+                    fid.tell()
+                )  # we store the file pointer position before computing points
+                # array = np.fromfile(fid, dt, V.nx * V.ny * V.nz).reshape(V.nz, V.ny, V.nx)
+                array = np.memmap(
+                    fid, mode="r", dtype=dt, offset=inipos, shape=V.nx * V.ny * V.nz
+                ).reshape(
+                    V.nz, V.ny, V.nx
+                )  # some smart memory efficient way to store the array
+                newpos = (
+                    np.float32().nbytes * V.nx * V.ny * V.nz + inipos
+                )  # we calculate the offset that we would expect normally with a np.fromfile
+                fid.seek(
+                    newpos, os.SEEK_SET
+                )  # we set the file pointer position to this offset
+
+                V.data[varname] = np.transpose(array)
             elif datatype == "VECTORS":
-                Q = np.fromfile(fid, dt, 3 * V.nx * V.ny * V.nz)
+                inipos = (
+                    fid.tell()
+                )  # we store the file pointer position before computing points
+                Q = np.memmap(
+                    fid, mode="r", dtype=dt, offset=inipos, shape=V.nx * V.ny * V.nz
+                )  # some smart memory efficient way to store the array
+                # Q = np.fromfile(fid, dt, 3 * V.nx * V.ny * V.nz)
+                newpos = (
+                    np.float32().nbytes * V.nx * V.ny * V.nz + inipos
+                )  # we calculate the offset that we would expect normally with a np.fromfile
+                fid.seek(
+                    newpos, os.SEEK_SET
+                )  # we set the file pointer position to this offset
 
                 V.data[varname + "_X"] = np.transpose(Q[::3].reshape(V.nz, V.ny, V.nx))
                 V.data[varname + "_Y"] = np.transpose(Q[1::3].reshape(V.nz, V.ny, V.nx))
@@ -212,16 +250,6 @@ def readVTKPolar(filename, field="RHO", cell="edges", computedata=True):
                     % datatype
                 )
                 break
-
-            if varname != field:
-                if datatype == "SCALARS":
-                    del V.data[varname]
-                elif datatype == "VECTORS":
-                    del (
-                        V.data[varname + "_X"],
-                        V.data[varname + "_Y"],
-                        V.data[varname + "_Z"],
-                    )
 
             fid.readline()  # extra line feed
     fid.close()
@@ -440,7 +468,9 @@ class Mesh(InitParamNonos):
 
             domain_x = np.loadtxt(os.path.join(self.config["datadir"], "domain_x.dat"))
             # We avoid ghost cells
-            domain_y = np.loadtxt(os.path.join(self.config["datadir"], "domain_y.dat"))[3:-3]
+            domain_y = np.loadtxt(os.path.join(self.config["datadir"], "domain_y.dat"))[
+                3:-3
+            ]
             domain_z = np.loadtxt(os.path.join(self.config["datadir"], "domain_z.dat"))
             if domain_z.shape[0] > 6:
                 domain_z = domain_z[3:-3]
@@ -561,11 +591,7 @@ class FieldNonos(Mesh, InitParamNonos):
             )  # rad, pĥi, theta
         else:
             # Idefix or Pluto
-            data = (
-                readVTKPolar(f, field=self.field, cell="edges")
-                .data[self.field]
-                .astype(np.float32)
-            )
+            data = readVTKPolar(f, cell="edges").data[self.field].astype(np.float32)
             data = np.concatenate(
                 (data[:, self.ny // 2 : self.ny, :], data[:, 0 : self.ny // 2, :]),
                 axis=1,
