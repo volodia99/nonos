@@ -7,6 +7,7 @@ Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
 import argparse
 import functools
 import glob
+import logging
 import os
 import re
 import time
@@ -116,6 +117,7 @@ def readVTKPolar(filename, cell="edges", computedata=True):
     inipos = fid.tell()  # we store the file pointer position before computing points
     # print(inipos)
     # points = np.fromfile(fid, dt, 3 * npoints)
+    logging.debug(f"loading the grid cells: ({V.nx},{V.ny},{V.nz}).")
     points = np.memmap(
         fid, mode="r", dtype=dt, offset=inipos, shape=3 * npoints
     )  # some smart memory efficient way to store the array
@@ -195,6 +197,7 @@ def readVTKPolar(filename, cell="edges", computedata=True):
             V.z = z
 
     if computedata:
+        logging.debug("loading the data arrays:")
         while 1:
             s = (
                 fid.readline()
@@ -250,6 +253,8 @@ def readVTKPolar(filename, cell="edges", computedata=True):
                     % datatype
                 )
                 break
+
+            logging.debug(f"field: {varname} ---> done")
 
             fid.readline()  # extra line feed
     fid.close()
@@ -502,6 +507,8 @@ class Mesh(InitParamNonos):
         self.y = self.yedge
         self.z = self.zedge
 
+        logging.debug("loading the mesh parameters ---> done")
+
 
 class FieldNonos(Mesh, InitParamNonos):
     """
@@ -609,6 +616,7 @@ class FieldNonos(Mesh, InitParamNonos):
         ):
             return data
 
+        logging.debug("rotation of the grid")
         P, R = np.meshgrid(self.y, self.x)
         Prot = P - (self.vtk * sum(self.omegagrid[: self.on])) % (2 * np.pi)
         try:
@@ -618,6 +626,7 @@ class FieldNonos(Mesh, InitParamNonos):
         data = np.concatenate(
             (data[:, index : self.ny, :], data[:, 0:index, :]), axis=1
         )
+        logging.debug("---> done")
         return data
 
 
@@ -1350,6 +1359,7 @@ def process_field(
     dpi: int,
     fmt: str,
 ):
+    logging.debug("loading the PlotNonos object")
     ploton = PlotNonos(
         init,
         field=field,
@@ -1440,7 +1450,9 @@ def process_field(
     if show:
         plt.show()
     else:
+        logging.debug("saving plot")
         fig.savefig(filename, bbox_inches="tight", dpi=dpi)
+        logging.debug("---> done")
     plt.close(fig)
 
 
@@ -1655,6 +1667,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         "-config", action="store_true", help="show configuration and exit."
     )
 
+    cli_debug_group = cli_only_group.add_mutually_exclusive_group()
+    cli_debug_group.add_argument(
+        "-v",
+        "-verbose",
+        "--verbose",
+        action="store_true",
+        help="increase output verbosity.",
+    )
+
     clargs = vars(parser.parse_args(argv))
 
     # special cases: destructively consume CLI-only arguments with dict.pop
@@ -1670,6 +1691,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     if clargs.pop("version"):
         print(__version__)
         return 0
+
+    if clargs.pop("verbose"):
+        logging.basicConfig(
+            level="DEBUG",
+            force=True,
+            handlers=[logging.FileHandler("debug.log"), logging.StreamHandler()],
+        )
 
     if clargs.pop("isolated"):
         config_file_args = {}
@@ -1757,15 +1785,18 @@ def main(argv: Optional[List[str]] = None) -> int:
             "TODO: check what is the length argument in StreamNonos().get_lic_streams ?"
         )
 
-    ref_on = args["on"][len(args["on"]) // 2]
-    fieldon = FieldNonos(init, on=ref_on, check=False)
+    if not is_set(args["vmin"]) or not is_set(args["vmax"]):
+        ref_on = args["on"][len(args["on"]) // 2]
+        fieldon = FieldNonos(init, on=ref_on, check=False)
 
-    if args["dimensionality"] == 2:
-        data = fieldon.data
-    elif args["dimensionality"] == 1:
-        data = np.mean(np.mean(fieldon.data, axis=1), axis=1)
+        if args["dimensionality"] == 2:
+            data = fieldon.data
+        elif args["dimensionality"] == 1:
+            data = np.mean(np.mean(fieldon.data, axis=1), axis=1)
 
-    vmin, vmax = parse_vmin_vmax(args["vmin"], args["vmax"], args["diff"], data)
+        vmin, vmax = parse_vmin_vmax(args["vmin"], args["vmax"], args["diff"], data)
+    else:
+        vmin, vmax = args["vmin"], args["vmax"]
 
     if args["ncpu"] > (ncpu := min(args["ncpu"], os.cpu_count())):
         print_warn(
