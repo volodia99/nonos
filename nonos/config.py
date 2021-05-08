@@ -39,8 +39,8 @@ DEFAULTS = {
     "corotate": False,
     # number of cpus to use
     "ncpu": 1,
-    # font size of text in graphs
-    "fontsize": 11,
+    # scaling factor for font size of text in graphs (among other things)
+    "scaling": 1,
     # choice of colormap
     "cmap": "RdYlBu_r",
     # select image file format

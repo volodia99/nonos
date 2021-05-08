@@ -24,7 +24,6 @@ import numpy as np
 import pkg_resources
 import toml
 from inifix.format import iniformat
-from matplotlib.ticker import AutoMinorLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from nonos.__version__ import __version__
@@ -36,6 +35,7 @@ from nonos.parsing import (
     parse_output_number_range,
     parse_vmin_vmax,
 )
+from nonos.styling import set_mpl_style
 
 # TODO: recheck in 3D
 # TODO: check in plot function if corotate=True works for all vtk and dpl
@@ -635,7 +635,7 @@ class PlotNonos(FieldNonos):
     Plot class which uses Field to compute different graphs.
     """
 
-    def axiplot(self, ax, vmin=None, vmax=None, average=None, fontsize=None, **karg):
+    def axiplot(self, ax, vmin=None, vmax=None, average=None, **karg):
         if average is None:
             average = self.init.config["average"]
         if average:
@@ -652,23 +652,11 @@ class PlotNonos(FieldNonos):
             vmin, vmax, diff=self.config["diff"], data=dataProfile
         )
 
-        if fontsize is None:
-            fontsize = self.init.config["fontsize"]
-
         ax.plot(self.xmed, dataProfile, **karg)
 
-        if not self.config["log"]:
-            ax.xaxis.set_minor_locator(AutoMinorLocator(5))
-            ax.yaxis.set_minor_locator(AutoMinorLocator(5))
         ax.set_ylim(vmin, vmax)
-        ax.tick_params("both", labelsize=fontsize)
-        ax.xaxis.set_ticks_position("both")
-        ax.yaxis.set_ticks_position("both")
-        ax.xaxis.set_visible(True)
-        ax.yaxis.set_visible(True)
-        ax.set_xlabel("Radius", fontsize=fontsize)
-        ax.set_ylabel(self.title, fontsize=fontsize)
-        # plt.legend(frameon=False)
+        ax.set_xlabel("Radius")
+        ax.set_ylabel(self.title)
 
     def plot(
         self,
@@ -678,7 +666,7 @@ class PlotNonos(FieldNonos):
         midplane=None,
         geometry="cartesian",
         average=None,
-        fontsize=None,
+        scaling=1,
         cmap=None,
         **karg,
     ):
@@ -693,8 +681,6 @@ class PlotNonos(FieldNonos):
             midplane = self.init.config["midplane"]
         if average is None:
             average = self.init.config["average"]
-        if fontsize is None:
-            fontsize = self.init.config["fontsize"]
         if cmap is None:
             cmap = self.init.config["cmap"]
 
@@ -736,10 +722,8 @@ class PlotNonos(FieldNonos):
                     )
 
                 ax.set_aspect("equal")
-                ax.xaxis.set_visible(True)
-                ax.yaxis.set_visible(True)
-                ax.set_ylabel("Y [c.u.]", family="monospace", fontsize=fontsize)
-                ax.set_xlabel("X [c.u.]", family="monospace", fontsize=fontsize)
+                ax.set_ylabel("Y [c.u.]")
+                ax.set_xlabel("X [c.u.]")
                 if self.init.config["grid"]:
                     ax.plot(X, Y, c="k", linewidth=0.07)
                     ax.plot(X.transpose(), Y.transpose(), c="k", linewidth=0.07)
@@ -768,29 +752,19 @@ class PlotNonos(FieldNonos):
 
                 ax.set_ylim(-np.pi, np.pi)
                 ax.set_aspect("auto")
-                ax.xaxis.set_visible(True)
-                ax.yaxis.set_visible(True)
-                ax.set_ylabel("Phi", family="monospace", fontsize=fontsize)
-                ax.set_xlabel("Radius", family="monospace", fontsize=fontsize)
+                ax.set_ylabel("Phi")
+                ax.set_xlabel("Radius")
                 if self.init.config["grid"]:
                     ax.plot(R, P, c="k", linewidth=0.07)
                     ax.plot(R.transpose(), P.transpose(), c="k", linewidth=0.07)
             else:
                 raise ValueError(f"Unknown geometry '{geometry}'")
 
-            # ax.set_xlim(0.5,1.5)
-            # ax.set_ylim(-0.8,0.8)
-            ax.set_title(self.code, family="monospace", fontsize=fontsize)
-            ax.tick_params("both", labelsize=fontsize)
-            ax.xaxis.set_minor_locator(AutoMinorLocator(5))
-            ax.yaxis.set_minor_locator(AutoMinorLocator(5))
-            ax.xaxis.set_ticks_position("both")
-            ax.yaxis.set_ticks_position("both")
+            ax.set_title(self.code)
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
-            cbar = plt.colorbar(im, cax=cax, orientation="vertical")  # , format='%.0e')
-            cbar.ax.tick_params(labelsize=fontsize)
-            cbar.set_label(self.title, family="monospace", fontsize=fontsize)
+            cbar = plt.colorbar(im, cax=cax, orientation="vertical")
+            cbar.set_label(self.title)
 
         # (R,z) plane
         else:
@@ -825,32 +799,17 @@ class PlotNonos(FieldNonos):
                         **karg,
                     )
                 ax.set_aspect("auto")
-                ax.xaxis.set_visible(True)
-                ax.yaxis.set_visible(True)
-                ax.set_ylabel("Z [c.u.]", family="monospace", fontsize=fontsize)
-                ax.set_xlabel("X [c.u.]", family="monospace", fontsize=fontsize)
-                # ax.set_xlim(-6.0,6.0)
-                # ax.set_ylim(-6.0,6.0)
+                ax.set_ylabel("Z [c.u.]")
+                ax.set_xlabel("X [c.u.]")
                 if self.init.config["grid"]:
-                    # im=ax.scatter(X,Y,c=np.mean(self.data,axis=2))
                     ax.plot(R, Z, c="k", linewidth=0.07)
                     ax.plot(R.transpose(), Z.transpose(), c="k", linewidth=0.07)
 
-                # ax.set_xlim(0.5,1.5)
-                # ax.set_ylim(-0.8,0.8)
-                ax.set_title(self.code, family="monospace", fontsize=fontsize)
-                ax.tick_params("both", labelsize=fontsize)
-                ax.xaxis.set_minor_locator(AutoMinorLocator(5))
-                ax.yaxis.set_minor_locator(AutoMinorLocator(5))
-                ax.xaxis.set_ticks_position("both")
-                ax.yaxis.set_ticks_position("both")
+                ax.set_title(self.code)
                 divider = make_axes_locatable(ax)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = plt.colorbar(
-                    im, cax=cax, orientation="vertical"
-                )  # , format='%.0e')
-                cbar.ax.tick_params(labelsize=fontsize)
-                cbar.set_label(self.title, family="monospace", fontsize=fontsize)
+                cbar = plt.colorbar(im, cax=cax, orientation="vertical")
+                cbar.set_label(self.title)
             else:
                 Z, R = np.meshgrid(self.z, self.x)
                 r = np.sqrt(R ** 2 + Z ** 2)
@@ -894,28 +853,15 @@ class PlotNonos(FieldNonos):
                 ax.set_thetamax(tmax * 180 / np.pi)
 
                 ax.set_aspect("auto")
-                ax.xaxis.set_visible(True)
-                ax.yaxis.set_visible(True)
-                ax.set_ylabel("Theta", family="monospace", fontsize=fontsize)
-                ax.set_xlabel("Radius", family="monospace", fontsize=fontsize)
-                # ax.set_xlim(-6.0,6.0)
-                # ax.set_ylim(-6.0,6.0)
+                ax.set_ylabel("Theta")
+                ax.set_xlabel("Radius")
                 if self.init.config["grid"]:
-                    # im=ax.scatter(X,Y,c=np.mean(self.data,axis=2))
                     ax.plot(r, t, c="k", linewidth=0.07)
                     ax.plot(r.transpose(), t.transpose(), c="k", linewidth=0.07)
 
-                # ax.set_xlim(0.5,1.5)
-                # ax.set_ylim(-0.8,0.8)
-                ax.set_title(self.code, family="monospace", fontsize=fontsize)
-                ax.tick_params("both", labelsize=fontsize)
-                ax.xaxis.set_minor_locator(AutoMinorLocator(5))
-                ax.yaxis.set_minor_locator(AutoMinorLocator(5))
-                ax.xaxis.set_ticks_position("both")
-                ax.yaxis.set_ticks_position("both")
-                cbar = plt.colorbar(im, orientation="vertical")  # , format='%.0e')
-                cbar.ax.tick_params(labelsize=fontsize)
-                cbar.set_label(self.title, family="monospace", fontsize=fontsize)
+                ax.set_title(self.code)
+                cbar = plt.colorbar(im, orientation="vertical")
+                cbar.set_label(self.title)
 
 
 class StreamNonos(FieldNonos):
@@ -1268,27 +1214,15 @@ def is_averageSafe(sigma0, sigmaSlope, plot=False):
         )
         # ax.plot(fieldon.xmed, np.mean(datarz, axis=1)*(fieldon.z.max()-fieldon.z.min()), label='integral of data using mean and zmin/zmax')
         # ax.plot(fieldon.xmed, sigma0*pow(fieldon.xmed,-sigmaSlope), label='theoretical reference')
-        ax.xaxis.set_visible(True)
-        ax.yaxis.set_visible(True)
-        ax.set_ylabel(r"$\Sigma_0(R)$", family="monospace", fontsize=10)
-        ax.set_xlabel("Radius", family="monospace", fontsize=10)
-        ax.tick_params("both", labelsize=10)
-        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
-        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
-        ax.xaxis.set_ticks_position("both")
-        ax.yaxis.set_ticks_position("both")
+
+        ax.set_ylabel(r"$\Sigma_0(R)$")
+        ax.set_xlabel("Radius")
+        ax.tick_params("both")
         ax.legend(frameon=False, prop={"size": 10, "family": "monospace"})
         fig2, ax2 = plt.subplots()
         ax2.plot(fieldon.xmed, abs(error) * 100)
-        ax2.xaxis.set_visible(True)
-        ax2.yaxis.set_visible(True)
-        ax2.set_ylabel(r"Error (%)", family="monospace", fontsize=10)
-        ax2.set_xlabel("Radius", family="monospace", fontsize=10)
-        ax2.tick_params("both", labelsize=10)
-        ax2.xaxis.set_minor_locator(AutoMinorLocator(5))
-        ax2.yaxis.set_minor_locator(AutoMinorLocator(5))
-        ax2.xaxis.set_ticks_position("both")
-        ax2.yaxis.set_ticks_position("both")
+        ax2.set_ylabel(r"Error (%)")
+        ax2.set_xlabel("Radius")
         plt.show()
 
 
@@ -1349,7 +1283,7 @@ def process_field(
     nstream,
     vmin,
     vmax,
-    ft,
+    scaling: float,
     cmap,
     isPlanet,
     pbar,
@@ -1359,6 +1293,8 @@ def process_field(
     dpi: int,
     fmt: str,
 ):
+    set_mpl_style(scaling=scaling)
+
     logging.debug("loading the PlotNonos object")
     ploton = PlotNonos(
         init,
@@ -1371,12 +1307,11 @@ def process_field(
         datadir=datadir,
         check=False,
     )
-
-    fig = plt.figure(figsize=(9, 8))
     if polar := (geometry != "cartesian" and not mid):
         print_warn(
             "plot not optimized for now in the (R,z) plane in polar.\nCheck in cartesian coordinates to be sure"
         )
+    fig = plt.figure()
     ax = fig.add_subplot(111, polar=polar)
 
     # plot the field
@@ -1388,7 +1323,6 @@ def process_field(
             midplane=mid,
             geometry=geometry,
             average=avr,
-            fontsize=ft,
             cmap=cmap,
         )
         if is_set(stype):
@@ -1443,7 +1377,7 @@ def process_field(
 
     # plot the 1D profile
     elif dim == 1:
-        ploton.axiplot(ax, vmin=vmin, vmax=vmax, average=avr, fontsize=ft)
+        ploton.axiplot(ax, vmin=vmin, vmax=vmax, average=avr)
         prefix = "axi"
     filename = f"{prefix}_{field}{'_diff' if diff else ''}{'_log' if log else ''}{geometry if dim==2 else ''}{on:04d}.{fmt}"
 
@@ -1615,10 +1549,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="dimensionality in projection: 1 for a line plot, 2 (default) for a map.",
     )
     parser.add_argument(
-        "-ft",
-        dest="fontsize",
+        "-scaling",
+        dest="scaling",
         type=float,
-        help=f"fontsize in the graph (default: {DEFAULTS['fontsize']}).",
+        help=f"scale the overall sizes of features in the graph (fonts, linewidth...) (default: {DEFAULTS['scaling']}).",
     )
     parser.add_argument(
         "-cmap",
@@ -1829,7 +1763,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         nstream=args["nstreamlines"],
         vmin=vmin,
         vmax=vmax,
-        ft=args["fontsize"],
+        scaling=args["scaling"],
         cmap=args["cmap"],
         isPlanet=args["isPlanet"],
         pbar=args["progressBar"],

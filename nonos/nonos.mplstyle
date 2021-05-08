@@ -1,0 +1,7 @@
+xtick.top: True
+ytick.right: True
+
+xtick.minor.visible: True
+ytick.minor.visible: True
+
+font.family: monospace
