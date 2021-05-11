@@ -25,7 +25,6 @@ def logging_verbose(verbose):
     levels = ["WARNING", "INFO", "DEBUG"]
     level = levels[min(len(levels) - 1, verbose)]  # capped to number of levels
 
-    print(verbose, level)
     FORMAT = "%(message)s"
     logging.basicConfig(
         level=level,
