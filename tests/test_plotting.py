@@ -1,5 +1,5 @@
 import os
-import re
+import time
 from glob import glob
 from pathlib import Path
 
@@ -35,7 +35,8 @@ def test_plot_simple(argv, simulation_dir, capsys, tmp_path):
 
     out, err = capsys.readouterr()
     assert err == ""
-    assert re.match(r"Operation took \d+.\d\ds\n", out)
+    # assert re.match(r"Operation took \d+.\d\ds\n", out)
+    assert out == ""
     assert ret == 0
     assert len(glob("*.png")) > 0
 
@@ -47,7 +48,8 @@ def test_common_image_formats(format, simulation_dir, capsys, tmp_path):
 
     out, err = capsys.readouterr()
     assert err == ""
-    assert re.match(r"Operation took \d+.\d\ds\n", out)
+    assert out == ""
+    # assert re.match(r"Operation took \d+.\d\ds\n", out)
     assert ret == 0
     assert len(glob(f"*.{format}")) == 1
 
@@ -57,7 +59,8 @@ def test_plot_simple_corotation(simulation_dir, capsys):
     ret = main(["-cor", "-dir", str(simulation_dir)])
 
     out, err = capsys.readouterr()
-    assert re.match(r"Operation took \d+.\d\ds\n", out)
+    assert out == ""
+    # assert re.match(r"Operation took \d+.\d\ds\n", out)
     # ignore differences in text wrapping because they are an implementation detail
     # due to the fact we use rich to display warnings
     assert (
@@ -66,6 +69,20 @@ def test_plot_simple_corotation(simulation_dir, capsys):
         .endswith(
             "We don't rotate the grid if there is no planet for now. omegagrid = 0."
         )
+    )
+    assert ret == 0
+
+
+def test_verbose(simulation_dir, capsys):
+    # just check that the call returns no err
+    ret = main(["-v", "-dir", str(simulation_dir)])
+
+    out, err = capsys.readouterr()
+    assert err == ""
+    assert (
+        "[%02d:%02d:%02d] INFO     Operation took"
+        % (time.localtime().tm_hour, time.localtime().tm_min, time.localtime().tm_sec)
+        == out[:34]
     )
     assert ret == 0
 
