@@ -28,7 +28,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from nonos.__version__ import __version__
 from nonos.config import DEFAULTS
-from nonos.logging import logging_verbose, print_err, print_warn
+from nonos.logging import print_err, print_warn, setup_logging
 from nonos.parsing import (
     is_set,
     parse_image_format,
@@ -1597,7 +1597,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(__version__)
         return 0
 
-    logging_verbose(clargs.pop("verbose"))
+    setup_logging(clargs.pop("verbose"))
 
     if clargs.pop("isolated"):
         config_file_args = {}

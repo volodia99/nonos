@@ -21,7 +21,7 @@ def print_err(message):
     rprint(f":bone: [bold white on red]Error[/] {message}", file=sys.stderr)
 
 
-def logging_verbose(verbose):
+def setup_logging(verbose: int):
     levels = ["WARNING", "INFO", "DEBUG"]
     level = levels[min(len(levels) - 1, verbose)]  # capped to number of levels
 
