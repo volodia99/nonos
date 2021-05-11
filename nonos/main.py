@@ -28,7 +28,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from nonos.__version__ import __version__
 from nonos.config import DEFAULTS
-from nonos.logging import print_err, print_warn
+from nonos.logging import logging_verbose, print_err, print_warn
 from nonos.parsing import (
     is_set,
     parse_image_format,
@@ -685,7 +685,7 @@ class PlotNonos(FieldNonos):
             cmap = self.init.config["cmap"]
 
         zspan = self.z.ptp() or 1.0
-
+        logging.debug("pcolormesh...")
         # (R,phi) plane
         if midplane:
             if self.x.shape[0] <= 1:
@@ -862,6 +862,8 @@ class PlotNonos(FieldNonos):
                 ax.set_title(self.code)
                 cbar = plt.colorbar(im, orientation="vertical")
                 cbar.set_label(self.title)
+
+        logging.debug("---> done")
 
 
 class StreamNonos(FieldNonos):
@@ -1188,12 +1190,12 @@ def is_averageSafe(sigma0, sigmaSlope, plot=False):
         sigma0 * pow(fieldon.xmed, -sigmaSlope)
     )  # comparison between Sigma(R) profile and integral of rho(R,z) between zmin and zmax
     if any(100 * abs(error) > 3):
-        print(
+        print_warn(
             "With a maximum of %.1f percents of error, the averaging procedure may not be safe.\nzmax/h is probably too small.\nUse rather average=False (-noaverage) or increase zmin/zmax."
             % np.max(100 * abs(error))
         )
     else:
-        print(
+        print_warn(
             "Only %.1f percents of error maximum in the averaging procedure."
             % np.max(100 * abs(error))
         )
@@ -1230,38 +1232,6 @@ def find_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return idx
-
-
-# Print iterations progress
-def printProgressBar(
-    iteration,
-    total,
-    prefix="",
-    suffix="",
-    decimals=1,
-    length=100,
-    fill="█",
-    printEnd="\r",
-):
-    """
-    Call in a loop to create terminal progress bar
-    @params:
-        iteration   - Required  : current iteration (Int)
-        total       - Required  : total iterations (Int)
-        prefix      - Optional  : prefix string (Str)
-        suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
-        length      - Optional  : character length of bar (Int)
-        fill        - Optional  : bar fill character (Str)
-        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
-    """
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-    filledLength = int(length * iteration // total)
-    barobj = fill * filledLength + "-" * (length - filledLength)
-    print(f"\r{prefix} |{barobj}| {percent}% {suffix}", end=printEnd)
-    # Print New Line on Complete
-    if iteration == total:
-        print()
 
 
 # process function for parallisation purpose with progress bar
@@ -1384,7 +1354,7 @@ def process_field(
     if show:
         plt.show()
     else:
-        logging.debug("saving plot")
+        logging.debug("saving plot...")
         fig.savefig(filename, bbox_inches="tight", dpi=dpi)
         logging.debug("---> done")
     plt.close(fig)
@@ -1606,7 +1576,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         "-v",
         "-verbose",
         "--verbose",
-        action="store_true",
+        action="count",
+        default=0,
         help="increase output verbosity.",
     )
 
@@ -1626,12 +1597,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(__version__)
         return 0
 
-    if clargs.pop("verbose"):
-        logging.basicConfig(
-            level="DEBUG",
-            force=True,
-            handlers=[logging.FileHandler("debug.log"), logging.StreamHandler()],
-        )
+    logging_verbose(clargs.pop("verbose"))
 
     if clargs.pop("isolated"):
         config_file_args = {}
@@ -1784,7 +1750,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             )
         )
     if not show:
-        print(f"Operation took {time.time() - tstart:.2f}s")
+        logging.info(f"Operation took {time.time() - tstart:.2f}s")
     # current, peak = tracemalloc.get_traced_memory()
     # print(f"Current memory usage is {current / 10**6}MB; Peak was {peak / 10**6}MB")
     # tracemalloc.stop()
