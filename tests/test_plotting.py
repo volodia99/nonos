@@ -35,7 +35,6 @@ def test_plot_simple(argv, simulation_dir, capsys, tmp_path):
 
     out, err = capsys.readouterr()
     assert err == ""
-    # assert re.match(r"Operation took \d+.\d\ds\n", out)
     assert out == ""
     assert ret == 0
     assert len(glob("*.png")) > 0
