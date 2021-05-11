@@ -59,7 +59,6 @@ def test_plot_simple_corotation(simulation_dir, capsys):
 
     out, err = capsys.readouterr()
     assert out == ""
-    # assert re.match(r"Operation took \d+.\d\ds\n", out)
     # ignore differences in text wrapping because they are an implementation detail
     # due to the fact we use rich to display warnings
     assert (
