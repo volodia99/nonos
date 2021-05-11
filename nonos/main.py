@@ -441,6 +441,7 @@ class Mesh(InitParamNonos):
             nonos_config=nonos_config, sim_paramfile=sim_paramfile, **kwargs
         )  # All the InitParamNonos attributes inside Field
         super().load()
+        logging.debug("mesh parameters: started")
         if self.code == "idefix" or self.code == "pluto":
             domain = readVTKPolar(
                 os.path.join(self.config["datadir"], "data.0000.vtk"),
@@ -507,7 +508,7 @@ class Mesh(InitParamNonos):
         self.y = self.yedge
         self.z = self.zedge
 
-        logging.debug("loading the mesh parameters ---> done")
+        logging.debug("mesh parameters: finished")
 
 
 class FieldNonos(Mesh, InitParamNonos):
@@ -616,7 +617,7 @@ class FieldNonos(Mesh, InitParamNonos):
         ):
             return data
 
-        logging.debug("rotation of the grid")
+        logging.debug("grid rotation: started")
         P, R = np.meshgrid(self.y, self.x)
         Prot = P - (self.vtk * sum(self.omegagrid[: self.on])) % (2 * np.pi)
         try:
@@ -626,7 +627,7 @@ class FieldNonos(Mesh, InitParamNonos):
         data = np.concatenate(
             (data[:, index : self.ny, :], data[:, 0:index, :]), axis=1
         )
-        logging.debug("---> done")
+        logging.debug("grid rotation: finished")
         return data
 
 
@@ -685,7 +686,7 @@ class PlotNonos(FieldNonos):
             cmap = self.init.config["cmap"]
 
         zspan = self.z.ptp() or 1.0
-        logging.debug("pcolormesh...")
+        logging.debug("pcolormesh: started")
         # (R,phi) plane
         if midplane:
             if self.x.shape[0] <= 1:
@@ -863,7 +864,7 @@ class PlotNonos(FieldNonos):
                 cbar = plt.colorbar(im, orientation="vertical")
                 cbar.set_label(self.title)
 
-        logging.debug("---> done")
+        logging.debug("pcolormesh: finished")
 
 
 class StreamNonos(FieldNonos):
@@ -1265,7 +1266,6 @@ def process_field(
 ):
     set_mpl_style(scaling=scaling)
 
-    logging.debug("loading the PlotNonos object")
     ploton = PlotNonos(
         init,
         field=field,
@@ -1354,9 +1354,9 @@ def process_field(
     if show:
         plt.show()
     else:
-        logging.debug("saving plot...")
+        logging.debug("saving plot: started")
         fig.savefig(filename, bbox_inches="tight", dpi=dpi)
-        logging.debug("---> done")
+        logging.debug("saving plot: finished")
     plt.close(fig)
 
 
