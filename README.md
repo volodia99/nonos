@@ -72,8 +72,8 @@ optional arguments:
   -ft FONTSIZE          fontsize in the graph (default: 11).
   -cmap CMAP            choice of colormap for the -dim 2 maps (default:
                         'RdYlBu_r').
-  -fmt FORMAT, -format FORMAT
-                        select output image file format (default: unset)
+  -scaling SCALING      scale the overall sizes of features in the graph (fonts, linewidth...)
+                        (default: 1).
   -dpi DPI              image file resolution (default: DEFAULTS['dpi'])
 
 boolean flags:
@@ -107,6 +107,8 @@ CLI-only options:
   -version, --version   show raw version number and exit
   -logo                 show Nonos logo with version number, and exit.
   -config               show configuration and exit.
+  -v, -verbose, --verbose
+                        increase output verbosity (-v: info, -vv: debug).
 ```
 
 #### Using a configuration file
