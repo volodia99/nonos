@@ -48,7 +48,6 @@ def test_common_image_formats(format, simulation_dir, capsys, tmp_path):
     out, err = capsys.readouterr()
     assert err == ""
     assert out == ""
-    # assert re.match(r"Operation took \d+.\d\ds\n", out)
     assert ret == 0
     assert len(glob(f"*.{format}")) == 1
 
