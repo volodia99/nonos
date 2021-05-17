@@ -22,9 +22,7 @@ ARGS_TO_CHECK = {
     "vanilla_conf": [],
     "diff": ["-diff"],
     "log": ["-log"],
-    "movie_rz": ["-all", "-rz"],
     "movie_xy": ["-all", "-xy"],
-    "movie_thetar": ["-all", "-thetar"],
     "movie_with_diff": ["-all", "-diff"],
     "movie_with_multiproc": ["-all", "-ncpu", "2"],
 }
