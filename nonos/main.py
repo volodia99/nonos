@@ -25,10 +25,11 @@ import pkg_resources
 import toml
 from inifix.format import iniformat
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from rich.logging import RichHandler
 
 from nonos.__version__ import __version__
 from nonos.config import DEFAULTS
-from nonos.logging import print_err, print_warn, setup_logging
+from nonos.logging import parse_verbose_level, print_err, print_warn
 from nonos.parsing import (
     is_set,
     parse_image_format,
@@ -1597,7 +1598,16 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(__version__)
         return 0
 
-    setup_logging(clargs.pop("verbose"))
+    level = parse_verbose_level(clargs.pop("verbose"))
+
+    FORMAT = "%(message)s"
+    logging.basicConfig(
+        level=level,
+        force=True,
+        format=FORMAT,
+        datefmt="[%X]",
+        handlers=[RichHandler()],
+    )
 
     if clargs.pop("isolated"):
         config_file_args = {}
