@@ -17,3 +17,9 @@ def print_err(message):
     https://github.com/neutrinoceros/idefix_cli
     """
     rprint(f":bone: [bold white on red]Error[/] {message}", file=sys.stderr)
+
+
+def parse_verbose_level(verbose: int):
+    levels = ["WARNING", "INFO", "DEBUG"]
+    level = levels[min(len(levels) - 1, verbose)]  # capped to number of levels
+    return level
