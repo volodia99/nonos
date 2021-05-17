@@ -30,7 +30,7 @@ from rich.logging import RichHandler
 from nonos.__version__ import __version__
 from nonos.config import DEFAULTS
 from nonos.logging import parse_verbose_level, print_err, print_warn
-from nonos.geometry import DICT_PLANE, cyl2cart, cyl2sph, meshgridFromPlane, noproj
+from nonos.geometry import DICT_PLANE, meshgridFromPlane, noproj
 from nonos.parsing import (
     is_set,
     parse_image_format,
@@ -684,6 +684,7 @@ class PlotNonos(FieldNonos):
         vmax=None,
         plane=(1, 2, 3),  # default: (R,phi)
         geometry="cartesian",
+        func_proj=noproj,
         average=None,
         scaling=1,
         cmap=None,
@@ -706,18 +707,16 @@ class PlotNonos(FieldNonos):
             cmap = self.init.config["cmap"]
 
         if geometry == "cylindrical":
-            func_proj = noproj  # if projection same as structure, we use coordgrid
-            ax.set_ylim(-np.pi, np.pi)
+            # ax.set_ylim(-np.pi, np.pi)
             ax.set_aspect("auto")
             # ax.set_ylabel("Phi [c.u.]")
             # ax.set_xlabel("Radius [c.u.]")
         elif geometry == "cartesian":
-            func_proj = cyl2cart  # from cylindrical to cartesian
-            ax.set_aspect("equal")
+            ax.set_aspect("auto")
             # ax.set_ylabel("Y [c.u.]")
             # ax.set_xlabel("X [c.u.]")
         elif geometry == "spherical":
-            func_proj = cyl2sph  # from spherical to cartesian
+            ax.set_aspect("auto")  # for now
         else:
             raise ValueError(f"Unknown geometry '{geometry}'")
 
@@ -1345,6 +1344,7 @@ def process_field(
     field,
     plane,
     geometry,
+    func_proj,
     avr,
     diff,
     log,
@@ -1398,6 +1398,7 @@ def process_field(
             vmax=vmax,
             plane=plane,
             geometry=geometry,
+            func_proj=func_proj,
             average=avr,
             cmap=cmap,
         )
@@ -1467,8 +1468,7 @@ def process_field(
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    # import tracemalloc
-    # tracemalloc.start()
+    structure = "cylindrical"  # for now, only cylindrical data
 
     parser = argparse.ArgumentParser(
         prog="nonos",
@@ -1810,7 +1810,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         args["rphi"] = False
         ARGS_PLANE["rphi"] = args["rphi"]
 
-    (k, l), geometry = DICT_PLANE[
+    (k, l), geometry, func_proj = DICT_PLANE[structure][
         list(ARGS_PLANE.keys())[(list(ARGS_PLANE.values())).index(True)]
     ]
     m = list({1, 2, 3} ^ {k, l})[0]
@@ -1914,6 +1914,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         field=args["field"],
         plane=plane,
         geometry=geometry,
+        func_proj=func_proj,
         avr=not args["noaverage"],
         diff=args["diff"],
         log=args["log"],
