@@ -24,7 +24,15 @@ DEFAULTS = {
     # default max field when diff
     "vmax": "unset",
     # plane to represent (default is midplane)
+    "rphi": True,
+    "phir": False,
     "rz": False,
+    "zr": False,
+    "rtheta": False,
+    "thetar": False,
+    "xy": False,
+    "xz": False,
+    "yz": False,
     # do we average in the 3rd dimension?
     "noaverage": False,
     # do we compute random streams ("random"), fixed streams ("fixed") or lic ("lic")?
@@ -39,8 +47,6 @@ DEFAULTS = {
     "progressBar": False,
     # do we display the grid?
     "grid": False,
-    # cartesian or polar coordinates
-    "geometry": "cartesian",
     # is there a planet in the grid?
     "isPlanet": False,
     # do the grid rotate with the planet?

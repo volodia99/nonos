@@ -30,6 +30,7 @@ from rich.logging import RichHandler
 from nonos.__version__ import __version__
 from nonos.config import DEFAULTS
 from nonos.logging import parse_verbose_level, print_err, print_warn
+from nonos.geometry import DICT_PLANE, cyl2cart, cyl2sph, meshgridFromPlane, noproj
 from nonos.parsing import (
     is_set,
     parse_image_format,
@@ -510,6 +511,12 @@ class Mesh(InitParamNonos):
         self.y = self.yedge
         self.z = self.zedge
 
+        self.coord = [self.x, self.y, self.z]
+        # TODO change that when structure no cylindrical
+        # cartesian: DEFAULT = [0,0,0]
+        # spherical: DEFAULT = [1,np.pi/2,0]
+        self.DEFAULT_POINT = [1, 0, 0]
+
         logging.debug("mesh parameters: finished")
 
 
@@ -675,7 +682,7 @@ class PlotNonos(FieldNonos):
         zmax=None,
         vmin=None,
         vmax=None,
-        midplane=None,
+        plane=(1, 2, 3),  # default: (R,phi)
         geometry="cartesian",
         average=None,
         scaling=1,
@@ -691,15 +698,32 @@ class PlotNonos(FieldNonos):
             vmin, vmax, diff=self.config["diff"], data=self.data
         )
 
-        if midplane is None:
-            midplane = self.init.config["midplane"]
+        # if plane is None:
+        #     plane = self.init.config["plane"]
         if average is None:
             average = self.init.config["average"]
         if cmap is None:
             cmap = self.init.config["cmap"]
 
+        if geometry == "cylindrical":
+            func_proj = noproj  # if projection same as structure, we use coordgrid
+            ax.set_ylim(-np.pi, np.pi)
+            ax.set_aspect("auto")
+            # ax.set_ylabel("Phi [c.u.]")
+            # ax.set_xlabel("Radius [c.u.]")
+        elif geometry == "cartesian":
+            func_proj = cyl2cart  # from cylindrical to cartesian
+            ax.set_aspect("equal")
+            # ax.set_ylabel("Y [c.u.]")
+            # ax.set_xlabel("X [c.u.]")
+        elif geometry == "spherical":
+            func_proj = cyl2sph  # from spherical to cartesian
+        else:
+            raise ValueError(f"Unknown geometry '{geometry}'")
+
         zspan = self.z.ptp() or 1.0
         logging.debug("pcolormesh: started")
+<<<<<<< HEAD
         # (R,phi) plane
         if midplane:
             if self.x.shape[0] <= 1:
@@ -776,15 +800,75 @@ class PlotNonos(FieldNonos):
                     ax.plot(R.transpose(), P.transpose(), c="k", linewidth=0.07)
             else:
                 raise ValueError(f"Unknown geometry '{geometry}'")
+=======
 
-            ax.set_title(self.code)
-            divider = make_axes_locatable(ax)
-            cax = divider.append_axes("right", size="5%", pad=0.05)
-            cbar = plt.colorbar(im, cax=cax, orientation="vertical")
-            cbar.set_label(self.title)
+        if (set(plane[:-1]) & {1}) and (self.x.shape[0] <= 1):
+            raise IndexError("No radial direction, the simulation is not 3D.")
+        if (set(plane[:-1]) & {2}) and (self.y.shape[0] <= 1):
+            raise IndexError("No azimuthal direction, the simulation is not 3D.")
+        if (set(plane[:-1]) & {3}) and (self.z.shape[0] <= 1):
+            raise IndexError("No vertical direction, the simulation is not 3D.")
 
-        # (R,z) plane
+        # convert 1D coordinates arrays (self.coord)
+        # into 2D coordinates arrays (coordgrid) via meshgrid,
+        # using (plane[0],plane[1]) for the projection plane
+        # and self.DEFAULT_POINT for the 3d (plane[2]) dimension
+        coordgrid = meshgridFromPlane(
+            self.coord, plane[0], plane[1], self.DEFAULT_POINT
+        )
+        # (coord[0]=R,coord[1]=phi by default)
+        # then, depending on the geometry,
+        # we transform these 2D coordinates arrays
+        transform = func_proj(
+            coordgrid[np.argmin(plane)],
+            coordgrid[list({0, 1, 2} ^ {np.argmin(plane), np.argmax(plane)})[0]],
+            coordgrid[np.argmax(plane)],
+        )
+>>>>>>> 0fa7d03... Projections
+
+        # If we plot a slice, we then need to adapt the data itself
+        # to be coherent with the projection plan.
+        # We look for the index of the 3d dimension 1D array
+        # that matches self.DEFAULT_POINT
+        if plane[2] - 1 == 0:
+            dataslice = self.data[
+                find_nearest(
+                    self.coord[plane[2] - 1], self.DEFAULT_POINT[plane[2] - 1]
+                ),
+                :,
+                :,
+            ]
+        elif plane[2] - 1 == 1:
+            dataslice = self.data[
+                :,
+                find_nearest(
+                    self.coord[plane[2] - 1], self.DEFAULT_POINT[plane[2] - 1]
+                ),
+                :,
+            ]
+        elif plane[2] - 1 == 2:
+            dataslice = self.data[
+                :,
+                :,
+                find_nearest(
+                    self.coord[plane[2] - 1], self.DEFAULT_POINT[plane[2] - 1]
+                ),
+            ]
         else:
+            raise ValueError("Plane not defined. Should be any permutation of (1,2,3).")
+
+        if average:
+            im = ax.pcolormesh(
+                transform[plane[0] - 1],
+                transform[plane[1] - 1],
+                np.mean(self.data, axis=plane[2] - 1) * zspan,
+                cmap=cmap,
+                vmin=vmin,
+                vmax=vmax,
+                **karg,
+            )
+        else:
+<<<<<<< HEAD
             if self.x.shape[0] <= 1:
                 raise IndexError(
                     "No radial direction, the simulation is not 3D.\nTry midplane=True"
@@ -853,34 +937,33 @@ class PlotNonos(FieldNonos):
                         vmax=vmax,
                         **karg,
                     )
+=======
+            im = ax.pcolormesh(
+                transform[plane[0] - 1],
+                transform[plane[1] - 1],
+                dataslice,
+                cmap=cmap,
+                vmin=vmin,
+                vmax=vmax,
+                **karg,
+            )
+        if self.init.config["grid"]:
+            ax.plot(
+                transform[plane[0] - 1], transform[plane[1] - 1], c="k", linewidth=0.07
+            )
+            ax.plot(
+                transform[plane[0] - 1].transpose(),
+                transform[plane[1] - 1].transpose(),
+                c="k",
+                linewidth=0.07,
+            )
+>>>>>>> 0fa7d03... Projections
 
-                print_warn("Aspect ratio not defined for now.\nBy default, h0=0.05\n")
-                tmin = np.pi / 2 - 5 * 0.05
-                tmax = np.pi / 2 + 5 * 0.05
-                # tmin = np.arctan2(1.0,Z.min())
-                # tmax = np.arctan2(1.0,Z.max())
-
-                """
-                if polar plot in the (R,z) plane, use rather
-                fig = plt.figure()
-                ax = fig.add_subplot(111, polar=True)
-                """
-                ax.set_rmax(R.max())
-                ax.set_theta_zero_location("N")
-                ax.set_theta_direction(-1)
-                ax.set_thetamin(tmin * 180 / np.pi)
-                ax.set_thetamax(tmax * 180 / np.pi)
-
-                ax.set_aspect("auto")
-                ax.set_ylabel("Theta")
-                ax.set_xlabel("Radius")
-                if self.init.config["grid"]:
-                    ax.plot(r, t, c="k", linewidth=0.07)
-                    ax.plot(r.transpose(), t.transpose(), c="k", linewidth=0.07)
-
-                ax.set_title(self.code)
-                cbar = plt.colorbar(im, orientation="vertical")
-                cbar.set_label(self.title)
+        ax.set_title(self.code)
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        cbar = plt.colorbar(im, cax=cax, orientation="vertical")
+        cbar.set_label(self.title)
 
         logging.debug("pcolormesh: finished")
 
@@ -1260,7 +1343,7 @@ def process_field(
     init,
     dim,
     field,
-    mid,
+    plane,
     geometry,
     avr,
     diff,
@@ -1299,12 +1382,9 @@ def process_field(
         datadir=datadir,
         check=False,
     )
-    if polar := (geometry != "cartesian" and not mid):
-        print_warn(
-            "plot not optimized for now in the (R,z) plane in polar.\nCheck in cartesian coordinates to be sure"
-        )
+
     fig = plt.figure()
-    ax = fig.add_subplot(111, polar=polar)
+    ax = fig.add_subplot(111, polar=False)
 
     # plot the field
     if dim == 2:
@@ -1316,7 +1396,7 @@ def process_field(
             zmax=zmax,
             vmin=vmin,
             vmax=vmax,
-            midplane=mid,
+            plane=plane,
             geometry=geometry,
             average=avr,
             cmap=cmap,
@@ -1369,7 +1449,7 @@ def process_field(
                     linewidth=2,
                     alpha=0.5,
                 )
-        prefix = "Rphi" if mid else "Rz"
+        prefix = plane
 
     # plot the 1D profile
     elif dim == 1:
@@ -1497,12 +1577,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="plot streamlines.",
     )
     flag_group.add_argument(
-        "-rz",
-        action="store_true",
-        default=None,
-        help="2D plot in the (R-z) plane (default: represent the midplane).",
-    )
-    flag_group.add_argument(
         "-noavr",
         "-noaverage",
         dest="noaverage",
@@ -1545,16 +1619,60 @@ def main(argv: Optional[List[str]] = None) -> int:
         help=f"number of streamlines (default: {DEFAULTS['nstreamlines']}).",
     )
 
-    geom_group = parser.add_mutually_exclusive_group()
-    geom_group.add_argument(
-        "-geom",
-        dest="geometry",
-        choices=["cartesian", "polar"],
-    )
-    geom_group.add_argument(
-        "-pol",
+    plane_group = parser.add_mutually_exclusive_group()
+    plane_group.add_argument(
+        "-rphi",
         action="store_true",
-        help="shortcut for -geom=polar",
+        default=None,
+        help="2D plot in the (R-phi) plane.",
+    )
+    plane_group.add_argument(
+        "-phir",
+        action="store_true",
+        default=None,
+        help="2D plot in the (phi-R) plane (default: represent the (R-phi)).",
+    )
+    plane_group.add_argument(
+        "-rz",
+        action="store_true",
+        default=None,
+        help="2D plot in the (R-z) plane (default: represent (R-phi)).",
+    )
+    plane_group.add_argument(
+        "-zr",
+        action="store_true",
+        default=None,
+        help="2D plot in the (z-R) plane (default: represent the (R-phi)).",
+    )
+    plane_group.add_argument(
+        "-rtheta",
+        action="store_true",
+        default=None,
+        help="2D plot in the (r-theta) plane (default: represent the (R-phi)).",
+    )
+    plane_group.add_argument(
+        "-thetar",
+        action="store_true",
+        default=None,
+        help="2D plot in the (theta-r) plane (default: represent the (R-phi)).",
+    )
+    plane_group.add_argument(
+        "-xy",
+        action="store_true",
+        default=None,
+        help="2D plot in the (x-y) plane (default: represent the (R-phi)).",
+    )
+    plane_group.add_argument(
+        "-xz",
+        action="store_true",
+        default=None,
+        help="2D plot in the (x-z) plane (default: represent the (R-phi)).",
+    )
+    plane_group.add_argument(
+        "-yz",
+        action="store_true",
+        default=None,
+        help="2D plot in the (y-z) plane (default: represent the (R-phi)).",
     )
 
     parser.add_argument(
@@ -1630,8 +1748,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     clargs = vars(parser.parse_args(argv))
 
     # special cases: destructively consume CLI-only arguments with dict.pop
-    if clargs.pop("pol"):
-        clargs["geometry"] = "polar"
 
     if clargs.pop("logo"):
         with open(pkg_resources.resource_filename("nonos", "logo.txt")) as fh:
@@ -1660,8 +1776,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         if not os.path.isfile(ifile):
             print_err(f"Couldn't find requested input file '{ifile}'.")
             return 1
+        print_warn("[bold white]Local mode")
         config_file_args = toml.load(ifile)
     elif os.path.isfile("nonos.toml"):
+        print_warn("[bold white]Local mode")
         config_file_args = toml.load("nonos.toml")
     else:
         config_file_args = {}
@@ -1675,6 +1793,28 @@ def main(argv: Optional[List[str]] = None) -> int:
     # NOTE: init.config is also a ChainMap instance with a default layer
     # this may be seen either as hyperstatism (good thing) or error prone redundancy (bad thing)
     args = ChainMap(clargs, config_file_args, DEFAULTS)
+
+    ARGS_PLANE = {
+        "rphi": args["rphi"],
+        "phir": args["phir"],
+        "rz": args["rz"],
+        "zr": args["zr"],
+        "rtheta": args["rtheta"],
+        "thetar": args["thetar"],
+        "xy": args["xy"],
+        "xz": args["xz"],
+        "yz": args["yz"],
+    }
+
+    if list(ARGS_PLANE.values()).count(True) > 1:
+        args["rphi"] = False
+        ARGS_PLANE["rphi"] = args["rphi"]
+
+    (k, l), geometry = DICT_PLANE[
+        list(ARGS_PLANE.keys())[(list(ARGS_PLANE.values())).index(True)]
+    ]
+    m = list({1, 2, 3} ^ {k, l})[0]
+    plane = (k, l, m)
 
     if clargs.pop("config"):
         conf_repr = {}
@@ -1772,8 +1912,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         init=init,
         dim=args["dimensionality"],
         field=args["field"],
-        mid=not args["rz"],
-        geometry=args["geometry"],
+        plane=plane,
+        geometry=geometry,
         avr=not args["noaverage"],
         diff=args["diff"],
         log=args["log"],
