@@ -29,8 +29,8 @@ from rich.logging import RichHandler
 
 from nonos.__version__ import __version__
 from nonos.config import DEFAULTS
-from nonos.logging import parse_verbose_level, print_err, print_warn
 from nonos.geometry import DICT_PLANE, meshgridFromPlane, noproj
+from nonos.logging import parse_verbose_level, print_err, print_warn
 from nonos.parsing import (
     is_set,
     parse_image_format,
@@ -746,84 +746,6 @@ class PlotNonos(FieldNonos):
 
         zspan = self.z.ptp() or 1.0
         logging.debug("pcolormesh: started")
-<<<<<<< HEAD
-        # (R,phi) plane
-        if midplane:
-            if self.x.shape[0] <= 1:
-                raise IndexError(
-                    "No radial direction, the simulation is not 3D.\nTry midplane=False"
-                )
-            if self.y.shape[0] <= 1:
-                raise IndexError(
-                    "No azimuthal direction, the simulation is not 3D.\nTry midplane=False"
-                )
-            if geometry == "cartesian":
-                P, R = np.meshgrid(self.y, self.x)
-                X = R * np.cos(P)
-                Y = R * np.sin(P)
-                if average:
-                    im = ax.pcolormesh(
-                        X,
-                        Y,
-                        np.mean(self.data, axis=2) * zspan,
-                        cmap=cmap,
-                        vmin=vmin,
-                        vmax=vmax,
-                        **karg,
-                    )
-                else:
-                    im = ax.pcolormesh(
-                        X,
-                        Y,
-                        self.data[:, :, self.imidplane],
-                        cmap=cmap,
-                        vmin=vmin,
-                        vmax=vmax,
-                        **karg,
-                    )
-
-                ax.set_xlim(-rmax, rmax)
-                ax.set_ylim(-rmax, rmax)
-                ax.set_aspect("equal")
-                ax.set_ylabel("Y [c.u.]")
-                ax.set_xlabel("X [c.u.]")
-                if self.init.config["grid"]:
-                    ax.plot(X, Y, c="k", linewidth=0.07)
-                    ax.plot(X.transpose(), Y.transpose(), c="k", linewidth=0.07)
-            elif geometry == "polar":
-                P, R = np.meshgrid(self.y, self.x)
-                if average:
-                    im = ax.pcolormesh(
-                        R,
-                        P,
-                        np.mean(self.data, axis=2) * zspan,
-                        cmap=cmap,
-                        vmin=vmin,
-                        vmax=vmax,
-                        **karg,
-                    )
-                else:
-                    im = ax.pcolormesh(
-                        R,
-                        P,
-                        self.data[:, :, self.imidplane],
-                        cmap=cmap,
-                        vmin=vmin,
-                        vmax=vmax,
-                        **karg,
-                    )
-
-                ax.set_xlim(rmin, rmax)
-                ax.set_ylim(-np.pi, np.pi)
-                ax.set_aspect("auto")
-                ax.set_ylabel("Phi")
-                ax.set_xlabel("Radius")
-                if self.init.config["grid"]:
-                    ax.plot(R, P, c="k", linewidth=0.07)
-                    ax.plot(R.transpose(), P.transpose(), c="k", linewidth=0.07)
-            else:
-                raise ValueError(f"Unknown geometry '{geometry}'")
-=======
 
         if (set(plane[:-1]) & {1}) and (self.x.shape[0] <= 1):
             raise IndexError("No radial direction, the simulation is not 3D.")
@@ -847,7 +769,6 @@ class PlotNonos(FieldNonos):
             coordgrid[list({0, 1, 2} ^ {np.argmin(plane), np.argmax(plane)})[0]],
             coordgrid[np.argmax(plane)],
         )
->>>>>>> 0fa7d03... Projections
 
         # If we plot a slice, we then need to adapt the data itself
         # to be coherent with the projection plan.
@@ -891,76 +812,6 @@ class PlotNonos(FieldNonos):
                 **karg,
             )
         else:
-<<<<<<< HEAD
-            if self.x.shape[0] <= 1:
-                raise IndexError(
-                    "No radial direction, the simulation is not 3D.\nTry midplane=True"
-                )
-            if self.z.shape[0] <= 1:
-                raise IndexError(
-                    "No vertical direction, the simulation is not 3D.\nTry midplane=True"
-                )
-            if geometry == "cartesian":
-                Z, R = np.meshgrid(self.z, self.x)
-                if average:
-                    im = ax.pcolormesh(
-                        R,
-                        Z,
-                        np.mean(self.data, axis=1),
-                        cmap=cmap,
-                        vmin=vmin,
-                        vmax=vmax,
-                        **karg,
-                    )
-                else:
-                    im = ax.pcolormesh(
-                        R,
-                        Z,
-                        self.data[:, self.ny // 2, :],
-                        cmap=cmap,
-                        vmin=vmin,
-                        vmax=vmax,
-                        **karg,
-                    )
-                ax.set_xlim(rmin, rmax)
-                ax.set_ylim(zmin, zmax)
-                ax.set_aspect("auto")
-                ax.set_ylabel("Z [c.u.]")
-                ax.set_xlabel("X [c.u.]")
-                if self.init.config["grid"]:
-                    ax.plot(R, Z, c="k", linewidth=0.07)
-                    ax.plot(R.transpose(), Z.transpose(), c="k", linewidth=0.07)
-
-                ax.set_title(self.code)
-                divider = make_axes_locatable(ax)
-                cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = plt.colorbar(im, cax=cax, orientation="vertical")
-                cbar.set_label(self.title)
-            else:
-                Z, R = np.meshgrid(self.z, self.x)
-                r = np.sqrt(R ** 2 + Z ** 2)
-                t = np.arctan2(R, Z)
-                if average:
-                    im = ax.pcolormesh(
-                        t,
-                        r,
-                        np.mean(self.data, axis=1),
-                        cmap=cmap,
-                        vmin=vmin,
-                        vmax=vmax,
-                        **karg,
-                    )
-                else:
-                    im = ax.pcolormesh(
-                        r,
-                        t,
-                        self.data[:, self.ny // 2, :],
-                        cmap=cmap,
-                        vmin=vmin,
-                        vmax=vmax,
-                        **karg,
-                    )
-=======
             im = ax.pcolormesh(
                 transform[plane[0] - 1],
                 transform[plane[1] - 1],
@@ -980,7 +831,6 @@ class PlotNonos(FieldNonos):
                 c="k",
                 linewidth=0.07,
             )
->>>>>>> 0fa7d03... Projections
 
         ax.set_title(self.code)
         divider = make_axes_locatable(ax)
