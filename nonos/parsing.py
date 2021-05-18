@@ -47,14 +47,6 @@ def parse_vmin_vmax(vmin, vmax, diff: bool, data: np.ndarray) -> Tuple[float, fl
     return vmin, vmax
 
 
-def parse_rmin_rmax(rmin, rmax, array) -> Tuple[float, float]:
-    if not is_set(rmin):
-        rmin = array.min()
-    if not is_set(rmax):
-        rmax = array.max()
-    return rmin, rmax
-
-
 def parse_image_format(s: Optional[str]) -> str:
     from matplotlib.backend_bases import FigureCanvasBase
 

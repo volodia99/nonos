@@ -11,14 +11,6 @@ DEFAULTS = {
     "diff": False,
     # field in log
     "log": False,
-    # default min for radial extent
-    "rmin": "unset",
-    # default max for radial extent
-    "rmax": "unset",
-    # default min for vertical extent
-    "zmin": "unset",
-    # default max for vertical extent
-    "zmax": "unset",
     # default min field when diff
     "vmin": "unset",
     # default max field when diff
