@@ -29,8 +29,8 @@ from rich.logging import RichHandler
 
 from nonos.__version__ import __version__
 from nonos.config import DEFAULTS
-from nonos.logging import parse_verbose_level, print_err, print_warn
 from nonos.geometry import DICT_PLANE, meshgridFromPlane, noproj
+from nonos.logging import parse_verbose_level, print_err, print_warn
 from nonos.parsing import (
     is_set,
     parse_image_format,
