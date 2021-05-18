@@ -34,7 +34,6 @@ from nonos.parsing import (
     is_set,
     parse_image_format,
     parse_output_number_range,
-    parse_rmin_rmax,
     parse_vmin_vmax,
 )
 from nonos.styling import set_mpl_style
@@ -638,9 +637,7 @@ class PlotNonos(FieldNonos):
     Plot class which uses Field to compute different graphs.
     """
 
-    def axiplot(
-        self, ax, rmin=None, rmax=None, vmin=None, vmax=None, average=None, **karg
-    ):
+    def axiplot(self, ax, vmin=None, vmax=None, average=None, **karg):
         if average is None:
             average = self.init.config["average"]
         if average:
@@ -654,14 +651,12 @@ class PlotNonos(FieldNonos):
             dataR = dataRZ[:, self.imidplane]
             dataProfile = dataR
 
-        rmin, rmax = parse_rmin_rmax(rmin, rmax, array=self.xmed)
         vmin, vmax = parse_vmin_vmax(
             vmin, vmax, diff=self.config["diff"], data=dataProfile
         )
 
         ax.plot(self.xmed, dataProfile, **karg)
 
-        ax.set_xlim(rmin, rmax)
         ax.set_ylim(vmin, vmax)
         ax.set_xlabel("Radius")
         ax.set_ylabel(self.title)
@@ -669,10 +664,6 @@ class PlotNonos(FieldNonos):
     def plot(
         self,
         ax,
-        rmin=None,
-        rmax=None,
-        zmin=None,
-        zmax=None,
         vmin=None,
         vmax=None,
         midplane=None,
@@ -685,8 +676,6 @@ class PlotNonos(FieldNonos):
         """
         A layer for pcolormesh function.
         """
-        rmin, rmax = parse_rmin_rmax(rmin, rmax, array=self.x)
-        zmin, zmax = parse_rmin_rmax(zmin, zmax, array=self.z)
         vmin, vmax = parse_vmin_vmax(
             vmin, vmax, diff=self.config["diff"], data=self.data
         )
@@ -735,8 +724,6 @@ class PlotNonos(FieldNonos):
                         **karg,
                     )
 
-                ax.set_xlim(-rmax, rmax)
-                ax.set_ylim(-rmax, rmax)
                 ax.set_aspect("equal")
                 ax.set_ylabel("Y [c.u.]")
                 ax.set_xlabel("X [c.u.]")
@@ -766,7 +753,6 @@ class PlotNonos(FieldNonos):
                         **karg,
                     )
 
-                ax.set_xlim(rmin, rmax)
                 ax.set_ylim(-np.pi, np.pi)
                 ax.set_aspect("auto")
                 ax.set_ylabel("Phi")
@@ -815,8 +801,6 @@ class PlotNonos(FieldNonos):
                         vmax=vmax,
                         **karg,
                     )
-                ax.set_xlim(rmin, rmax)
-                ax.set_ylim(zmin, zmax)
                 ax.set_aspect("auto")
                 ax.set_ylabel("Z [c.u.]")
                 ax.set_xlabel("X [c.u.]")
@@ -1270,10 +1254,6 @@ def process_field(
     srmin,
     srmax,
     nstream,
-    rmin,
-    rmax,
-    zmin,
-    zmax,
     vmin,
     vmax,
     scaling: float,
@@ -1310,10 +1290,6 @@ def process_field(
     if dim == 2:
         ploton.plot(
             ax,
-            rmin=rmin,
-            rmax=rmax,
-            zmin=zmin,
-            zmax=zmax,
             vmin=vmin,
             vmax=vmax,
             midplane=mid,
@@ -1373,7 +1349,7 @@ def process_field(
 
     # plot the 1D profile
     elif dim == 1:
-        ploton.axiplot(ax, rmin=rmin, rmax=rmax, vmin=vmin, vmax=vmax, average=avr)
+        ploton.axiplot(ax, vmin=vmin, vmax=vmax, average=avr)
         prefix = "axi"
     filename = f"{prefix}_{field}{'_diff' if diff else ''}{'_log' if log else ''}{geometry if dim==2 else ''}{on:04d}.{fmt}"
 
@@ -1404,26 +1380,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         "-field",
         choices=["RHO", "VX1", "VX2", "VX3"],
         help=f"name of field to plot (default: '{DEFAULTS['field']}').",
-    )
-    parser.add_argument(
-        "-rmin",
-        type=float,
-        help=f"min value for the radial extent (default: {DEFAULTS['rmin']})",
-    )
-    parser.add_argument(
-        "-rmax",
-        type=float,
-        help=f"max value for the radial extent (default: {DEFAULTS['rmax']})",
-    )
-    parser.add_argument(
-        "-zmin",
-        type=float,
-        help=f"min value for the vertical extent (default: {DEFAULTS['zmin']})",
-    )
-    parser.add_argument(
-        "-zmax",
-        type=float,
-        help=f"max value for the vertical extent (default: {DEFAULTS['zmax']})",
     )
     parser.add_argument(
         "-vmin",
@@ -1782,10 +1738,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         srmin=args["rminStream"],
         srmax=args["rmaxStream"],
         nstream=args["nstreamlines"],
-        rmin=args["rmin"],
-        rmax=args["rmax"],
-        zmin=args["zmin"],
-        zmax=args["zmax"],
         vmin=vmin,
         vmax=vmax,
         scaling=args["scaling"],
