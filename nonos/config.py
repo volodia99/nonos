@@ -24,13 +24,10 @@ DEFAULTS = {
     # default max field when diff
     "vmax": "unset",
     # plane to represent (default is midplane)
-    "rphi": True,
-    "phir": False,
+    "rphi": False,
     "rz": False,
-    "zr": False,
     "rtheta": False,
-    "thetar": False,
-    "xy": False,
+    "xy": True,
     "xz": False,
     "yz": False,
     # do we average in the 3rd dimension?

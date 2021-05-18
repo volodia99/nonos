@@ -706,17 +706,41 @@ class PlotNonos(FieldNonos):
         if cmap is None:
             cmap = self.init.config["cmap"]
 
+        # below: works for a cylindrical structure
         if geometry == "cylindrical":
-            # ax.set_ylim(-np.pi, np.pi)
             ax.set_aspect("auto")
-            # ax.set_ylabel("Phi [c.u.]")
-            # ax.set_xlabel("Radius [c.u.]")
+            if plane[:-1] == (1, 2):
+                ax.set_ylim(-np.pi, np.pi)
+                ax.set_ylabel(r"$\phi$ [c.u.]")
+                ax.set_xlabel("R [c.u.]")
+            elif plane[:-1] == (1, 3):
+                ax.set_ylabel("z [c.u.]")
+                ax.set_xlabel("R [c.u.]")
+            else:
+                raise NotImplementedError(
+                    f"plane {plane[:-1]} is not implemented yet in a {geometry} projection."
+                )
         elif geometry == "cartesian":
-            ax.set_aspect("auto")
-            # ax.set_ylabel("Y [c.u.]")
-            # ax.set_xlabel("X [c.u.]")
+            if plane[:-1] == (1, 2):
+                ax.set_aspect("equal")
+                ax.set_ylabel("Y [c.u.]")
+                ax.set_xlabel("X [c.u.]")
+            elif plane[:-1] == (1, 3):
+                ax.set_aspect("auto")
+                ax.set_ylabel("Z [c.u.]")
+                ax.set_xlabel("X [c.u.]")
+            elif plane[:-1] == (2, 3):
+                ax.set_aspect("auto")
+                ax.set_ylabel("Z [c.u.]")
+                ax.set_xlabel("Y [c.u.]")
+            else:
+                raise NotImplementedError(
+                    f"plane {plane[:-1]} is not implemented yet in a {geometry} projection."
+                )
         elif geometry == "spherical":
             ax.set_aspect("auto")  # for now
+            ax.set_ylabel(r"$\theta$ [c.u.]")
+            ax.set_xlabel("r [c.u.]")
         else:
             raise ValueError(f"Unknown geometry '{geometry}'")
 
@@ -1627,34 +1651,16 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="2D plot in the (R-phi) plane.",
     )
     plane_group.add_argument(
-        "-phir",
-        action="store_true",
-        default=None,
-        help="2D plot in the (phi-R) plane (default: represent the (R-phi)).",
-    )
-    plane_group.add_argument(
         "-rz",
         action="store_true",
         default=None,
         help="2D plot in the (R-z) plane (default: represent (R-phi)).",
     )
     plane_group.add_argument(
-        "-zr",
-        action="store_true",
-        default=None,
-        help="2D plot in the (z-R) plane (default: represent the (R-phi)).",
-    )
-    plane_group.add_argument(
         "-rtheta",
         action="store_true",
         default=None,
         help="2D plot in the (r-theta) plane (default: represent the (R-phi)).",
-    )
-    plane_group.add_argument(
-        "-thetar",
-        action="store_true",
-        default=None,
-        help="2D plot in the (theta-r) plane (default: represent the (R-phi)).",
     )
     plane_group.add_argument(
         "-xy",
@@ -1796,19 +1802,16 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     ARGS_PLANE = {
         "rphi": args["rphi"],
-        "phir": args["phir"],
         "rz": args["rz"],
-        "zr": args["zr"],
         "rtheta": args["rtheta"],
-        "thetar": args["thetar"],
         "xy": args["xy"],
         "xz": args["xz"],
         "yz": args["yz"],
     }
 
     if list(ARGS_PLANE.values()).count(True) > 1:
-        args["rphi"] = False
-        ARGS_PLANE["rphi"] = args["rphi"]
+        args["xy"] = False
+        ARGS_PLANE["xy"] = args["xy"]
 
     (k, l), geometry, func_proj = DICT_PLANE[structure][
         list(ARGS_PLANE.keys())[(list(ARGS_PLANE.values())).index(True)]
