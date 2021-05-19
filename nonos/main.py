@@ -33,6 +33,7 @@ from nonos.geometry import DICT_PLANE, meshgridFromPlane, noproj
 from nonos.logging import parse_verbose_level, print_err, print_warn
 from nonos.parsing import (
     is_set,
+    parse_center_size,
     parse_image_format,
     parse_output_number_range,
     parse_vmin_vmax,
@@ -644,7 +645,9 @@ class PlotNonos(FieldNonos):
     Plot class which uses Field to compute different graphs.
     """
 
-    def axiplot(self, ax, vmin=None, vmax=None, average=None, **karg):
+    def axiplot(
+        self, ax, center=None, size=None, vmin=None, vmax=None, average=None, **karg
+    ):
         if average is None:
             average = self.init.config["average"]
         if average:
@@ -664,6 +667,14 @@ class PlotNonos(FieldNonos):
 
         ax.plot(self.xmed, dataProfile, **karg)
 
+        center, size = parse_center_size(
+            center, size, xarr=self.xmed, yarr=np.zeros(2), dim=1
+        )
+
+        logging.debug(f"xmin: {center[0]-size[0]/2}")
+        logging.debug(f"xmax: {center[0]+size[0]/2}")
+
+        ax.set_xlim(center[0] - size[0] / 2, center[0] + size[0] / 2)
         ax.set_ylim(vmin, vmax)
         ax.set_xlabel("Radius")
         ax.set_ylabel(self.title)
@@ -671,9 +682,11 @@ class PlotNonos(FieldNonos):
     def plot(
         self,
         ax,
+        center=None,
+        size=None,
         vmin=None,
         vmax=None,
-        plane=(1, 2, 3),  # default: (R,phi)
+        plane=(1, 2, 3),  # default: (x,y)
         geometry="cartesian",
         func_proj=noproj,
         average=None,
@@ -687,7 +700,6 @@ class PlotNonos(FieldNonos):
         vmin, vmax = parse_vmin_vmax(
             vmin, vmax, diff=self.config["diff"], data=self.data
         )
-
         # if plane is None:
         #     plane = self.init.config["plane"]
         if average is None:
@@ -699,7 +711,7 @@ class PlotNonos(FieldNonos):
         if geometry == "cylindrical":
             ax.set_aspect("auto")
             if plane[:-1] == (1, 2):
-                ax.set_ylim(-np.pi, np.pi)
+                # ax.set_ylim(-np.pi, np.pi)
                 ax.set_ylabel(r"$\phi$ [c.u.]")
                 ax.set_xlabel("R [c.u.]")
             elif plane[:-1] == (1, 3):
@@ -820,6 +832,22 @@ class PlotNonos(FieldNonos):
                 c="k",
                 linewidth=0.07,
             )
+
+        center, size = parse_center_size(
+            center,
+            size,
+            xarr=transform[plane[0] - 1],
+            yarr=transform[plane[1] - 1],
+            dim=2,
+        )
+
+        logging.debug(f"xmin: {center[0]-size[0]/2}")
+        logging.debug(f"xmax: {center[0]+size[0]/2}")
+        logging.debug(f"ymin: {center[1]-size[1]/2}")
+        logging.debug(f"ymax: {center[1]+size[1]/2}")
+
+        ax.set_xlim(center[0] - size[0] / 2, center[0] + size[0] / 2)
+        ax.set_ylim(center[1] - size[1] / 2, center[1] + size[1] / 2)
 
         ax.set_title(self.code)
         divider = make_axes_locatable(ax)
@@ -1216,6 +1244,8 @@ def process_field(
     srmin,
     srmax,
     nstream,
+    center,
+    size,
     vmin,
     vmax,
     scaling: float,
@@ -1249,6 +1279,8 @@ def process_field(
     if dim == 2:
         ploton.plot(
             ax,
+            center=center,
+            size=size,
             vmin=vmin,
             vmax=vmax,
             plane=plane,
@@ -1309,7 +1341,7 @@ def process_field(
 
     # plot the 1D profile
     elif dim == 1:
-        ploton.axiplot(ax, vmin=vmin, vmax=vmax, average=avr)
+        ploton.axiplot(ax, center=center, size=size, vmin=vmin, vmax=vmax, average=avr)
         prefix = "axi"
     filename = f"{prefix}_{field}{'_diff' if diff else ''}{'_log' if log else ''}{geometry if dim==2 else ''}{on:04d}.{fmt}"
 
@@ -1339,6 +1371,18 @@ def main(argv: Optional[List[str]] = None) -> int:
         "-field",
         choices=["RHO", "VX1", "VX2", "VX3"],
         help=f"name of field to plot (default: '{DEFAULTS['field']}').",
+    )
+    parser.add_argument(
+        "-center",
+        type=float,
+        nargs="+",
+        help=f"center for matplotlib window (default: {DEFAULTS['center']})",
+    )
+    parser.add_argument(
+        "-size",
+        type=float,
+        nargs="+",
+        help=f"size of matplotlib window (default: {DEFAULTS['size']})",
     )
     parser.add_argument(
         "-vmin",
@@ -1707,6 +1751,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         vmin, vmax = args["vmin"], args["vmax"]
 
+    center, size = args["center"], args["size"]
+
     if args["ncpu"] > (ncpu := min(args["ncpu"], os.cpu_count())):
         print_warn(
             f"Requested {args['ncpu']}, but the runner only has access to {ncpu}."
@@ -1737,6 +1783,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         srmin=args["rminStream"],
         srmax=args["rmaxStream"],
         nstream=args["nstreamlines"],
+        center=center,
+        size=size,
         vmin=vmin,
         vmax=vmax,
         scaling=args["scaling"],

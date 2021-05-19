@@ -11,6 +11,10 @@ DEFAULTS = {
     "diff": False,
     # field in log
     "log": False,
+    # default center of the matplotlib window
+    "center": "unset",
+    # default size of the matplotlib window
+    "size": "unset",
     # default min field when diff
     "vmin": "unset",
     # default max field when diff
