@@ -8,6 +8,7 @@ from nonos.parsing import (
     parse_output_number_range,
     parse_range,
     parse_vmin_vmax,
+    range_converter,
 )
 
 
@@ -70,7 +71,7 @@ def test_invalid_nargs_parse_range(abscissa, ordinate, dim, received):
             f"Need to parse a range from sequence {received} with exactly {2*dim} values."
         ),
     ):
-        parse_range(received, abscissa=abscissa, ordinate=ordinate, dim=dim)
+        parse_range(received, dim=dim)
 
 
 @pytest.mark.parametrize(
@@ -123,27 +124,28 @@ def test_diff_parse_vmin_vmax(data, expected):
     ],
 )
 def test_parse_range(abscissa, ordinate, dim, expected):
+    extent1 = parse_range("unset", dim=dim)
+    assert range_converter(extent1, abscissa=abscissa, ordinate=ordinate) == expected
+    extent2 = parse_range(("0.5", "5", "-0.2", "0.2"), dim=2)
     assert (
-        parse_range("unset", abscissa=abscissa, ordinate=ordinate, dim=dim) == expected
-    )
-    assert (
-        parse_range(
-            ("0.5", "5", "-0.2", "0.2"),
+        range_converter(
+            extent2,
             abscissa=np.linspace(0.2, 10, 100),
             ordinate=np.linspace(-0.4, 0.4, 100),
-            dim=2,
         )
         == (0.5, 5, -0.2, 0.2)
     )
-    assert parse_range(
-        ("0.4", "9.5"), abscissa=np.linspace(0.2, 10, 100), ordinate=np.zeros(2), dim=1
+    extent3 = parse_range(("0.4", "9.5"), dim=1)
+    assert range_converter(
+        extent3, abscissa=np.linspace(0.2, 10, 100), ordinate=np.zeros(2)
     ) == (0.4, 9.5)
+    extent4 = parse_range(("0.5", "x", "-0.2", "x"), dim=2)
+    assert extent4 == (0.5, None, -0.2, None)
     assert (
-        parse_range(
-            ("0.5", "x", "-0.2", "x"),
+        range_converter(
+            extent4,
             abscissa=np.linspace(0.2, 10, 100),
             ordinate=np.linspace(-0.4, 0.4, 100),
-            dim=2,
         )
         == (0.5, 10.0, -0.2, 0.4)
     )
