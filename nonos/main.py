@@ -18,14 +18,17 @@ from pathlib import Path
 from typing import List, Optional, Sequence
 
 import inifix
-import lic
 import matplotlib.pyplot as plt
 import numpy as np
 import pkg_resources
 import toml
 from inifix.format import iniformat
+from licplot import lic_internal
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from rich.logging import RichHandler
+from scipy.interpolate import griddata
+from skimage import exposure
+from skimage.util import random_noise
 
 from nonos.__version__ import __version__
 from nonos.config import DEFAULTS
@@ -33,10 +36,11 @@ from nonos.geometry import DICT_PLANE, meshgridFromPlane, noproj
 from nonos.logging import parse_verbose_level, print_err, print_warn
 from nonos.parsing import (
     is_set,
-    parse_center_size,
     parse_image_format,
     parse_output_number_range,
+    parse_range,
     parse_vmin_vmax,
+    range_converter,
 )
 from nonos.styling import set_mpl_style
 
@@ -50,7 +54,6 @@ from nonos.styling import set_mpl_style
 # TODO: re-check if each condition works fine
 # TODO: recheck the writeField feature
 # TODO: streamline analysis: weird azimuthal reconnection ?
-# TODO: streamline analysis: test if the estimation of the radial spacing works
 # TODO: write a better way to save pictures (function in PlotNonos maybe)
 # TODO: do not forget to change all the functions that use dpl (planet location),
 #        which is valid if the planet is in a fixed cicular orbit
@@ -512,6 +515,7 @@ class Mesh(InitParamNonos):
         self.z = self.zedge
 
         self.coord = [self.x, self.y, self.z]
+        self.coordmed = [self.xmed, self.ymed, self.zmed]
         # TODO change that when structure no cylindrical
         # cartesian: DEFAULT = [0,0,0]
         # spherical: DEFAULT = [1,np.pi/2,0]
@@ -645,9 +649,7 @@ class PlotNonos(FieldNonos):
     Plot class which uses Field to compute different graphs.
     """
 
-    def axiplot(
-        self, ax, center=None, size=None, vmin=None, vmax=None, average=None, **karg
-    ):
+    def axiplot(self, ax, extent=None, vmin=None, vmax=None, average=None, **karg):
         if average is None:
             average = self.init.config["average"]
         if average:
@@ -667,14 +669,13 @@ class PlotNonos(FieldNonos):
 
         ax.plot(self.xmed, dataProfile, **karg)
 
-        center, size = parse_center_size(
-            center, size, xarr=self.xmed, yarr=np.zeros(2), dim=1
-        )
+        extent = parse_range(extent, dim=1)
+        extent = range_converter(extent, abscissa=self.xmed, ordinate=np.zeros(2))
 
-        logging.debug(f"xmin: {center[0]-size[0]/2}")
-        logging.debug(f"xmax: {center[0]+size[0]/2}")
+        logging.debug(f"xmin: {extent[0]}")
+        logging.debug(f"xmax: {extent[1]}")
 
-        ax.set_xlim(center[0] - size[0] / 2, center[0] + size[0] / 2)
+        ax.set_xlim(extent[0], extent[1])
         ax.set_ylim(vmin, vmax)
         ax.set_xlabel("Radius")
         ax.set_ylabel(self.title)
@@ -682,14 +683,15 @@ class PlotNonos(FieldNonos):
     def plot(
         self,
         ax,
-        center=None,
-        size=None,
+        extent=None,
         vmin=None,
         vmax=None,
         plane=(1, 2, 3),  # default: (x,y)
         geometry="cartesian",
         func_proj=noproj,
         average=None,
+        lic=None,
+        dpilic=None,
         scaling=1,
         cmap=None,
         **karg,
@@ -700,6 +702,9 @@ class PlotNonos(FieldNonos):
         vmin, vmax = parse_vmin_vmax(
             vmin, vmax, diff=self.config["diff"], data=self.data
         )
+
+        extent = parse_range(extent, dim=2)
+
         # if plane is None:
         #     plane = self.init.config["plane"]
         if average is None:
@@ -755,73 +760,118 @@ class PlotNonos(FieldNonos):
         if (set(plane[:-1]) & {3}) and (self.z.shape[0] <= 1):
             raise IndexError("No vertical direction, the simulation is not 3D.")
 
-        # convert 1D coordinates arrays (self.coord)
-        # into 2D coordinates arrays (coordgrid) via meshgrid,
-        # using (plane[0],plane[1]) for the projection plane
-        # and self.DEFAULT_POINT for the 3d (plane[2]) dimension
-        coordgrid = meshgridFromPlane(
-            self.coord, plane[0], plane[1], self.DEFAULT_POINT
-        )
-        # (coord[0]=R,coord[1]=phi by default)
-        # then, depending on the geometry,
-        # we transform these 2D coordinates arrays
-        transform = func_proj(
-            coordgrid[np.argmin(plane)],
-            coordgrid[list({0, 1, 2} ^ {np.argmin(plane), np.argmax(plane)})[0]],
-            coordgrid[np.argmax(plane)],
-        )
-
         # If we plot a slice, we then need to adapt the data itself
         # to be coherent with the projection plan.
         # We look for the index of the 3d dimension 1D array
         # that matches self.DEFAULT_POINT
-        if plane[2] - 1 == 0:
-            dataslice = self.data[
-                find_nearest(
-                    self.coord[plane[2] - 1], self.DEFAULT_POINT[plane[2] - 1]
-                ),
-                :,
-                :,
-            ]
-        elif plane[2] - 1 == 1:
-            dataslice = self.data[
-                :,
-                find_nearest(
-                    self.coord[plane[2] - 1], self.DEFAULT_POINT[plane[2] - 1]
-                ),
-                :,
-            ]
-        elif plane[2] - 1 == 2:
-            dataslice = self.data[
-                :,
-                :,
-                find_nearest(
-                    self.coord[plane[2] - 1], self.DEFAULT_POINT[plane[2] - 1]
-                ),
-            ]
-        else:
-            raise ValueError("Plane not defined. Should be any permutation of (1,2,3).")
+        dataslice = chooseslice(self.data, plane, self.coord, self.DEFAULT_POINT)
 
         if average:
-            im = ax.pcolormesh(
-                transform[plane[0] - 1],
-                transform[plane[1] - 1],
-                np.mean(self.data, axis=plane[2] - 1) * zspan,
-                cmap=cmap,
-                vmin=vmin,
-                vmax=vmax,
-                **karg,
-            )
+            data = np.mean(self.data, axis=plane[2] - 1) * zspan
         else:
+            data = dataslice
+
+        if is_set(lic) and self.code != "fargo3d":
+            # TODO: careful, works for a cylindrical structure
+            # but may be wrong when other structures
+            # will be implemented (in particular the extent of interpolation)
+            if set(plane[:-1]) & {1}:
+                if set(plane[:-1]) & {3}:
+                    extent_i = (None, extent[1], extent[2], extent[3])
+                else:
+                    extent_i = (None, extent[1], None, None)
+            elif set(plane[:-1]) & {3}:
+                extent_i = (None, None, extent[2], extent[3])
+            else:
+                extent_i = (None, None, None, None)
+
+            xi, yi, lici = LICstream(
+                self.init,
+                self.on,
+                plane=plane,
+                lines=lic,
+                func_proj=func_proj,
+                corotate=self.config["corotate"],
+                isPlanet=self.config["isPlanet"],
+                xxmin=extent_i[0],
+                xxmax=extent_i[1],
+                yymin=extent_i[2],
+                yymax=extent_i[3],
+                dxx=dpilic,
+                dyy=dpilic,
+                kernel_length=80,
+            )
+            # print(f"xmin: {xi.min()}, xmax: {xi.max()}, ymin: {yi.min()}, ymax: {yi.max()}")
+            # print(f"extent: {extent}")
+            coordgridmed = meshgridFromPlane(
+                self.coordmed, plane[0], plane[1], self.DEFAULT_POINT
+            )
+            datai = interpol(
+                coordgridmed[0],
+                coordgridmed[1],
+                data,
+                dxx=dpilic,
+                dyy=dpilic,
+                xxmin=extent_i[0],
+                xxmax=extent_i[1],
+                yymin=extent_i[2],
+                yymax=extent_i[3],
+            )[2]
+            if self.config["log"]:
+                datalic = np.log10(lici) + datai
+            else:
+                datalic = lici * datai
             im = ax.pcolormesh(
-                transform[plane[0] - 1],
-                transform[plane[1] - 1],
-                dataslice,
+                xi,
+                yi,
+                datalic,
                 cmap=cmap,
                 vmin=vmin,
                 vmax=vmax,
                 **karg,
             )
+
+            extent = range_converter(
+                extent,
+                abscissa=xi,
+                ordinate=yi,
+            )
+
+        else:
+            # convert 1D coordinates arrays (self.coord)
+            # into 2D coordinates arrays (coordgrid) via meshgrid,
+            # using (plane[0],plane[1]) for the projection plane
+            # and self.DEFAULT_POINT for the 3d (plane[2]) dimension
+            coordgrid = meshgridFromPlane(
+                self.coord, plane[0], plane[1], self.DEFAULT_POINT
+            )
+            coordgrid = np.array(coordgrid, dtype=object)[np.array(plane) - 1]
+
+            # (coord[0]=R,coord[1]=phi by default)
+            # then, depending on the geometry,
+            # we transform these 2D coordinates arrays
+            transform = func_proj(
+                coordgrid[0],
+                coordgrid[1],
+                coordgrid[2],
+            )
+
+            im = ax.pcolormesh(
+                transform[plane[0] - 1],
+                transform[plane[1] - 1],
+                data,
+                cmap=cmap,
+                vmin=vmin,
+                vmax=vmax,
+                **karg,
+            )
+
+            extent = range_converter(
+                extent,
+                abscissa=transform[plane[0] - 1],
+                ordinate=transform[plane[1] - 1],
+            )
+
         if self.init.config["grid"]:
             ax.plot(
                 transform[plane[0] - 1], transform[plane[1] - 1], c="k", linewidth=0.07
@@ -833,21 +883,13 @@ class PlotNonos(FieldNonos):
                 linewidth=0.07,
             )
 
-        center, size = parse_center_size(
-            center,
-            size,
-            xarr=transform[plane[0] - 1],
-            yarr=transform[plane[1] - 1],
-            dim=2,
-        )
+        logging.debug(f"xmin: {extent[0]}")
+        logging.debug(f"xmax: {extent[1]}")
+        logging.debug(f"ymin: {extent[2]}")
+        logging.debug(f"ymax: {extent[3]}")
 
-        logging.debug(f"xmin: {center[0]-size[0]/2}")
-        logging.debug(f"xmax: {center[0]+size[0]/2}")
-        logging.debug(f"ymin: {center[1]-size[1]/2}")
-        logging.debug(f"ymax: {center[1]+size[1]/2}")
-
-        ax.set_xlim(center[0] - size[0] / 2, center[0] + size[0] / 2)
-        ax.set_ylim(center[1] - size[1] / 2, center[1] + size[1] / 2)
+        ax.set_xlim(extent[0], extent[1])
+        ax.set_ylim(extent[2], extent[3])
 
         ax.set_title(self.code)
         divider = make_axes_locatable(ax)
@@ -856,316 +898,6 @@ class PlotNonos(FieldNonos):
         cbar.set_label(self.title)
 
         logging.debug("pcolormesh: finished")
-
-
-class StreamNonos(FieldNonos):
-    """
-    Adapted from Pablo Benitez-Llambay
-    Class which uses Field to compute streamlines.
-    """
-
-    def __init__(self, init, directory="", field=None, on=None, check=True):
-        FieldNonos.__init__(
-            self, init=init, field=field, on=on, directory=directory, check=check
-        )  # All the InitParamNonos attributes inside Field
-
-        if field is None:
-            field = self.init.config["field"]
-        if on is None:
-            on = self.init.config["on"][0]
-
-    def bilinear(self, x, y, f, p):
-        """
-        Bilinear interpolation.
-        Parameters
-        ----------
-        x = (x1,x2); y = (y1,y2)
-        f = (f11,f12,f21,f22)
-        p = (x,y)
-        where x,y are the interpolated points and
-        fij are the values of the function at the
-        points (xi,yj).
-        Output
-        ------
-        f(p): Float.
-              The interpolated value of the function f(p) = f(x,y)
-        """
-        xp = p[0]
-        yp = p[1]
-        x1 = x[0]
-        x2 = x[1]
-        y1 = y[0]
-        y2 = y[1]
-        f11 = f[0]
-        f12 = f[1]
-        f21 = f[2]
-        f22 = f[3]
-        t = (xp - x1) / (x2 - x1)
-        u = (yp - y1) / (y2 - y1)
-        return (
-            (1.0 - t) * (1.0 - u) * f11
-            + t * (1.0 - u) * f12
-            + t * u * f22
-            + u * (1 - t) * f21
-        )
-
-    def get_v(self, v, x, y):
-        """
-        For a real set of coordinates (x,y), returns the bilinear
-        interpolated value of a Field class.
-        """
-
-        i = find_nearest(self.x, x)
-        # i = int(np.log10(x/self.x.min())/np.log10(self.x.max()/self.x.min())*self.nx)
-        # i = int((x-self.x.min())/(self.x.max()-self.x.min())*self.nx)
-        j = int((y - self.y.min()) / (self.y.max() - self.y.min()) * self.ny)
-
-        if i < 0 or j < 0 or i > v.shape[0] - 2 or j > v.shape[1] - 2:
-            return None
-
-        f11 = v[i, j, self.imidplane]
-        f12 = v[i, j + 1, self.imidplane]
-        f21 = v[i + 1, j, self.imidplane]
-        f22 = v[i + 1, j + 1, self.imidplane]
-        try:
-            x1 = self.x[i]
-            x2 = self.x[i + 1]
-            y1 = self.y[j]
-            y2 = self.y[j + 1]
-            return self.bilinear((x1, x2), (y1, y2), (f11, f12, f21, f22), (x, y))
-        except IndexError:
-            return None
-
-    def euler(self, vx, vy, x, y, reverse):
-        """
-        Euler integrator for computing the streamlines.
-        Parameters:
-        ----------
-
-        x,y: Floats.
-             Initial condition
-        reverse: Boolean.
-                 If reverse is true, the integration step is negative.
-
-        Output
-        ------
-
-        (dx,dy): (float,float).
-                 Are the azimutal and radial increments.
-                 Only works for cylindrical coordinates.
-        """
-        sign = 1.0
-        if reverse:
-            sign = -1
-        vr = self.get_v(vx, x, y)
-        vt = self.get_v(vy, x, y)
-        if None in (vt, vr):
-            # Avoiding problems...
-            return None, None
-
-        l = np.min(
-            (
-                ((self.x.max() - self.x.min()) / self.nx),
-                ((self.y.max() - self.y.min()) / self.ny),
-            )
-        )
-        h = 0.5 * l / np.sqrt(vr ** 2 + vt ** 2)
-
-        return sign * h * np.array([vr, vt / x])
-
-    def get_stream(
-        self,
-        vx,
-        vy,
-        x0,
-        y0,
-        nmax=1000000,
-        maxlength=4 * np.pi,
-        bidirectional=True,
-        reverse=False,
-    ):
-        """
-        Function for computing a streamline.
-        Parameters:
-        -----------
-
-        x0,y0: Floats.
-              Initial position for the stream
-        nmax: Integer.
-              Maxium number of iterations for the stream.
-        maxlength: Float
-                   Maxium allowed length for a stream
-        bidirectional=True
-                      If it's True, the stream will be forward and backward computed.
-        reverse=False
-                The sign of the stream. You can change it mannualy for a single stream,
-                but in practice, it's recommeneded to use this function without set reverse
-                and setting bidirectional = True.
-
-        Output:
-        -------
-
-        If bidirectional is False, the function returns a single array, containing the streamline:
-        The format is:
-
-                                          np.array([[x],[y]])
-
-        If bidirectional is True, the function returns a tuple of two arrays, each one with the same
-        format as bidirectional=False.
-        The format in this case is:
-
-                                (np.array([[x],[y]]),np.array([[x],[y]]))
-
-        This format is a little bit more complicated, and the best way to manipulate it is with iterators.
-        For example, if you want to plot the streams computed with bidirectional=True, you can do:
-
-        stream = get_stream(x0,y0)
-        ax.plot(stream[0][0],stream[0][1]) #Forward
-        ax.plot(stream[1][0],stream[1][1]) #Backward
-
-        """
-
-        if bidirectional:
-            s0 = self.get_stream(
-                vx,
-                vy,
-                x0,
-                y0,
-                reverse=False,
-                bidirectional=False,
-                nmax=nmax,
-                maxlength=maxlength,
-            )
-            s1 = self.get_stream(
-                vx,
-                vy,
-                x0,
-                y0,
-                reverse=True,
-                bidirectional=False,
-                nmax=nmax,
-                maxlength=maxlength,
-            )
-            return (s0, s1)
-
-        l = 0
-        x = [x0]
-        y = [y0]
-
-        for _ in range(nmax):
-            ds = self.euler(vx, vy, x0, y0, reverse=reverse)
-            if ds[0] is None:
-                # if(len(x)==1):
-                #     print_warn("There was an error getting the stream, ds is NULL (see get_stream).")
-                break
-            l += np.sqrt(ds[0] ** 2 + ds[1] ** 2)
-            dx = ds[0]
-            dy = ds[1]
-            if np.sqrt(dx ** 2 + dy ** 2) < 1e-13:
-                print_warn(
-                    "(get_stream): ds is very small, check if you're in a stagnation point.\nTry selecting another initial point."
-                )
-                break
-            if l > maxlength:
-                # print("maxlength reached: ", l)
-                break
-            x0 += dx
-            y0 += dy
-            x.append(x0)
-            y.append(y0)
-
-        return np.array([x, y])
-
-    def get_random_streams(
-        self, vx, vy, xmin=None, xmax=None, ymin=None, ymax=None, n=30, nmax=100000
-    ):
-        if xmin is None:
-            xmin = self.x.min()
-        if ymin is None:
-            ymin = self.y.min()
-        if xmax is None:
-            xmax = self.x.max()
-        if ymax is None:
-            ymax = self.y.max()
-
-        X = xmin + np.random.rand(n) * (xmax - xmin)
-        # X = xmin*pow((xmax/xmin),np.random.rand(n))
-        Y = ymin + np.random.rand(n) * (ymax - ymin)
-
-        streams = []
-        cter = 0
-        for x, y in zip(X, Y):
-            stream = self.get_stream(vx, vy, x, y, nmax=nmax, bidirectional=True)
-            streams.append(stream)
-            cter += 1
-        return streams
-
-    def get_fixed_streams(
-        self, vx, vy, xmin=None, xmax=None, ymin=None, ymax=None, n=30, nmax=100000
-    ):
-        if xmin is None:
-            xmin = self.x.min()
-        if ymin is None:
-            ymin = self.y.min()
-        if xmax is None:
-            xmax = self.x.max()
-        if ymax is None:
-            ymax = self.y.max()
-
-        X = xmin + np.linspace(0, 1, n) * (xmax - xmin)
-        # X = xmin*pow((xmax/xmin),np.random.rand(n))
-        Y = ymin + np.linspace(0, 1, n) * (ymax - ymin)
-
-        streams = []
-        cter2 = 0
-        for x, y in zip(X, Y):
-            stream = self.get_stream(vx, vy, x, y, nmax=nmax, bidirectional=True)
-            streams.append(stream)
-            cter2 += 1
-        return streams
-
-    def plot_streams(self, ax, streams, midplane=True, geometry="cartesian", **kargs):
-        for stream in streams:
-            for sub_stream in stream:
-                # sub_stream[0]*=unit_code.length/unit.AU
-                if midplane:
-                    if geometry == "cartesian":
-                        ax.plot(
-                            sub_stream[0] * np.cos(sub_stream[1]),
-                            sub_stream[0] * np.sin(sub_stream[1]),
-                            **kargs,
-                        )
-                    elif geometry == "polar":
-                        ax.plot(sub_stream[0], sub_stream[1], **kargs)
-                    else:
-                        raise ValueError(f"Unknown geometry '{geometry}'")
-                else:
-                    if self.check:
-                        raise NotImplementedError(
-                            "For now, we do not compute streamlines in the (R,z) plane"
-                        )
-
-    def get_lic_streams(self, vx, vy):
-        get_lic = lic.lic(vx[:, :, self.imidplane], vy[:, :, self.imidplane], length=30)
-        return get_lic
-
-    def plot_lic(self, ax, streams, midplane=True, geometry="cartesian", **kargs):
-        if midplane:
-            if geometry == "cartesian":
-                P, R = np.meshgrid(self.y, self.x)
-                X = R * np.cos(P)
-                Y = R * np.sin(P)
-                ax.pcolormesh(X, Y, streams, **kargs)
-            elif geometry == "polar":
-                P, R = np.meshgrid(self.y, self.x)
-                ax.pcolormesh(R, P, streams, **kargs)
-            else:
-                raise ValueError(f"Unknown geometry '{geometry}'")
-        else:
-            if self.check:
-                raise NotImplementedError(
-                    "For now, we do not compute streamlines in the (R,z) plane"
-                )
 
 
 def is_averageSafe(sigma0, sigmaSlope, plot=False):
@@ -1226,6 +958,164 @@ def find_nearest(array, value):
     return idx
 
 
+def interpol(
+    xx, yy, u, xxmin=None, xxmax=None, yymin=None, yymax=None, dxx=2500, dyy=2500
+):  # ,v):
+    if xxmin is None:
+        xxmin = xx.min()
+    if xxmax is None:
+        xxmax = xx.max()
+    if yymin is None:
+        yymin = yy.min()
+    if yymax is None:
+        yymax = yy.max()
+
+    x = np.linspace(xxmin, xxmax, dxx)
+    y = np.linspace(yymin, yymax, dyy)
+
+    xi, yi = np.meshgrid(x, y)
+
+    # then, interpolate your data onto this grid:
+
+    px = xx.flatten()
+    py = yy.flatten()
+    pu = u.flatten()
+
+    gu = griddata((px, py), pu, (xi, yi))
+
+    return (x, y, gu)
+
+
+def chooseslice(field, plane, coord, DEFAULT):
+    if plane[2] - 1 == 0:
+        fieldslice = field[
+            find_nearest(coord[plane[2] - 1], DEFAULT[plane[2] - 1]), :, :
+        ]
+    elif plane[2] - 1 == 1:
+        fieldslice = field[
+            :, find_nearest(coord[plane[2] - 1], DEFAULT[plane[2] - 1]), :
+        ]
+    elif plane[2] - 1 == 2:
+        fieldslice = field[
+            :, :, find_nearest(coord[plane[2] - 1], DEFAULT[plane[2] - 1])
+        ]
+    else:
+        raise ValueError("Plane not defined. Should be any permutation of (1,2,3).")
+
+    return fieldslice
+
+
+def LICstream(
+    init,
+    on,
+    plane=(1, 2, 3),
+    lines="V",
+    func_proj=noproj,
+    corotate=False,
+    isPlanet=False,
+    datadir="",
+    xxmin=None,
+    xxmax=None,
+    yymin=None,
+    yymax=None,
+    dxx=2500,
+    dyy=2500,
+    kernel_length=80,
+):
+    lx1on, lx2on = (
+        FieldNonos(
+            init,
+            field=f"{lines}X{i}",
+            on=on,
+            diff=False,
+            log=False,
+            corotate=corotate,
+            isPlanet=isPlanet,
+            datadir=datadir,
+            check=False,
+        )
+        for i in plane[:-1]
+    )
+
+    lx1 = lx1on.data.astype(np.float32)
+    # TODO change/generalize this,
+    # as it works for a cylindrical structure,
+    # but not a spherical one
+    if set(plane[:-1]) & {2}:
+        lx2 = (lx2on.data - lx2on.xmed[:, None, None]).astype(np.float32)
+    else:
+        lx2 = lx2on.data.astype(np.float32)
+
+    coordgridmed = meshgridFromPlane(
+        lx1on.coordmed, plane[0], plane[1], lx1on.DEFAULT_POINT
+    )
+
+    lx1slice = chooseslice(lx1, plane, lx1on.coord, lx1on.DEFAULT_POINT)
+    lx2slice = chooseslice(lx2, plane, lx1on.coord, lx1on.DEFAULT_POINT)
+
+    lslice = [lx1slice, lx2slice]
+
+    xi, yi, lx1i = interpol(
+        coordgridmed[0],
+        coordgridmed[1],
+        lslice[0],
+        dxx=dxx,
+        dyy=dyy,
+        xxmin=xxmin,
+        xxmax=xxmax,
+        yymin=yymin,
+        yymax=yymax,
+    )
+    lx2i = interpol(
+        coordgridmed[0],
+        coordgridmed[1],
+        lslice[1],
+        dxx=dxx,
+        dyy=dyy,
+        xxmin=xxmin,
+        xxmax=xxmax,
+        yymin=yymin,
+        yymax=yymax,
+    )[2]
+
+    lx1i = lx1i.astype(np.float32)
+    lx2i = lx2i.astype(np.float32)
+
+    texture = random_noise(
+        np.zeros((lx1i.shape[0], lx1i.shape[1])), mode="gaussian", mean=0.5, var=0.001
+    ).astype(np.float32)
+    kernel = np.ones(kernel_length).astype(np.float32)
+
+    image = lic_internal.line_integral_convolution(lx1i, lx2i, texture, kernel)
+    image_eq = exposure.equalize_hist(image)
+    image_relic_eq = lic_internal.line_integral_convolution(
+        lx1i, lx2i, image_eq.astype(np.float32), kernel
+    )
+    image_relic_eq /= image_relic_eq.max()
+
+    xiedge = 0.5 * (xi[1:] + xi[:-1])
+    yiedge = 0.5 * (yi[1:] + yi[:-1])
+    xiedge = np.concatenate(
+        ([lx1on.coord[plane[0] - 1][0]], xiedge, [lx1on.coord[plane[0] - 1][-1]])
+    )
+    yiedge = np.concatenate(
+        ([lx1on.coord[plane[1] - 1][0]], yiedge, [lx1on.coord[plane[1] - 1][-1]])
+    )
+
+    Xi, Yi = np.meshgrid(xiedge, yiedge)
+    Zi = lx1on.DEFAULT_POINT[plane[2] - 1]
+    # from plane to R,phi,z
+    coordgridedge = np.array([Xi, Yi, Zi], dtype=object)[np.array(plane) - 1]
+
+    transform = func_proj(
+        coordgridedge[0],
+        coordgridedge[1],
+        coordgridedge[2],
+    )
+
+    return (transform[plane[0] - 1], transform[plane[1] - 1], image_relic_eq)
+
+
 # process function for parallisation purpose with progress bar
 # counterParallel = Value('i', 0) # initialization of a counter
 def process_field(
@@ -1240,12 +1130,9 @@ def process_field(
     diff,
     log,
     corotate,
-    stype,
-    srmin,
-    srmax,
-    nstream,
-    center,
-    size,
+    lic,
+    dpilic,
+    extent,
     vmin,
     vmax,
     scaling: float,
@@ -1279,69 +1166,22 @@ def process_field(
     if dim == 2:
         ploton.plot(
             ax,
-            center=center,
-            size=size,
+            extent=extent,
             vmin=vmin,
             vmax=vmax,
             plane=plane,
             geometry=geometry,
             func_proj=func_proj,
+            lic=lic,
+            dpilic=dpilic,
             average=avr,
             cmap=cmap,
         )
-        if is_set(stype):
-            streamon = StreamNonos(
-                init, field=field, on=on, datadir=datadir, check=False
-            )
-            vx1on, vx2on = (
-                FieldNonos(
-                    init,
-                    field=f"VX{i}",
-                    on=on,
-                    diff=False,
-                    log=False,
-                    corotate=corotate,
-                    isPlanet=isPlanet,
-                    datadir=datadir,
-                    check=False,
-                )
-                for i in (1, 2)
-            )
-
-            vr = vx1on.data
-            vphi = vx2on.data
-            if isPlanet:
-                vphi -= vx2on.omegaplanet[on] * vx2on.xmed[:, None, None]
-            if stype == "lic":
-                streams = streamon.get_lic_streams(vr, vphi)
-                streamon.plot_lic(
-                    ax,
-                    streams,
-                    cartesian=geometry == "cartesian",
-                    cmap="gray",
-                    alpha=0.3,
-                )
-            else:
-                kwargs = dict(vx=vr, vy=vphi, xmin=srmin, xmax=srmax, n=nstream)
-                if stype == "random":
-                    streams = streamon.get_random_streams(**kwargs)
-                elif stype == "fixed":
-                    streams = streamon.get_fixed_streams(**kwargs)
-                else:
-                    raise ValueError(f"Received unknown stype '{stype}'.")
-                streamon.plot_streams(
-                    ax,
-                    streams,
-                    cartesian=geometry == "cartesian",
-                    color="k",
-                    linewidth=2,
-                    alpha=0.5,
-                )
         prefix = plane
 
     # plot the 1D profile
     elif dim == 1:
-        ploton.axiplot(ax, center=center, size=size, vmin=vmin, vmax=vmax, average=avr)
+        ploton.axiplot(ax, extent=extent, vmin=vmin, vmax=vmax, average=avr)
         prefix = "axi"
     filename = f"{prefix}_{field}{'_diff' if diff else ''}{'_log' if log else ''}{geometry if dim==2 else ''}{on:04d}.{fmt}"
 
@@ -1373,16 +1213,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         help=f"name of field to plot (default: '{DEFAULTS['field']}').",
     )
     parser.add_argument(
-        "-center",
-        type=float,
+        "-range",
+        type=str,
         nargs="+",
-        help=f"center for matplotlib window (default: {DEFAULTS['center']})",
-    )
-    parser.add_argument(
-        "-size",
-        type=float,
-        nargs="+",
-        help=f"size of matplotlib window (default: {DEFAULTS['size']})",
+        help=f"range of matplotlib window (default: {DEFAULTS['range']})",
     )
     parser.add_argument(
         "-vmin",
@@ -1450,12 +1284,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         "-grid", action="store_true", default=None, help="show the computational grid."
     )
     flag_group.add_argument(
-        "-streamlines",
-        action="store_true",
-        default=None,
-        help="plot streamlines.",
-    )
-    flag_group.add_argument(
         "-noavr",
         "-noaverage",
         dest="noaverage",
@@ -1473,29 +1301,14 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     stream_group = parser.add_argument_group("streamlines options")
     stream_group.add_argument(
-        "-stype",
-        "-streamtype",
-        dest="streamtype",
-        choices=["random", "fixed", "lic"],
-        help=f"streamlines method (default: '{DEFAULTS['streamtype']}')",
+        "-lic",
+        choices=["V", "B"],
+        help=f"which vector field for lic streamlines (default: '{DEFAULTS['lic']}')",
     )
     stream_group.add_argument(
-        "-srmin",
-        dest="rminStream",
-        type=float,
-        help=f"minimum radius for streamlines computation (default: {DEFAULTS['rminStream']}).",
-    )
-    stream_group.add_argument(
-        "-srmax",
-        dest="rmaxStream",
-        type=float,
-        help=f"maximum radius for streamlines computation (default: {DEFAULTS['rmaxStream']}).",
-    )
-    stream_group.add_argument(
-        "-sn",
-        dest="nstreamlines",
+        "-dpilic",
         type=int,
-        help=f"number of streamlines (default: {DEFAULTS['nstreamlines']}).",
+        help="lic interpolation resolution (default: DEFAULTS['dpilic'])",
     )
 
     plane_group = parser.add_mutually_exclusive_group()
@@ -1724,18 +1537,9 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     args["field"] = args["field"].upper()
 
-    if args["rz"] and is_set(args["streamtype"]):
-        print_err("For now, we do not compute streamlines in the (R,z) plane")
-        return 1
-
     if args["corotate"] and not args["isPlanet"]:
         print_warn(
             "We don't rotate the grid if there is no planet for now.\nomegagrid = 0."
-        )
-
-    if args["streamtype"] == "lic":
-        print_warn(
-            "TODO: check what is the length argument in StreamNonos().get_lic_streams ?"
         )
 
     if not is_set(args["vmin"]) or not is_set(args["vmax"]):
@@ -1751,7 +1555,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         vmin, vmax = args["vmin"], args["vmax"]
 
-    center, size = args["center"], args["size"]
+    extent = args["range"]
 
     if args["ncpu"] > (ncpu := min(args["ncpu"], os.cpu_count())):
         print_warn(
@@ -1779,12 +1583,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         diff=args["diff"],
         log=args["log"],
         corotate=args["corotate"],
-        stype=args["streamtype"],
-        srmin=args["rminStream"],
-        srmax=args["rmaxStream"],
-        nstream=args["nstreamlines"],
-        center=center,
-        size=size,
+        lic=args["lic"],
+        dpilic=args["dpilic"],
+        extent=extent,
         vmin=vmin,
         vmax=vmax,
         scaling=args["scaling"],

@@ -47,34 +47,56 @@ def parse_vmin_vmax(vmin, vmax, diff: bool, data: np.ndarray) -> Tuple[float, fl
     return vmin, vmax
 
 
-def parse_center_size(
-    center, size, xarr: np.ndarray, yarr: np.ndarray, dim: int
-) -> (Tuple[float, float], Tuple[float, float]):
-    if not is_set(center):
+def parse_range(extent, dim: int) -> Tuple[float, float, float, float]:
+    if not is_set(extent):
         if dim == 2:
-            center = ((xarr.max() + xarr.min()) / 2, (yarr.max() + yarr.min()) / 2)
+            extent = (None, None, None, None)
         elif dim == 1:
-            center = [(xarr.max() + xarr.min()) / 2]
-        else:
-            raise ValueError("dim has to be 1 or 2.")
-    if not is_set(size):
-        if dim == 2:
-            size = (xarr.max() - xarr.min(), yarr.max() - yarr.min())
-        elif dim == 1:
-            size = [xarr.max() - xarr.min()]
+            extent = (None, None)
         else:
             raise ValueError("dim has to be 1 or 2.")
 
-    if len(center) != dim:
-        raise ValueError(
-            f"Need to parse a range from sequence {center} with exactly {dim} values."
-        )
-    if len(size) != dim:
-        raise ValueError(
-            f"Need to parse a range from sequence {size} with exactly {dim} values."
-        )
+    else:
+        if len(extent) != 2 * dim:
+            raise ValueError(
+                f"Need to parse a range from sequence {extent} with exactly {2*dim} values."
+            )
+        extent = [float(i) if i != "x" else None for i in extent]
 
-    return (center, size)
+    return tuple(extent)
+
+
+def range_converter(
+    extent, abscissa: np.ndarray, ordinate: np.ndarray
+) -> Tuple[float, float, float, float]:
+    trueextent = [abscissa.min(), abscissa.max(), ordinate.min(), ordinate.max()]
+    extent = [i if i is not None else j for (i, j) in zip(extent, trueextent)]
+    return tuple(extent)
+
+
+# def parse_range(
+#     extent,
+#     abscissa: np.ndarray,
+#     ordinate: np.ndarray,
+#     dim: int
+# ) -> Tuple[float, float, float, float]:
+#     if not is_set(extent):
+#         if dim == 2:
+#             extent = (abscissa.min(),abscissa.max(),ordinate.min(),ordinate.max())
+#         elif dim == 1:
+#             extent = (abscissa.min(),abscissa.max())
+#         else:
+#             raise ValueError("dim has to be 1 or 2.")
+
+#     else:
+#         if len(extent) != 2*dim:
+#             raise ValueError(
+#                 f"Need to parse a range from sequence {extent} with exactly {2*dim} values."
+#             )
+#         trueextent = [abscissa.min(), abscissa.max(), ordinate.min(), ordinate.max()]
+#         extent = [float(i) if i!="x" else j for (i,j) in zip(extent,trueextent)]
+
+#     return(tuple(extent))
 
 
 def parse_image_format(s: Optional[str]) -> str:

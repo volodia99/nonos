@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 
 from nonos.parsing import (
-    parse_center_size,
     parse_image_format,
     parse_output_number_range,
+    parse_range,
     parse_vmin_vmax,
 )
 
@@ -52,47 +52,25 @@ def test_invalid_nargs():
 
 
 @pytest.mark.parametrize(
-    "xarr, yarr, dim, received",
+    "abscissa, ordinate, dim, received",
     [
         (
             np.linspace(0.2, 10, 100),
             np.linspace(-0.4, 0.4, 100),
             2,
-            ((1, 0, 0), (0.6, 0.4)),
+            ("0.4", "8", "0", "-0.2", "0.2"),
         ),
-        (np.linspace(0.2, 10, 100), np.linspace(-0.4, 0.4, 100), 1, ((1, 0), [0.6])),
+        (np.linspace(0.2, 10, 100), np.linspace(-0.4, 0.4, 100), 1, (0.4, 8, 0.2)),
     ],
 )
-def test_invalid_nargs_center(xarr, yarr, dim, received):
+def test_invalid_nargs_parse_range(abscissa, ordinate, dim, received):
     with pytest.raises(
         ValueError,
         match=re.escape(
-            f"Need to parse a range from sequence {received[0]} with exactly {dim} values."
+            f"Need to parse a range from sequence {received} with exactly {2*dim} values."
         ),
     ):
-        parse_center_size(received[0], received[1], xarr=xarr, yarr=yarr, dim=dim)
-
-
-@pytest.mark.parametrize(
-    "xarr, yarr, dim, received",
-    [
-        (
-            np.linspace(0.2, 10, 100),
-            np.linspace(-0.4, 0.4, 100),
-            2,
-            ((1, 0), (0.6, 0.4, 1)),
-        ),
-        (np.linspace(0.2, 10, 100), np.linspace(-0.4, 0.4, 100), 1, ([1], (0.6, 1))),
-    ],
-)
-def test_invalid_nargs_size(xarr, yarr, dim, received):
-    with pytest.raises(
-        ValueError,
-        match=re.escape(
-            f"Need to parse a range from sequence {received[1]} with exactly {dim} values."
-        ),
-    ):
-        parse_center_size(received[0], received[1], xarr=xarr, yarr=yarr, dim=dim)
+        parse_range(received, abscissa=abscissa, ordinate=ordinate, dim=dim)
 
 
 @pytest.mark.parametrize(
@@ -133,34 +111,42 @@ def test_diff_parse_vmin_vmax(data, expected):
 
 
 @pytest.mark.parametrize(
-    "xarr, yarr, dim, expected",
+    "abscissa, ordinate, dim, expected",
     [
         (
             np.linspace(0.2, 10, 100),
             np.linspace(-np.pi, np.pi, 100),
             2,
-            ((5.1, 0.0), (9.8, 2 * np.pi)),
+            (0.2, 10.0, -np.pi, np.pi),
         ),
-        (np.linspace(0.2, 10, 100), np.zeros(2), 1, ([5.1], [9.8])),
+        (np.linspace(0.2, 10, 100), np.zeros(2), 1, (0.2, 10.0)),
     ],
 )
-def test_parse_center_size(xarr, yarr, dim, expected):
+def test_parse_range(abscissa, ordinate, dim, expected):
     assert (
-        parse_center_size("unset", "unset", xarr=xarr, yarr=yarr, dim=dim) == expected
+        parse_range("unset", abscissa=abscissa, ordinate=ordinate, dim=dim) == expected
     )
     assert (
-        parse_center_size(
-            (0, 1),
-            (0.6, 0.4),
-            xarr=np.linspace(0.2, 10, 100),
-            yarr=np.linspace(-0.4, 0.4, 100),
+        parse_range(
+            ("0.5", "5", "-0.2", "0.2"),
+            abscissa=np.linspace(0.2, 10, 100),
+            ordinate=np.linspace(-0.4, 0.4, 100),
             dim=2,
         )
-        == ((0, 1), (0.6, 0.4))
+        == (0.5, 5, -0.2, 0.2)
     )
-    assert parse_center_size(
-        [0], [0.6], xarr=np.linspace(0.2, 10, 100), yarr=np.zeros(2), dim=1
-    ) == ([0], [0.6])
+    assert parse_range(
+        ("0.4", "9.5"), abscissa=np.linspace(0.2, 10, 100), ordinate=np.zeros(2), dim=1
+    ) == (0.4, 9.5)
+    assert (
+        parse_range(
+            ("0.5", "x", "-0.2", "x"),
+            abscissa=np.linspace(0.2, 10, 100),
+            ordinate=np.linspace(-0.4, 0.4, 100),
+            dim=2,
+        )
+        == (0.5, 10.0, -0.2, 0.4)
+    )
 
 
 @pytest.mark.parametrize(
