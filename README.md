@@ -56,6 +56,9 @@ optional arguments:
                         '.').
   -field {RHO,VX1,VX2,VX3}
                         name of field to plot (default: 'RHO').
+  -range RANGE [RANGE ...]
+                        range of matplotlib window (default: unset)
+                        example: x x -2 2
   -vmin VMIN            min value in -diff mode (default: -0.5)
   -vmax VMAX            max value in -diff mode (default: -0.5)
   -cpu NCPU, -ncpu NCPU
@@ -66,7 +69,12 @@ optional arguments:
   -all                  save an image for every available snapshot (this will
                         force show=False).
   -geom {cartesian,polar}
-  -pol                  shortcut for -geom=polar
+  -rphi                 2D plot in the (R-phi) plane.
+  -rz                   2D plot in the (R-z) plane (default: represent (R-phi)).
+  -rtheta               2D plot in the (r-theta) plane (default: represent the (R-phi)).
+  -xy                   2D plot in the (x-y) plane (default: represent the (R-phi)).
+  -xz                   2D plot in the (x-z) plane (default: represent the (R-phi)).
+  -yz                   2D plot in the (y-z) plane (default: represent the (R-phi)).
   -dim {1,2}            dimensionality in projection: 1 for a line plot, 2
                         (default) for a map.
   -ft FONTSIZE          fontsize in the graph (default: 11).
@@ -83,20 +91,12 @@ boolean flags:
   -isp                  is there a planet in the grid ?
   -corotate             does the grid corotate? Works in pair with -isp.
   -grid                 show the computational grid.
-  -streamlines          plot streamlines.
-  -rz                   2D plot in the (R-z) plane (default: represent the
-                        midplane).
   -noavr, -noaverage    do not perform averaging along the third dimension.
   -pbar                 display a progress bar
 
 streamlines options:
-  -stype {random,fixed,lic}, -streamtype {random,fixed,lic}
-                        streamlines method (default: 'unset')
-  -srmin RMINSTREAM     minimum radius for streamlines computation (default:
-                        0.7).
-  -srmax RMAXSTREAM     maximum radius for streamlines computation (default:
-                        1.3).
-  -sn NSTREAMLINES      number of streamlines (default: 50).
+  -lic {V,B}            which vector field for lic streamlines (default: 'unset')
+  -dpilic DPILIC        lic interpolation resolution (default: DEFAULTS['dpilic'])
 
 CLI-only options:
   -input INPUT, -i INPUT

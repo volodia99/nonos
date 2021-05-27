@@ -1216,7 +1216,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "-range",
         type=str,
         nargs="+",
-        help=f"range of matplotlib window (default: {DEFAULTS['range']})",
+        help=f"range of matplotlib window (default: {DEFAULTS['range']}), example: x x -2 2",
     )
     parser.add_argument(
         "-vmin",
@@ -1416,7 +1416,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--verbose",
         action="count",
         default=0,
-        help="increase output verbosity.",
+        help="increase output verbosity (-v: info, -vv: debug).",
     )
 
     clargs = vars(parser.parse_args(argv))
