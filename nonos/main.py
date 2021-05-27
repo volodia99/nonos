@@ -1209,7 +1209,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     parser.add_argument(
         "-field",
-        choices=["RHO", "VX1", "VX2", "VX3"],
+        choices=["RHO", "VX1", "VX2", "VX3", "BX1", "BX2", "BX3"],
         help=f"name of field to plot (default: '{DEFAULTS['field']}').",
     )
     parser.add_argument(
