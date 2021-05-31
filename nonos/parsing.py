@@ -52,7 +52,7 @@ def parse_range(extent, dim: int) -> Tuple[float, float, float, float]:
         if dim == 2:
             return (None, None, None, None)
         elif dim == 1:
-            extent = (None, None)
+            return (None, None)
         else:
             raise ValueError("dim has to be 1 or 2.")
 
