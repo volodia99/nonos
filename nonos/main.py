@@ -884,7 +884,7 @@ class PlotNonos(FieldNonos):
                 linewidth=0.07,
             )
 
-        logging.debug(f"xmin: {extent[0]}")
+        logging.debug("xmin: %f", extent[0])
         logging.debug(f"xmax: {extent[1]}")
         logging.debug(f"ymin: {extent[2]}")
         logging.debug(f"ymax: {extent[3]}")
@@ -1315,7 +1315,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     stream_group.add_argument(
         "-dpilic",
         type=int,
-        help="lic interpolation resolution (default: DEFAULTS['dpilic'])",
+        help=f"lic interpolation resolution (default: {DEFAULTS['dpilic']})",
     )
 
     plane_group = parser.add_mutually_exclusive_group()
