@@ -68,8 +68,7 @@ def range_converter(
     extent, abscissa: np.ndarray, ordinate: np.ndarray
 ) -> Tuple[float, float, float, float]:
     trueextent = [abscissa.min(), abscissa.max(), ordinate.min(), ordinate.max()]
-    extent = [i if i is not None else j for (i, j) in zip(extent, trueextent)]
-    return tuple(extent)
+    return tuple(i if i is not None else j for (i, j) in zip(extent, trueextent))
 
 
 # def parse_range(
