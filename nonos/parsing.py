@@ -61,9 +61,7 @@ def parse_range(extent, dim: int) -> Tuple[float, float, float, float]:
             raise ValueError(
                 f"Need to parse a range from sequence {extent} with exactly {2*dim} values."
             )
-        extent = [float(i) if i != "x" else None for i in extent]
-
-    return tuple(extent)
+        return = tuple(float(i) if i != "x" else None for i in extent)
 
 
 def range_converter(
