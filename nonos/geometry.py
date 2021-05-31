@@ -52,8 +52,7 @@ def meshgridFromPlane(coord, k, l, DEFAULT):
     tot = {1, 2, 3}
     m = list(tot ^ {k, l})[0]
     mgrid = DEFAULT[m - 1]
-    grid = [kgrid, lgrid, mgrid]
-    return grid
+    return [kgrid, lgrid, mgrid]
 
 
 DICT_PLANE = {
