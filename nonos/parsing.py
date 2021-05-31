@@ -50,9 +50,9 @@ def parse_vmin_vmax(vmin, vmax, diff: bool, data: np.ndarray) -> Tuple[float, fl
 def parse_range(extent, dim: int) -> Tuple[float, float, float, float]:
     if not is_set(extent):
         if dim == 2:
-            extent = (None, None, None, None)
+            return (None, None, None, None)
         elif dim == 1:
-            extent = (None, None)
+            return (None, None)
         else:
             raise ValueError("dim has to be 1 or 2.")
 
@@ -61,17 +61,14 @@ def parse_range(extent, dim: int) -> Tuple[float, float, float, float]:
             raise ValueError(
                 f"Need to parse a range from sequence {extent} with exactly {2*dim} values."
             )
-        extent = [float(i) if i != "x" else None for i in extent]
-
-    return tuple(extent)
+        return = tuple(float(i) if i != "x" else None for i in extent)
 
 
 def range_converter(
     extent, abscissa: np.ndarray, ordinate: np.ndarray
 ) -> Tuple[float, float, float, float]:
     trueextent = [abscissa.min(), abscissa.max(), ordinate.min(), ordinate.max()]
-    extent = [i if i is not None else j for (i, j) in zip(extent, trueextent)]
-    return tuple(extent)
+    return tuple(i if i is not None else j for (i, j) in zip(extent, trueextent))
 
 
 # def parse_range(

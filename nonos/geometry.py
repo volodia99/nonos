@@ -43,8 +43,8 @@ def sph2cyl(r, theta, phi):
     return (R, z, phi)
 
 
-def noproj(x, y, z):
-    return [x, y, z]
+def no_op(*args):
+    return args
 
 
 def meshgridFromPlane(coord, k, l, DEFAULT):
@@ -52,8 +52,7 @@ def meshgridFromPlane(coord, k, l, DEFAULT):
     tot = {1, 2, 3}
     m = list(tot ^ {k, l})[0]
     mgrid = DEFAULT[m - 1]
-    grid = [kgrid, lgrid, mgrid]
-    return grid
+    return [kgrid, lgrid, mgrid]
 
 
 DICT_PLANE = {
