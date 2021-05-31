@@ -799,7 +799,8 @@ class PlotNonos(FieldNonos):
                 yymax=extent_i[3],
                 dxx=dpilic,
                 dyy=dpilic,
-                kernel_length=80,
+                kernel_length=30,
+                niter=2,
             )
             # print(f"xmin: {xi.min()}, xmax: {xi.max()}, ymin: {yi.min()}, ymax: {yi.max()}")
             # print(f"extent: {extent}")
@@ -1020,7 +1021,8 @@ def LICstream(
     yymax=None,
     dxx=2500,
     dyy=2500,
-    kernel_length=80,
+    kernel_length=30,
+    niter=2,
 ):
     lx1on, lx2on = (
         FieldNonos(
@@ -1041,8 +1043,10 @@ def LICstream(
     # TODO change/generalize this,
     # as it works for a cylindrical structure,
     # but not a spherical one
-    if set(plane[:-1]) & {2}:
-        lx2 = (lx2on.data - lx2on.xmed[:, None, None]).astype(np.float32)
+    if isPlanet and set(plane[:-1]) & {2}:
+        lx2 = (lx2on.data - lx2on.omegaplanet[on] * lx2on.xmed[:, None, None]).astype(
+            np.float32
+        )
     else:
         lx2 = lx2on.data.astype(np.float32)
 
@@ -1088,9 +1092,12 @@ def LICstream(
 
     image = lic_internal.line_integral_convolution(lx1i, lx2i, texture, kernel)
     image_eq = exposure.equalize_hist(image)
-    image_relic_eq = lic_internal.line_integral_convolution(
-        lx1i, lx2i, image_eq.astype(np.float32), kernel
-    )
+
+    image_relic_eq = image_eq
+    for _ in range(niter - 1):
+        image_relic_eq = lic_internal.line_integral_convolution(
+            lx1i, lx2i, image_relic_eq.astype(np.float32), kernel
+        )
     image_relic_eq /= image_relic_eq.max()
 
     xiedge = 0.5 * (xi[1:] + xi[:-1])
