@@ -50,7 +50,7 @@ def parse_vmin_vmax(vmin, vmax, diff: bool, data: np.ndarray) -> Tuple[float, fl
 def parse_range(extent, dim: int) -> Tuple[float, float, float, float]:
     if not is_set(extent):
         if dim == 2:
-            extent = (None, None, None, None)
+            return (None, None, None, None)
         elif dim == 1:
             extent = (None, None)
         else:
