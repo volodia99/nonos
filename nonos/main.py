@@ -883,7 +883,7 @@ class PlotNonos(FieldNonos):
                 linewidth=0.07,
             )
 
-        logging.debug(f"xmin: {extent[0]}")
+        logging.debug("xmin: %f", extent[0])
         logging.debug(f"xmax: {extent[1]}")
         logging.debug(f"ymin: {extent[2]}")
         logging.debug(f"ymax: {extent[3]}")
