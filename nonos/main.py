@@ -123,7 +123,7 @@ def readVTKPolar(filename, cell="edges", computedata=True):
     inipos = fid.tell()  # we store the file pointer position before computing points
     # print(inipos)
     # points = np.fromfile(fid, dt, 3 * npoints)
-    logging.debug(f"loading the grid cells: ({V.nx},{V.ny},{V.nz}).")
+    logging.debug("loading the grid cells: (%d,%d,%d)." % (V.nx, V.ny, V.nz))
     points = np.memmap(
         fid, mode="r", dtype=dt, offset=inipos, shape=3 * npoints
     )  # some smart memory efficient way to store the array
@@ -260,7 +260,7 @@ def readVTKPolar(filename, cell="edges", computedata=True):
                 )
                 break
 
-            logging.debug(f"field: {varname} ---> done")
+            logging.debug("field: %s" % varname)
 
             fid.readline()  # extra line feed
     fid.close()
@@ -672,8 +672,8 @@ class PlotNonos(FieldNonos):
         extent = parse_range(extent, dim=1)
         extent = range_converter(extent, abscissa=self.xmed, ordinate=np.zeros(2))
 
-        logging.debug(f"xmin: {extent[0]}")
-        logging.debug(f"xmax: {extent[1]}")
+        logging.debug("xmin: %f" % extent[0])
+        logging.debug("xmax: %f" % extent[1])
 
         ax.set_xlim(extent[0], extent[1])
         ax.set_ylim(vmin, vmax)
@@ -884,10 +884,10 @@ class PlotNonos(FieldNonos):
                 linewidth=0.07,
             )
 
-        logging.debug("xmin: %f", extent[0])
-        logging.debug(f"xmax: {extent[1]}")
-        logging.debug(f"ymin: {extent[2]}")
-        logging.debug(f"ymax: {extent[3]}")
+        logging.debug("xmin: %f" % extent[0])
+        logging.debug("xmax: %f" % extent[1])
+        logging.debug("ymin: %f" % extent[2])
+        logging.debug("ymax: %f" % extent[3])
 
         ax.set_xlim(extent[0], extent[1])
         ax.set_ylim(extent[2], extent[3])
@@ -1616,7 +1616,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             )
         )
     if not show:
-        logging.info(f"Operation took {time.time() - tstart:.2f}s")
+        logging.info("Operation took %.2fs" % (time.time() - tstart))
     # current, peak = tracemalloc.get_traced_memory()
     # print(f"Current memory usage is {current / 10**6}MB; Peak was {peak / 10**6}MB")
     # tracemalloc.stop()
