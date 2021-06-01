@@ -32,7 +32,7 @@ from skimage.util import random_noise
 
 from nonos.__version__ import __version__
 from nonos.config import DEFAULTS
-from nonos.geometry import DICT_PLANE, meshgridFromPlane, noproj
+from nonos.geometry import DICT_PLANE, meshgridFromPlane, no_op
 from nonos.logging import parse_verbose_level, print_err, print_warn
 from nonos.parsing import (
     is_set,
@@ -688,7 +688,7 @@ class PlotNonos(FieldNonos):
         vmax=None,
         plane=(1, 2, 3),  # default: (x,y)
         geometry="cartesian",
-        func_proj=noproj,
+        func_proj=no_op,
         average=None,
         lic=None,
         dpilic=None,
@@ -1021,7 +1021,7 @@ def LICstream(
     on,
     plane=(1, 2, 3),
     lines="V",
-    func_proj=noproj,
+    func_proj=no_op,
     corotate=False,
     isPlanet=False,
     datadir="",

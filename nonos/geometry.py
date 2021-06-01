@@ -57,25 +57,25 @@ def meshgridFromPlane(coord, k, l, DEFAULT):
 
 DICT_PLANE = {
     "cylindrical": {
-        "rphi": [(1, 2), "cylindrical", noproj],
-        "rz": [(1, 3), "cylindrical", noproj],
+        "rphi": [(1, 2), "cylindrical", no_op],
+        "rz": [(1, 3), "cylindrical", no_op],
         "rtheta": [(1, 3), "spherical", cyl2sph],
         "xy": [(1, 2), "cartesian", cyl2cart],
         "xz": [(1, 3), "cartesian", cyl2cart],
         "yz": [(2, 3), "cartesian", cyl2cart],
     },
     "spherical": {
-        "rtheta": [(1, 2), "spherical", noproj],
-        "rphi": [(1, 3), "spherical", noproj],
+        "rtheta": [(1, 2), "spherical", no_op],
+        "rphi": [(1, 3), "spherical", no_op],
         "rz": [(1, 2), "cylindrical", sph2cyl],
         "xy": [(1, 3), "cartesian", sph2cart],
         "xz": [(1, 2), "cartesian", sph2cart],
         "yz": [(2, 3), "cartesian", sph2cart],
     },
     "cartesian": {
-        "xy": [(1, 2), "cartesian", noproj],
-        "xz": [(1, 3), "cartesian", noproj],
-        "yz": [(2, 3), "cartesian", noproj],
+        "xy": [(1, 2), "cartesian", no_op],
+        "xz": [(1, 3), "cartesian", no_op],
+        "yz": [(2, 3), "cartesian", no_op],
         "rphi": [(1, 2), "cylindrical", cart2cyl],
         "rz": [(1, 3), "cylindrical", cart2cyl],
         "rtheta": [(1, 3), "spherical", cart2sph],
