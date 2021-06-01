@@ -811,6 +811,7 @@ class PlotNonos(FieldNonos):
                 coordgridmed[0],
                 coordgridmed[1],
                 data,
+                method="nearest",
                 dxx=dpilic,
                 dyy=dpilic,
                 xxmin=extent_i[0],
@@ -960,7 +961,16 @@ def find_nearest(array, value):
 
 
 def interpol(
-    xx, yy, u, xxmin=None, xxmax=None, yymin=None, yymax=None, dxx=2500, dyy=2500
+    xx,
+    yy,
+    u,
+    method="linear",
+    xxmin=None,
+    xxmax=None,
+    yymin=None,
+    yymax=None,
+    dxx=2500,
+    dyy=2500,
 ):  # ,v):
     if xxmin is None:
         xxmin = xx.min()
@@ -982,7 +992,7 @@ def interpol(
     py = yy.flatten()
     pu = u.flatten()
 
-    gu = griddata((px, py), pu, (xi, yi))
+    gu = griddata((px, py), pu, (xi, yi), method=method)
 
     return (x, y, gu)
 
