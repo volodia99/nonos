@@ -31,7 +31,7 @@ def test_load_config_file(minimal_paramfile, capsys):
 
     assert ret == 0
     out, err = capsys.readouterr()
-    assert err.endswith("Local mode\n")
+    assert "Using parameters from" in err
     conf = toml.loads(out)
     assert conf["dimensionality"] == 1
 

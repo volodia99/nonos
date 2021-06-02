@@ -56,12 +56,11 @@ def parse_range(extent, dim: int) -> Tuple[float, float, float, float]:
         else:
             raise ValueError("dim has to be 1 or 2.")
 
-    else:
-        if len(extent) != 2 * dim:
-            raise ValueError(
-                f"Need to parse a range from sequence {extent} with exactly {2*dim} values."
-            )
-        return tuple(float(i) if i != "x" else None for i in extent)
+    if len(extent) != 2 * dim:
+        raise ValueError(
+            f"Need to parse a range from sequence {extent} with exactly {2*dim} values."
+        )
+    return tuple(float(i) if i != "x" else None for i in extent)
 
 
 def range_converter(

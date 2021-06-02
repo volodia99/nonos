@@ -753,11 +753,11 @@ class PlotNonos(FieldNonos):
         zspan = self.z.ptp() or 1.0
         logging.debug("pcolormesh: started")
 
-        if (set(plane[:-1]) & {1}) and (self.x.shape[0] <= 1):
+        if (1 in plane[:-1]) and (self.x.shape[0] <= 1):
             raise IndexError("No radial direction, the simulation is not 3D.")
-        if (set(plane[:-1]) & {2}) and (self.y.shape[0] <= 1):
+        if (2 in plane[:-1]) and (self.y.shape[0] <= 1):
             raise IndexError("No azimuthal direction, the simulation is not 3D.")
-        if (set(plane[:-1]) & {3}) and (self.z.shape[0] <= 1):
+        if (3 in plane[:-1]) and (self.z.shape[0] <= 1):
             raise IndexError("No vertical direction, the simulation is not 3D.")
 
         # If we plot a slice, we then need to adapt the data itself
@@ -775,12 +775,12 @@ class PlotNonos(FieldNonos):
             # TODO: careful, works for a cylindrical structure
             # but may be wrong when other structures
             # will be implemented (in particular the extent of interpolation)
-            if set(plane[:-1]) & {1}:
-                if set(plane[:-1]) & {3}:
+            if 1 in plane[:-1]:
+                if 3 in plane[:-1]:
                     extent_i = (None, extent[1], extent[2], extent[3])
                 else:
                     extent_i = (None, extent[1], None, None)
-            elif set(plane[:-1]) & {3}:
+            elif 3 in plane[:-1]:
                 extent_i = (None, None, extent[2], extent[3])
             else:
                 extent_i = (None, None, None, None)
@@ -969,8 +969,8 @@ def interpol(
     xxmax=None,
     yymin=None,
     yymax=None,
-    dxx=2500,
-    dyy=2500,
+    dxx=5,
+    dyy=5,
 ):  # ,v):
     if xxmin is None:
         xxmin = xx.min()
@@ -981,8 +981,8 @@ def interpol(
     if yymax is None:
         yymax = yy.max()
 
-    x = np.linspace(xxmin, xxmax, dxx)
-    y = np.linspace(yymin, yymax, dyy)
+    x = np.linspace(xxmin, xxmax, dxx * xx.shape[0])
+    y = np.linspace(yymin, yymax, dyy * yy.shape[1])
 
     xi, yi = np.meshgrid(x, y)
 
@@ -1029,8 +1029,8 @@ def LICstream(
     xxmax=None,
     yymin=None,
     yymax=None,
-    dxx=2500,
-    dyy=2500,
+    dxx=5,
+    dyy=5,
     kernel_length=30,
     niter=2,
 ):
@@ -1053,7 +1053,7 @@ def LICstream(
     # TODO change/generalize this,
     # as it works for a cylindrical structure,
     # but not a spherical one
-    if isPlanet and set(plane[:-1]) & {2}:
+    if isPlanet and (2 in plane[:-1]):
         lx2 = (lx2on.data - lx2on.omegaplanet[on] * lx2on.xmed[:, None, None]).astype(
             np.float32
         )
@@ -1230,6 +1230,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         help=f"name of field to plot (default: '{DEFAULTS['field']}').",
     )
     parser.add_argument(
+        "-plane",
+        choices=["rphi", "rz", "rtheta", "xy", "xz", "yz"],
+        help=f"name of plane of projection (default: '{DEFAULTS['plane']}').",
+    )
+    parser.add_argument(
         "-range",
         type=str,
         nargs="+",
@@ -1325,45 +1330,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     stream_group.add_argument(
         "-dpilic",
         type=int,
-        help=f"lic interpolation resolution (default: {DEFAULTS['dpilic']})",
-    )
-
-    plane_group = parser.add_mutually_exclusive_group()
-    plane_group.add_argument(
-        "-rphi",
-        action="store_true",
-        default=None,
-        help="2D plot in the (R-phi) plane.",
-    )
-    plane_group.add_argument(
-        "-rz",
-        action="store_true",
-        default=None,
-        help="2D plot in the (R-z) plane (default: represent (R-phi)).",
-    )
-    plane_group.add_argument(
-        "-rtheta",
-        action="store_true",
-        default=None,
-        help="2D plot in the (r-theta) plane (default: represent the (R-phi)).",
-    )
-    plane_group.add_argument(
-        "-xy",
-        action="store_true",
-        default=None,
-        help="2D plot in the (x-y) plane (default: represent the (R-phi)).",
-    )
-    plane_group.add_argument(
-        "-xz",
-        action="store_true",
-        default=None,
-        help="2D plot in the (x-z) plane (default: represent the (R-phi)).",
-    )
-    plane_group.add_argument(
-        "-yz",
-        action="store_true",
-        default=None,
-        help="2D plot in the (y-z) plane (default: represent the (R-phi)).",
+        help=f"lic interpolation cell refinement (default: {DEFAULTS['dpilic']})",
     )
 
     parser.add_argument(
@@ -1467,10 +1434,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         if not os.path.isfile(ifile):
             print_err(f"Couldn't find requested input file '{ifile}'.")
             return 1
-        print_warn("[bold white]Local mode")
+        print_warn(f"[bold white]Using parameters from '{ifile}'.")
         config_file_args = toml.load(ifile)
     elif os.path.isfile("nonos.toml"):
-        print_warn("[bold white]Local mode")
+        print_warn("[bold white]Using parameters from 'nonos.toml'.")
         config_file_args = toml.load("nonos.toml")
     else:
         config_file_args = {}
@@ -1485,22 +1452,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # this may be seen either as hyperstatism (good thing) or error prone redundancy (bad thing)
     args = ChainMap(clargs, config_file_args, DEFAULTS)
 
-    ARGS_PLANE = {
-        "rphi": args["rphi"],
-        "rz": args["rz"],
-        "rtheta": args["rtheta"],
-        "xy": args["xy"],
-        "xz": args["xz"],
-        "yz": args["yz"],
-    }
-
-    if list(ARGS_PLANE.values()).count(True) > 1:
-        args["xy"] = False
-        ARGS_PLANE["xy"] = args["xy"]
-
-    (k, l), geometry, func_proj = DICT_PLANE[structure][
-        list(ARGS_PLANE.keys())[(list(ARGS_PLANE.values())).index(True)]
-    ]
+    (k, l), geometry, func_proj = DICT_PLANE[structure][args["plane"]]
     m = list({1, 2, 3} ^ {k, l})[0]
     plane = (k, l, m)
 

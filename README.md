@@ -68,7 +68,6 @@ optional arguments:
                         are inclusive. (default: last output available).
   -all                  save an image for every available snapshot (this will
                         force show=False).
-  -geom {cartesian,polar}
   -rphi                 2D plot in the (R-phi) plane.
   -rz                   2D plot in the (R-z) plane (default: represent (R-phi)).
   -rtheta               2D plot in the (r-theta) plane (default: represent the (R-phi)).
@@ -96,7 +95,7 @@ boolean flags:
 
 streamlines options:
   -lic {V,B}            which vector field for lic streamlines (default: 'unset')
-  -dpilic DPILIC        lic interpolation resolution (default: DEFAULTS['dpilic'])
+  -dpilic DPILIC        lic interpolation cell refinement (default: DEFAULTS['dpilic'])
 
 CLI-only options:
   -input INPUT, -i INPUT

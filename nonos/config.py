@@ -18,18 +18,13 @@ DEFAULTS = {
     # default max field when diff
     "vmax": "unset",
     # plane to represent (default is midplane)
-    "rphi": False,
-    "rz": False,
-    "rtheta": False,
-    "xy": True,
-    "xz": False,
-    "yz": False,
+    "plane": "xy",
     # do we average in the 3rd dimension?
     "noaverage": False,
     # do we compute lic streamlines?
     "lic": "unset",
-    # select interpolation resolution
-    "dpilic": 2500,
+    # select interpolation cell refinement
+    "dpilic": 5,
     # do we display the progress (loading+plotting)
     "progressBar": False,
     # do we display the grid?
