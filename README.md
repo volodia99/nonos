@@ -56,6 +56,8 @@ optional arguments:
                         '.').
   -field {RHO,VX1,VX2,VX3}
                         name of field to plot (default: 'RHO').
+  -plane {rphi,rz,rtheta,xy,xz,yz}
+                        name of plane of projection (default: 'xy').
   -range RANGE [RANGE ...]
                         range of matplotlib window (default: unset)
                         example: x x -2 2
@@ -68,12 +70,6 @@ optional arguments:
                         are inclusive. (default: last output available).
   -all                  save an image for every available snapshot (this will
                         force show=False).
-  -rphi                 2D plot in the (R-phi) plane.
-  -rz                   2D plot in the (R-z) plane (default: represent (R-phi)).
-  -rtheta               2D plot in the (r-theta) plane (default: represent the (R-phi)).
-  -xy                   2D plot in the (x-y) plane (default: represent the (R-phi)).
-  -xz                   2D plot in the (x-z) plane (default: represent the (R-phi)).
-  -yz                   2D plot in the (y-z) plane (default: represent the (R-phi)).
   -dim {1,2}            dimensionality in projection: 1 for a line plot, 2
                         (default) for a map.
   -ft FONTSIZE          fontsize in the graph (default: 11).

@@ -47,7 +47,7 @@ def no_op(*args):
     return args
 
 
-def meshgridFromPlane(coord, k, l, DEFAULT):
+def meshgrid_from_plane(coord, k, l, DEFAULT):
     lgrid, kgrid = np.meshgrid(coord[l - 1], coord[k - 1])
     tot = {1, 2, 3}
     m = list(tot ^ {k, l})[0]
@@ -55,7 +55,7 @@ def meshgridFromPlane(coord, k, l, DEFAULT):
     return [kgrid, lgrid, mgrid]
 
 
-DICT_PLANE = {
+GEOM_TRANSFORMS = {
     "cylindrical": {
         "rphi": [(1, 2), "cylindrical", no_op],
         "rz": [(1, 3), "cylindrical", no_op],

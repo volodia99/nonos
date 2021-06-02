@@ -32,7 +32,7 @@ from skimage.util import random_noise
 
 from nonos.__version__ import __version__
 from nonos.config import DEFAULTS
-from nonos.geometry import DICT_PLANE, meshgridFromPlane, no_op
+from nonos.geometry import GEOM_TRANSFORMS, meshgrid_from_plane, no_op
 from nonos.logging import parse_verbose_level, print_err, print_warn
 from nonos.parsing import (
     is_set,
@@ -804,7 +804,7 @@ class PlotNonos(FieldNonos):
             )
             # print(f"xmin: {xi.min()}, xmax: {xi.max()}, ymin: {yi.min()}, ymax: {yi.max()}")
             # print(f"extent: {extent}")
-            coordgridmed = meshgridFromPlane(
+            coordgridmed = meshgrid_from_plane(
                 self.coordmed, plane[0], plane[1], self.DEFAULT_POINT
             )
             datai = interpol(
@@ -844,7 +844,7 @@ class PlotNonos(FieldNonos):
             # into 2D coordinates arrays (coordgrid) via meshgrid,
             # using (plane[0],plane[1]) for the projection plane
             # and self.DEFAULT_POINT for the 3d (plane[2]) dimension
-            coordgrid = meshgridFromPlane(
+            coordgrid = meshgrid_from_plane(
                 self.coord, plane[0], plane[1], self.DEFAULT_POINT
             )
             coordgrid = np.array(coordgrid, dtype=object)[np.array(plane) - 1]
@@ -969,8 +969,8 @@ def interpol(
     xxmax=None,
     yymin=None,
     yymax=None,
-    dxx=5,
-    dyy=5,
+    dxx=None,
+    dyy=None,
 ):  # ,v):
     if xxmin is None:
         xxmin = xx.min()
@@ -997,18 +997,18 @@ def interpol(
     return (x, y, gu)
 
 
-def chooseslice(field, plane, coord, DEFAULT):
+def chooseslice(field, plane, coord, DEFAULT_POINT):
     if plane[2] - 1 == 0:
         fieldslice = field[
-            find_nearest(coord[plane[2] - 1], DEFAULT[plane[2] - 1]), :, :
+            find_nearest(coord[plane[2] - 1], DEFAULT_POINT[plane[2] - 1]), :, :
         ]
     elif plane[2] - 1 == 1:
         fieldslice = field[
-            :, find_nearest(coord[plane[2] - 1], DEFAULT[plane[2] - 1]), :
+            :, find_nearest(coord[plane[2] - 1], DEFAULT_POINT[plane[2] - 1]), :
         ]
     elif plane[2] - 1 == 2:
         fieldslice = field[
-            :, :, find_nearest(coord[plane[2] - 1], DEFAULT[plane[2] - 1])
+            :, :, find_nearest(coord[plane[2] - 1], DEFAULT_POINT[plane[2] - 1])
         ]
     else:
         raise ValueError("Plane not defined. Should be any permutation of (1,2,3).")
@@ -1029,8 +1029,8 @@ def LICstream(
     xxmax=None,
     yymin=None,
     yymax=None,
-    dxx=5,
-    dyy=5,
+    dxx=None,
+    dyy=None,
     kernel_length=30,
     niter=2,
 ):
@@ -1060,7 +1060,7 @@ def LICstream(
     else:
         lx2 = lx2on.data.astype(np.float32)
 
-    coordgridmed = meshgridFromPlane(
+    coordgridmed = meshgrid_from_plane(
         lx1on.coordmed, plane[0], plane[1], lx1on.DEFAULT_POINT
     )
 
@@ -1452,7 +1452,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # this may be seen either as hyperstatism (good thing) or error prone redundancy (bad thing)
     args = ChainMap(clargs, config_file_args, DEFAULTS)
 
-    (k, l), geometry, func_proj = DICT_PLANE[structure][args["plane"]]
+    (k, l), geometry, func_proj = GEOM_TRANSFORMS[structure][args["plane"]]
     m = list({1, 2, 3} ^ {k, l})[0]
     plane = (k, l, m)
 
