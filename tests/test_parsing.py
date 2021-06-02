@@ -68,7 +68,7 @@ def test_invalid_nargs_parse_range(abscissa, ordinate, dim, received):
     with pytest.raises(
         ValueError,
         match=re.escape(
-            f"Need to parse a range from sequence {received} with exactly {2*dim} values."
+            f"Received sequence `extent` with incorrect size {len(received)}. Expected exactly {2*dim=} values."
         ),
     ):
         parse_range(received, dim=dim)
