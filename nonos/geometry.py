@@ -55,6 +55,14 @@ def meshgrid_from_plane(coord, k, l, DEFAULT):
     return [kgrid, lgrid, mgrid]
 
 
+def get_keys_from_geomtransforms(dictionary, values):
+    list_items = dictionary.items()
+    for item in list_items:
+        if item[1][:-1] == values:
+            itemf = item[0]
+    return itemf
+
+
 GEOM_TRANSFORMS = {
     "cylindrical": {
         "rphi": [(1, 2), "cylindrical", no_op],

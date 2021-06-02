@@ -9,6 +9,7 @@ import functools
 import glob
 import logging
 import os
+import pickle
 import re
 import time
 from collections import ChainMap
@@ -32,7 +33,12 @@ from skimage.util import random_noise
 
 from nonos.__version__ import __version__
 from nonos.config import DEFAULTS
-from nonos.geometry import GEOM_TRANSFORMS, meshgrid_from_plane, no_op
+from nonos.geometry import (
+    GEOM_TRANSFORMS,
+    get_keys_from_geomtransforms,
+    meshgrid_from_plane,
+    no_op,
+)
 from nonos.logging import parse_verbose_level, print_err, print_warn
 from nonos.parsing import (
     is_set,
@@ -450,7 +456,7 @@ class Mesh(InitParamNonos):
         logging.debug("mesh parameters: started")
         if self.code == "idefix" or self.code == "pluto":
             domain = readVTKPolar(
-                os.path.join(self.config["datadir"], "data.0000.vtk"),
+                os.path.join(self.config["datadir"], glob.glob("*.vtk")[0]),
                 cell="edges",
                 computedata=False,
             )
@@ -649,7 +655,9 @@ class PlotNonos(FieldNonos):
     Plot class which uses Field to compute different graphs.
     """
 
-    def axiplot(self, ax, extent=None, vmin=None, vmax=None, average=None, **karg):
+    def axiplot(
+        self, ax, extent=None, vmin=None, vmax=None, average=None, binary=None, **karg
+    ):
         if average is None:
             average = self.init.config["average"]
         if average:
@@ -680,6 +688,15 @@ class PlotNonos(FieldNonos):
         ax.set_xlabel("Radius")
         ax.set_ylabel(self.title)
 
+        if binary:
+            prefix = "axi"
+            diff = self.config["diff"]
+            log = self.config["log"]
+            filename = f"{prefix}_{self.field}{'_diff' if diff else ''}{'_log' if log else ''}{self.on:04d}"
+            databin = [self.xmed, dataProfile]
+            with open(f"{filename}.pkl", "wb") as outfile:
+                pickle.dump(databin, outfile, pickle.HIGHEST_PROTOCOL)
+
     def plot(
         self,
         ax,
@@ -694,6 +711,7 @@ class PlotNonos(FieldNonos):
         dpilic=None,
         scaling=1,
         cmap=None,
+        binary=None,
         **karg,
     ):
         """
@@ -900,6 +918,23 @@ class PlotNonos(FieldNonos):
         cbar.set_label(self.title)
 
         logging.debug("pcolormesh: finished")
+
+        if binary:
+            logging.debug("binary file: started")
+            prefix = get_keys_from_geomtransforms(
+                GEOM_TRANSFORMS["cylindrical"], [plane[:-1], geometry]
+            )
+            diff = self.config["diff"]
+            log = self.config["log"]
+            filename = f"{prefix}_{self.field}{f'_lic{lic}_' if is_set(lic) else ''}{'_diff' if diff else ''}{'_log' if log else ''}{geometry}{self.on:04d}"
+            if is_set(lic) and self.code != "fargo3d":
+                databin = [xi, yi, datalic]
+            else:
+                databin = [transform[plane[0] - 1], transform[plane[1] - 1], data]
+
+            with open(f"{filename}.pkl", "wb") as outfile:
+                pickle.dump(databin, outfile, pickle.HIGHEST_PROTOCOL)
+            logging.debug("binary file: finished")
 
 
 def is_averageSafe(sigma0, sigmaSlope, plot=False):
@@ -1161,6 +1196,7 @@ def process_field(
     show: bool,
     dpi: int,
     fmt: str,
+    binary: bool,
 ):
     set_mpl_style(scaling=scaling)
 
@@ -1193,14 +1229,20 @@ def process_field(
             dpilic=dpilic,
             average=avr,
             cmap=cmap,
+            binary=binary,
         )
-        prefix = plane
+        # TODO: change that when structure different from cylindrical
+        prefix = get_keys_from_geomtransforms(
+            GEOM_TRANSFORMS["cylindrical"], [plane[:-1], geometry]
+        )
 
     # plot the 1D profile
     elif dim == 1:
-        ploton.axiplot(ax, extent=extent, vmin=vmin, vmax=vmax, average=avr)
+        ploton.axiplot(
+            ax, extent=extent, vmin=vmin, vmax=vmax, average=avr, binary=binary
+        )
         prefix = "axi"
-    filename = f"{prefix}_{field}{'_diff' if diff else ''}{'_log' if log else ''}{geometry if dim==2 else ''}{on:04d}.{fmt}"
+    filename = f"{prefix}_{field}{f'_lic{lic}_' if is_set(lic) else ''}{'_diff' if diff else ''}{'_log' if log else ''}{geometry if dim==2 else ''}{on:04d}.{fmt}"
 
     if show:
         plt.show()
@@ -1339,6 +1381,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         type=int,
         choices=[1, 2],
         help="dimensionality in projection: 1 for a line plot, 2 (default) for a map.",
+    )
+    parser.add_argument(
+        "-b",
+        "-binary",
+        dest="binary",
+        action="store_true",
+        help="create a binary file",
     )
     parser.add_argument(
         "-scaling",
@@ -1566,6 +1615,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         show=show,
         dpi=args["dpi"],
         fmt=args["format"],
+        binary=args["binary"],
     )
 
     tstart = time.time()
