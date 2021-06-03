@@ -411,10 +411,11 @@ class InitParamNonos:
             self.cfgconfig = inifix.load(os.path.join(self.config["datadir"], cfgfile))
             # self.h0 = self.iniconfig["ASPECTRATIO"]
             if self.config["isPlanet"]:
-                if Path(self.config["datasdir"]).joinpath("planet0.dat").is_file():
+                if Path(self.config["datadir"]).joinpath("planet0.dat").is_file():
                     with open("planet0.dat") as f1:
                         data = f1.readlines()
-                    columns = np.array(data, dtype="float64").T
+                    y = [[v for v in r.split("\t")] for r in data]
+                    columns = np.array(y, dtype="float64").T
                     self.qpl = columns[7]
                     self.dpl = np.sqrt(np.sum(columns[1:4] ** 2, axis=0))
                     self.xpl = columns[1]
@@ -456,7 +457,10 @@ class Mesh(InitParamNonos):
         logging.debug("mesh parameters: started")
         if self.code == "idefix" or self.code == "pluto":
             domain = readVTKPolar(
-                os.path.join(self.config["datadir"], glob.glob("*.vtk")[0]),
+                os.path.join(
+                    self.config["datadir"],
+                    glob.glob1(self.config["datadir"], "*.vtk")[0],
+                ),
                 cell="edges",
                 computedata=False,
             )
@@ -562,8 +566,8 @@ class FieldNonos(Mesh, InitParamNonos):
         if self.code == "fargo3d":
             known_aliases = {"rho": "dens", "vx1": "vy", "vx2": "vx", "vx3": "vz"}
             field = known_aliases[field]
-            filedata = "gas%s%d.dat" % (self.field, self.on)
-            filedata0 = "gas%s0.dat" % self.field
+            filedata = "gas%s%d.dat" % (field, self.on)
+            filedata0 = "gas%s0.dat" % field
         else:
             # Idefix or Pluto
             filedata = "data.%04d.vtk" % self.on

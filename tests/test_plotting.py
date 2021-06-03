@@ -12,7 +12,7 @@ def test_data_dir():
     return Path(__file__).parent / "data"
 
 
-@pytest.fixture(params=["idefix_rwi", "idefix_planet3d"])
+@pytest.fixture(params=["idefix_rwi", "idefix_planet3d", "fargo3d_planet2d"])
 def simulation_dir(test_data_dir, request):
     return test_data_dir / request.param
 
