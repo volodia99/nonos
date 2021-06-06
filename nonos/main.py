@@ -15,7 +15,7 @@ from collections import ChainMap
 from copy import copy
 from multiprocessing import Pool
 from pathlib import Path
-from typing import List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 import inifix
 import matplotlib.pyplot as plt
@@ -1596,7 +1596,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
 
     if clargs.pop("isolated"):
-        config_file_args = {}
+        config_file_args: Dict[str, Any] = {}
     elif (ifile := clargs.pop("input")) is not None:
         if not os.path.isfile(ifile):
             print_err(f"Couldn't find requested input file '{ifile}'.")
@@ -1636,7 +1636,11 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     plane, geometry, func_proj = GEOM_TRANSFORMS[init._native_geometry][args["plane"]]
 
-    available = {int(re.search(r"\d+", fn).group()) for fn in init.data_files}
+    available = set()
+    for fn in init.data_files:
+        if (num := re.search(r"\d+", fn)) is not None:
+            available.add(int(num.group()))
+
     if args.pop("all"):
         requested = available
     else:
