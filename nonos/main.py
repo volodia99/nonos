@@ -772,7 +772,6 @@ class PlotNonos(FieldNonos):
         else:
             raise ValueError(f"Unknown geometry '{geometry}'")
 
-        zspan = self.z.ptp() or 1.0
         logging.debug("pcolormesh: started")
 
         if (1 in plane[:-1]) and (self.x.shape[0] <= 1):
@@ -786,12 +785,28 @@ class PlotNonos(FieldNonos):
         # to be coherent with the projection plan.
         # We look for the index of the 3d dimension 1D array
         # that matches self.DEFAULT_POINT
-        dataslice = chooseslice(self.data, plane, self.coord, self.DEFAULT_POINT)
-
         if average:
-            data = np.mean(self.data, axis=plane[2] - 1) * zspan
+            data = choosemean(self.data, plane, self.coord)
         else:
-            data = dataslice
+            data = chooseslice(self.data, plane, self.coord, self.DEFAULT_POINT)
+
+        # convert 1D coordinates arrays (self.coord)
+        # into 2D coordinates arrays (coordgrid) via meshgrid,
+        # using (plane[0],plane[1]) for the projection plane
+        # and self.DEFAULT_POINT for the 3d (plane[2]) dimension
+        coordgrid = meshgrid_from_plane(
+            self.coord, plane[0], plane[1], self.DEFAULT_POINT
+        )
+        coordgrid = np.array(coordgrid, dtype=object)[np.array(plane) - 1]
+
+        # (coord[0]=R,coord[1]=phi by default)
+        # then, depending on the geometry,
+        # we transform these 2D coordinates arrays
+        transform = func_proj(
+            coordgrid[0],
+            coordgrid[1],
+            coordgrid[2],
+        )
 
         if is_set(lic) and self.code != "fargo3d":
             # TODO: careful, works for a cylindrical structure
@@ -815,6 +830,7 @@ class PlotNonos(FieldNonos):
                 func_proj=func_proj,
                 corotate=self.config["corotate"],
                 isPlanet=self.config["isPlanet"],
+                average=average,
                 xxmin=extent_i[0],
                 xxmax=extent_i[1],
                 yymin=extent_i[2],
@@ -862,24 +878,6 @@ class PlotNonos(FieldNonos):
             )
 
         else:
-            # convert 1D coordinates arrays (self.coord)
-            # into 2D coordinates arrays (coordgrid) via meshgrid,
-            # using (plane[0],plane[1]) for the projection plane
-            # and self.DEFAULT_POINT for the 3d (plane[2]) dimension
-            coordgrid = meshgrid_from_plane(
-                self.coord, plane[0], plane[1], self.DEFAULT_POINT
-            )
-            coordgrid = np.array(coordgrid, dtype=object)[np.array(plane) - 1]
-
-            # (coord[0]=R,coord[1]=phi by default)
-            # then, depending on the geometry,
-            # we transform these 2D coordinates arrays
-            transform = func_proj(
-                coordgrid[0],
-                coordgrid[1],
-                coordgrid[2],
-            )
-
             im = ax.pcolormesh(
                 transform[plane[0] - 1],
                 transform[plane[1] - 1],
@@ -898,13 +896,13 @@ class PlotNonos(FieldNonos):
 
         if self.init.config["grid"]:
             ax.plot(
-                transform[plane[0] - 1], transform[plane[1] - 1], c="k", linewidth=0.07
+                transform[plane[0] - 1], transform[plane[1] - 1], c="k", linewidth=1
             )
             ax.plot(
                 transform[plane[0] - 1].transpose(),
                 transform[plane[1] - 1].transpose(),
                 c="k",
-                linewidth=0.07,
+                linewidth=1,
             )
 
         logging.debug("xmin: %f" % extent[0])
@@ -1055,6 +1053,12 @@ def chooseslice(field, plane, coord, DEFAULT_POINT):
     return fieldslice
 
 
+def choosemean(field, plane, coord):
+    span = coord[plane[2] - 1].ptp() or 1.0
+    fieldmean = np.mean(field, axis=plane[2] - 1) * span
+    return fieldmean
+
+
 def LICstream(
     init,
     on,
@@ -1063,6 +1067,7 @@ def LICstream(
     func_proj=no_op,
     corotate=False,
     isPlanet=False,
+    average=False,
     datadir="",
     xxmin=None,
     xxmax=None,
@@ -1092,7 +1097,7 @@ def LICstream(
     # TODO change/generalize this,
     # as it works for a cylindrical structure,
     # but not a spherical one
-    if isPlanet and (2 in plane[:-1]):
+    if isPlanet and (2 in plane[:-1]) and (lines == "V"):
         lx2 = (lx2on.data - lx2on.omegaplanet[on] * lx2on.xmed[:, None, None]).astype(
             np.float32
         )
@@ -1103,15 +1108,19 @@ def LICstream(
         lx1on.coordmed, plane[0], plane[1], lx1on.DEFAULT_POINT
     )
 
-    lx1slice = chooseslice(lx1, plane, lx1on.coord, lx1on.DEFAULT_POINT)
-    lx2slice = chooseslice(lx2, plane, lx1on.coord, lx1on.DEFAULT_POINT)
-
-    lslice = [lx1slice, lx2slice]
+    if average:
+        lx1avr = choosemean(lx1, plane, lx1on.coord)
+        lx2avr = choosemean(lx2, plane, lx1on.coord)
+        lx = [lx1avr, lx2avr]
+    else:
+        lx1slice = chooseslice(lx1, plane, lx1on.coord, lx1on.DEFAULT_POINT)
+        lx2slice = chooseslice(lx2, plane, lx1on.coord, lx1on.DEFAULT_POINT)
+        lx = [lx1slice, lx2slice]
 
     xi, yi, lx1i = interpol(
         coordgridmed[0],
         coordgridmed[1],
-        lslice[0],
+        lx[0],
         dxx=dxx,
         dyy=dyy,
         xxmin=xxmin,
@@ -1122,7 +1131,7 @@ def LICstream(
     lx2i = interpol(
         coordgridmed[0],
         coordgridmed[1],
-        lslice[1],
+        lx[1],
         dxx=dxx,
         dyy=dyy,
         xxmin=xxmin,
