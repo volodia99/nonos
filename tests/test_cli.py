@@ -1,7 +1,7 @@
 import os
 import textwrap
 
-import toml
+import pytomlpp as toml
 
 from nonos import __version__
 from nonos.main import InitParamNonos, main
