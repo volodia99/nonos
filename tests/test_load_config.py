@@ -2,7 +2,7 @@ import os
 import sys
 
 import pytest
-import toml
+import pytomlpp as toml
 
 from nonos import InitParamNonos
 from nonos.config import DEFAULTS

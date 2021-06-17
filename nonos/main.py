@@ -22,7 +22,7 @@ import inifix
 import matplotlib.pyplot as plt
 import numpy as np
 import pkg_resources
-import toml
+import pytomlpp as toml
 from inifix.format import iniformat
 from licplot import lic_internal
 from mpl_toolkits.axes_grid1 import make_axes_locatable
