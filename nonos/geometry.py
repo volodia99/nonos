@@ -4,8 +4,7 @@ import numpy as np
 def cartesian_to_cylindrical(X, Y, Z):
     R = np.sqrt(X ** 2 + Y ** 2)
     phi = np.arctan2(Y, X)
-    z = Z
-    return (R, phi, z)
+    return R, phi, Z
 
 
 def cartesian_to_spherical(X, Y, Z):
