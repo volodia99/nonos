@@ -17,8 +17,7 @@ def cartesian_to_spherical(X, Y, Z):
 def cylindrical_to_cartesian(R, phi, z):
     X = R * np.cos(phi)
     Y = R * np.sin(phi)
-    Z = z
-    return (X, Y, Z)
+    return X, Y, z
 
 
 def cylindrical_to_spherical(R, phi, z):
