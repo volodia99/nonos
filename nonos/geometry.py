@@ -48,7 +48,7 @@ def meshgrid_from_plane(coord, k, l, default):
     tot = {1, 2, 3}
     m = list(tot ^ {k, l})[0]
     mgrid = default[m - 1]
-    return [kgrid, lgrid, mgrid]
+    return kgrid, lgrid, mgrid
 
 
 def get_keys_from_geomtransforms(dictionary, values):
