@@ -30,7 +30,7 @@ def spherical_to_cartesian(r, theta, phi):
     X = r * np.sin(theta) * np.cos(phi)
     Y = r * np.sin(theta) * np.sin(phi)
     Z = r * np.cos(theta)
-    return (X, Z, Y)
+    return X, Z, Y
 
 
 def spherical_to_cylindrical(r, theta, phi):
