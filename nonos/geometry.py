@@ -43,11 +43,11 @@ def no_op(*args):
     return args
 
 
-def meshgrid_from_plane(coord, k, l, DEFAULT):
+def meshgrid_from_plane(coord, k, l, default):
     lgrid, kgrid = np.meshgrid(coord[l - 1], coord[k - 1])
     tot = {1, 2, 3}
     m = list(tot ^ {k, l})[0]
-    mgrid = DEFAULT[m - 1]
+    mgrid = default[m - 1]
     return [kgrid, lgrid, mgrid]
 
 
