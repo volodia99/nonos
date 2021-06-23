@@ -23,7 +23,6 @@ def cylindrical_to_cartesian(R, phi, z):
 def cylindrical_to_spherical(R, phi, z):
     r = np.sqrt(R ** 2 + z ** 2)
     theta = np.arctan2(R, z)
-    phi = phi
     return (r, phi, theta)
 
 
