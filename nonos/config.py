@@ -41,8 +41,6 @@ DEFAULTS = {
     "cmap": "RdYlBu_r",
     # select image file format
     "format": "unset",
-    # create a binary file
-    "binary": False,
     # select image resolution
     "dpi": 200,
 }
