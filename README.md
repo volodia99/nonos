@@ -41,7 +41,7 @@ $ nonos --help
 ```
 usage: nonos [-h] [-dir DATADIR] [-field {RHO,VX1,VX2,VX3}] [-vmin VMIN]
              [-vmax VMAX] [-cpu NCPU] [-on ON [ON ...] | -all] [-diff] [-log]
-             [-isp] [-corotate] [-grid] [-streamlines] [-rz] [-noavr] [-pbar]
+             [-isp] [-corotate] [-grid] [-streamlines] [-rz] [-slice] [-pbar]
              [-stype {random,fixed,lic}] [-srmin RMINSTREAM]
              [-srmax RMAXSTREAM] [-sn NSTREAMLINES]
              [-geom {cartesian,polar} | -pol] [-dim {1,2}] [-ft FONTSIZE]
@@ -86,7 +86,7 @@ boolean flags:
   -isp                  is there a planet in the grid ?
   -corotate             does the grid corotate? Works in pair with -isp.
   -grid                 show the computational grid.
-  -noavr, -noaverage    do not perform averaging along the third dimension.
+  -slice                perform a slice along the third dimension.
   -pbar                 display a progress bar
 
 streamlines options:

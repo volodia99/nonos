@@ -924,7 +924,7 @@ def is_averageSafe(sigma0, sigmaSlope, plot=False):
     )  # comparison between Sigma(R) profile and integral of rho(R,z) between zmin and zmax
     if any(100 * abs(error) > 3):
         print_warn(
-            "With a maximum of %.1f percents of error, the averaging procedure may not be safe.\nzmax/h is probably too small.\nUse rather average=False (-noaverage) or increase zmin/zmax."
+            "With a maximum of %.1f percents of error, the averaging procedure may not be safe.\nzmax/h is probably too small.\nUse rather average=False (-slice) or increase zmin/zmax."
             % np.max(100 * abs(error))
         )
     else:
@@ -1023,9 +1023,23 @@ def chooseslice(field, plane, coord, DEFAULT_POINT):
     return fieldslice
 
 
+def coordiff3d(coord, plane):
+    coordiff = np.ediff1d(coord[plane[2] - 1])
+    if plane[2] - 1 == 0:
+        coordiff3d = coordiff[:, None, None]
+    elif plane[2] - 1 == 1:
+        coordiff3d = coordiff[None, :, None]
+    elif plane[2] - 1 == 2:
+        coordiff3d = coordiff[None, None, :]
+    else:
+        raise ValueError("Plane not defined. Should be any permutation of (1,2,3).")
+    return coordiff3d
+
+
 def choosemean(field, plane, coord):
     span = coord[plane[2] - 1].ptp() or 1.0
-    fieldmean = np.mean(field, axis=plane[2] - 1) * span
+    # fieldmean = np.mean(field, axis=plane[2] - 1) * span
+    fieldmean = np.sum(field * coordiff3d(coord, plane), axis=plane[2] - 1) / span
     return fieldmean
 
 
@@ -1327,12 +1341,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         "-grid", action="store_true", default=None, help="show the computational grid."
     )
     flag_group.add_argument(
-        "-noavr",
-        "-noaverage",
-        dest="noaverage",
+        "-slice",
         action="store_true",
         default=None,
-        help="do not perform averaging along the third dimension. ",
+        help="perform a slice along the third dimension. ",
     )
     flag_group.add_argument(
         "-pbar",
@@ -1569,7 +1581,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         plane=plane,
         geometry=geometry,
         func_proj=func_proj,
-        avr=not args["noaverage"],
+        avr=not args["slice"],
         diff=args["diff"],
         log=args["log"],
         corotate=args["corotate"],

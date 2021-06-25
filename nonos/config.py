@@ -19,8 +19,8 @@ DEFAULTS = {
     "vmax": "unset",
     # plane to represent (default is midplane)
     "plane": "xy",
-    # do we average in the 3rd dimension?
-    "noaverage": False,
+    # do we perform a slice in the 3rd dimension, or an average?
+    "slice": False,
     # do we compute lic streamlines?
     "lic": "unset",
     # select interpolation cell refinement
