@@ -11,7 +11,7 @@ DEFAULTS = {
     "diff": False,
     # field in log
     "log": False,
-    # default range of the matplotlib window
+    # default extent of the matplotlib window
     "range": "unset",
     # default min field when diff
     "vmin": "unset",
@@ -24,7 +24,7 @@ DEFAULTS = {
     # do we compute lic streamlines?
     "lic": "unset",
     # select interpolation cell refinement
-    "dpilic": 5,
+    "licres": 5,
     # do we display the progress (loading+plotting)
     "progressBar": False,
     # do we display the grid?

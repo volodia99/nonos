@@ -700,7 +700,7 @@ class PlotNonos(FieldNonos):
         func_proj=no_op,
         average=None,
         lic=None,
-        dpilic=None,
+        licres=None,
         scaling=1,
         cmap=None,
         **karg,
@@ -822,8 +822,8 @@ class PlotNonos(FieldNonos):
                 xxmax=extent_i[1],
                 yymin=extent_i[2],
                 yymax=extent_i[3],
-                dxx=dpilic,
-                dyy=dpilic,
+                dxx=licres,
+                dyy=licres,
                 kernel_length=30,
                 niter=2,
             )
@@ -837,8 +837,8 @@ class PlotNonos(FieldNonos):
                 coordgridmed[1],
                 data,
                 method="nearest",
-                dxx=dpilic,
-                dyy=dpilic,
+                dxx=licres,
+                dyy=licres,
                 xxmin=extent_i[0],
                 xxmax=extent_i[1],
                 yymin=extent_i[2],
@@ -1183,7 +1183,7 @@ def process_field(
     log,
     corotate,
     lic,
-    dpilic,
+    licres,
     extent,
     vmin,
     vmax,
@@ -1225,7 +1225,7 @@ def process_field(
             geometry=geometry,
             func_proj=func_proj,
             lic=lic,
-            dpilic=dpilic,
+            licres=licres,
             average=avr,
             cmap=cmap,
         )
@@ -1364,9 +1364,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         help=f"which vector field for lic streamlines (default: '{DEFAULTS['lic']}')",
     )
     stream_group.add_argument(
-        "-dpilic",
+        "-licres",
         type=int,
-        help=f"lic interpolation cell refinement (default: {DEFAULTS['dpilic']})",
+        help=f"lic interpolation cell refinement (default: {DEFAULTS['licres']})",
     )
 
     parser.add_argument(
@@ -1589,7 +1589,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         log=args["log"],
         corotate=args["corotate"],
         lic=args["lic"],
-        dpilic=args["dpilic"],
+        licres=args["licres"],
         extent=extent,
         vmin=vmin,
         vmax=vmax,
