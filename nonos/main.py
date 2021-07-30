@@ -413,7 +413,9 @@ class InitParamNonos:
                 if Path(self.config["datadir"]).joinpath("planet0.dat").is_file():
                     with open("planet0.dat") as f1:
                         data = f1.readlines()
-                    columns = np.array([[v for v in r.split("\t")] for r in data], dtype="float64").T
+                    columns = np.array(
+                        [[v for v in r.split("\t")] for r in data], dtype="float64"
+                    ).T
                     self.qpl = columns[7]
                     self.dpl = np.sqrt(np.sum(columns[1:4] ** 2, axis=0))
                     self.xpl = columns[1]
