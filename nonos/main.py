@@ -1039,7 +1039,10 @@ def coordiff3d(coord, plane):
 def choosemean(field, plane, coord):
     span = coord[plane[2] - 1].ptp() or 1.0
     # fieldmean = np.mean(field, axis=plane[2] - 1) * span
-    fieldmean = np.sum(field * coordiff3d(coord, plane), axis=plane[2] - 1) / span
+    if plane[2] == 2:
+        fieldmean = np.sum(field * coordiff3d(coord, plane), axis=plane[2] - 1) / span
+    else:
+        fieldmean = np.sum(field * coordiff3d(coord, plane), axis=plane[2] - 1)
     return fieldmean
 
 
