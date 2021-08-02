@@ -39,49 +39,38 @@ To get help, run
 $ nonos --help
 ```
 ```
-usage: nonos [-h] [-dir DATADIR] [-field {RHO,VX1,VX2,VX3}] [-vmin VMIN]
-             [-vmax VMAX] [-cpu NCPU] [-on ON [ON ...] | -all] [-diff] [-log]
-             [-isp] [-corotate] [-grid] [-streamlines] [-rz] [-slice] [-pbar]
-             [-stype {random,fixed,lic}] [-srmin RMINSTREAM]
-             [-srmax RMAXSTREAM] [-sn NSTREAMLINES]
-             [-geom {cartesian,polar} | -pol] [-dim {1,2}] [-ft FONTSIZE]
-             [-cmap CMAP] [-fmt FORMAT] [-dpi DPI] [-input INPUT | -isolated]
-             [-d | -version | -logo | -config]
+usage: nonos [-h] [-dir DATADIR] [-field {RHO,VX1,VX2,VX3,BX1,BX2,BX3}] [-plane {rphi,rz,rtheta,xy,xz,yz}] 
+             [-range RANGE [RANGE ...]] [-vmin VMIN] [-vmax VMAX] [-cpu NCPU] [-on ON [ON ...] | -all] 
+             [-diff] [-log] [-isp] [-corotate] [-grid] [-slice] [-pbar]
+             [-lic {V,B}] [-licres LICRES] [-dim {1,2}] [-scaling SCALING] [-cmap CMAP] [-fmt FORMAT] [-dpi DPI] 
+             [-input INPUT | -isolated] [-d | -version | -logo | -config] [-v]
 
 Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
 
 optional arguments:
   -h, --help            show this help message and exit
-  -dir DATADIR          location of output files and param files (default:
-                        '.').
-  -field {RHO,VX1,VX2,VX3}
+  -dir DATADIR          location of output files and param files (default: '.').
+  -field {RHO,VX1,VX2,VX3,BX1,BX2,BX3}
                         name of field to plot (default: 'RHO').
   -plane {rphi,rz,rtheta,xy,xz,yz}
                         name of plane of projection (default: 'xy').
   -range RANGE [RANGE ...]
-                        range of matplotlib window (default: unset)
-                        example: x x -2 2
-  -vmin VMIN            min value in -diff mode (default: -0.5)
-  -vmax VMAX            max value in -diff mode (default: -0.5)
+                        range of matplotlib window (default: unset), example: x x -2 2
+  -vmin VMIN            min value in -diff mode (default: unset)
+  -vmax VMAX            max value in -diff mode (default: unset)
   -cpu NCPU, -ncpu NCPU
                         number of parallel processes (default: 1).
-  -on ON [ON ...]       output number(s) (on) to plot. This can be a single
-                        value or a range (start, end, [step]) where both ends
-                        are inclusive. (default: last output available).
-  -all                  save an image for every available snapshot (this will
-                        force show=False).
-  -dim {1,2}            dimensionality in projection: 1 for a line plot, 2
-                        (default) for a map.
-  -ft FONTSIZE          fontsize in the graph (default: 11).
-  -cmap CMAP            choice of colormap for the -dim 2 maps (default:
-                        'RdYlBu_r').
-  -scaling SCALING      scale the overall sizes of features in the graph (fonts, linewidth...)
-                        (default: 1).
+  -on ON [ON ...]       output number(s) (on) to plot. This can be a single value or a range (start, end, [step]) where both ends are inclusive. (default: last output available).
+  -all                  save an image for every available snapshot (this will force show=False).
+  -dim {1,2}            dimensionality in projection: 1 for a line plot, 2 (default) for a map.
+  -scaling SCALING      scale the overall sizes of features in the graph (fonts, linewidth...) (default: 1).
+  -cmap CMAP            choice of colormap for the -dim 2 maps (default: 'RdYlBu_r').
+  -fmt FORMAT, -format FORMAT
+                        select output image file format (default: unset)
   -dpi DPI              image file resolution (default: DEFAULTS['dpi'])
 
 boolean flags:
-  -diff                 plot the relative perturbation of the field f, i.e.
-                        (f-f0)/f0.
+  -diff                 plot the relative perturbation of the field f, i.e. (f-f0)/f0.
   -log                  plot the log10 of the field f, i.e. log(f).
   -isp                  is there a planet in the grid ?
   -corotate             does the grid corotate? Works in pair with -isp.
@@ -91,14 +80,13 @@ boolean flags:
 
 streamlines options:
   -lic {V,B}            which vector field for lic streamlines (default: 'unset')
-  -dpilic DPILIC        lic interpolation cell refinement (default: DEFAULTS['dpilic'])
+  -licres LICRES        lic interpolation cell refinement (default: 5)
 
 CLI-only options:
   -input INPUT, -i INPUT
                         specify a configuration file.
   -isolated             ignore any existing 'nonos.toml' file.
-  -d, -display          open a graphic window with the plot (only works with a
-                        single image)
+  -d, -display          open a graphic window with the plot (only works with a single image)
   -version, --version   show raw version number and exit
   -logo                 show Nonos logo with version number, and exit.
   -config               show configuration and exit.
