@@ -39,10 +39,10 @@ To get help, run
 $ nonos --help
 ```
 ```
-usage: nonos [-h] [-dir DATADIR] [-field {RHO,VX1,VX2,VX3,BX1,BX2,BX3}] [-plane {rphi,rz,rtheta,xy,xz,yz}] 
-             [-range RANGE [RANGE ...]] [-vmin VMIN] [-vmax VMAX] [-cpu NCPU] [-on ON [ON ...] | -all] 
+usage: nonos [-h] [-dir DATADIR] [-field {RHO,VX1,VX2,VX3,BX1,BX2,BX3}] [-plane {rphi,rz,rtheta,xy,xz,yz}]
+             [-range RANGE [RANGE ...]] [-vmin VMIN] [-vmax VMAX] [-cpu NCPU] [-on ON [ON ...] | -all]
              [-diff] [-log] [-isp] [-corotate] [-grid] [-slice] [-pbar]
-             [-lic {V,B}] [-licres LICRES] [-dim {1,2}] [-scaling SCALING] [-cmap CMAP] [-fmt FORMAT] [-dpi DPI] 
+             [-lic {V,B}] [-licres LICRES] [-dim {1,2}] [-scaling SCALING] [-cmap CMAP] [-fmt FORMAT] [-dpi DPI]
              [-input INPUT | -isolated] [-d | -version | -logo | -config] [-v]
 
 Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
