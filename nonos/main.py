@@ -36,7 +36,6 @@ from nonos.geometry import (
     GEOM_TRANSFORMS,
     get_keys_from_geomtransforms,
     meshgrid_from_plane,
-    no_op,
 )
 from nonos.logging import parse_verbose_level, print_err, print_warn
 from nonos.parsing import (
@@ -79,7 +78,7 @@ class DataStructure:
     pass
 
 
-def readVTKPolar(filename, cell="edges", computedata=True):
+def readVTKPolar(filename, *, cell="edges", computedata=True):
     """
     Adapted from Geoffroy Lesur
     Function that reads a vtk file in polar coordinates
@@ -456,11 +455,9 @@ class Mesh(InitParamNonos):
         super().load()
         logging.debug("mesh parameters: started")
         if self.code == "idefix" or self.code == "pluto":
+            first_vtk = next(glob.iglob(os.path.join(self.config["datadir"], "*.vtk")))
             domain = readVTKPolar(
-                os.path.join(
-                    self.config["datadir"],
-                    glob.glob1(self.config["datadir"], "*.vtk")[0],
-                ),
+                first_vtk,
                 cell="edges",
                 computedata=False,
             )
@@ -524,14 +521,20 @@ class Mesh(InitParamNonos):
         self.y = self.yedge
         self.z = self.zedge
 
-        self.coord = [self.x, self.y, self.z]
-        self.coordmed = [self.xmed, self.ymed, self.zmed]
         # TODO change that when structure no cylindrical
         # cartesian: DEFAULT = [0,0,0]
         # spherical: DEFAULT = [1,np.pi/2,0]
-        self.DEFAULT_POINT = [1, 0, 0]
+        self._default_point = [1, 0, 0]
 
         logging.debug("mesh parameters: finished")
+
+    @property
+    def coord(self):
+        return self.x, self.y, self.z
+
+    @property
+    def coordmed(self):
+        return self.xmed, self.ymed, self.zmed
 
 
 class FieldNonos(Mesh, InitParamNonos):
@@ -659,7 +662,7 @@ class PlotNonos(FieldNonos):
     Plot class which uses Field to compute different graphs.
     """
 
-    def axiplot(self, ax, extent=None, vmin=None, vmax=None, average=None, **karg):
+    def axiplot(self, ax, *, vmin=None, vmax=None, average=None, extent=None, **karg):
         if average is None:
             average = self.init.config["average"]
         if average:
@@ -693,17 +696,18 @@ class PlotNonos(FieldNonos):
     def plot(
         self,
         ax,
-        extent=None,
+        *,
         vmin=None,
         vmax=None,
         plane=(1, 2, 3),  # default: (x,y)
         geometry="cartesian",
-        func_proj=no_op,
+        func_proj=None,
         average=None,
         lic=None,
         licres=None,
         scaling=1,
         cmap=None,
+        extent=None,
         **karg,
     ):
         """
@@ -715,8 +719,6 @@ class PlotNonos(FieldNonos):
 
         extent = parse_range(extent, dim=2)
 
-        # if plane is None:
-        #     plane = self.init.config["plane"]
         if average is None:
             average = self.init.config["average"]
         if cmap is None:
@@ -772,29 +774,31 @@ class PlotNonos(FieldNonos):
         # If we plot a slice, we then need to adapt the data itself
         # to be coherent with the projection plan.
         # We look for the index of the 3d dimension 1D array
-        # that matches self.DEFAULT_POINT
+        # that matches self._default_point
         if average:
             data = choosemean(self.data, plane, self.coord)
         else:
-            data = chooseslice(self.data, plane, self.coord, self.DEFAULT_POINT)
+            data = chooseslice(self.data, plane, self.coord, self._default_point)
 
         # convert 1D coordinates arrays (self.coord)
         # into 2D coordinates arrays (coordgrid) via meshgrid,
         # using (plane[0],plane[1]) for the projection plane
-        # and self.DEFAULT_POINT for the 3d (plane[2]) dimension
+        # and self._default_point for the 3d (plane[2]) dimension
         coordgrid = meshgrid_from_plane(
-            self.coord, plane[0], plane[1], self.DEFAULT_POINT
+            self.coord, plane[0], plane[1], self._default_point
         )
         coordgrid = np.array(coordgrid, dtype=object)[np.array(plane) - 1]
 
         # (coord[0]=R,coord[1]=phi by default)
         # then, depending on the geometry,
         # we transform these 2D coordinates arrays
-        transform = func_proj(
-            coordgrid[0],
-            coordgrid[1],
-            coordgrid[2],
-        )
+        transform = coordgrid
+        if func_proj is not None:
+            transform = func_proj(
+                coordgrid[0],
+                coordgrid[1],
+                coordgrid[2],
+            )
 
         if is_set(lic) and self.code != "fargo3d":
             # TODO: careful, works for a cylindrical structure
@@ -831,7 +835,7 @@ class PlotNonos(FieldNonos):
             # print(f"xmin: {xi.min()}, xmax: {xi.max()}, ymin: {yi.min()}, ymax: {yi.max()}")
             # print(f"extent: {extent}")
             coordgridmed = meshgrid_from_plane(
-                self.coordmed, plane[0], plane[1], self.DEFAULT_POINT
+                self.coordmed, plane[0], plane[1], self._default_point
             )
             datai = interpol(
                 coordgridmed[0],
@@ -972,6 +976,7 @@ def interpol(
     xx,
     yy,
     u,
+    *,
     method="linear",
     xxmin=None,
     xxmax=None,
@@ -1005,18 +1010,18 @@ def interpol(
     return (x, y, gu)
 
 
-def chooseslice(field, plane, coord, DEFAULT_POINT):
+def chooseslice(field, plane, coord, _default_point):
     if plane[2] - 1 == 0:
         fieldslice = field[
-            find_nearest(coord[plane[2] - 1], DEFAULT_POINT[plane[2] - 1]), :, :
+            find_nearest(coord[plane[2] - 1], _default_point[plane[2] - 1]), :, :
         ]
     elif plane[2] - 1 == 1:
         fieldslice = field[
-            :, find_nearest(coord[plane[2] - 1], DEFAULT_POINT[plane[2] - 1]), :
+            :, find_nearest(coord[plane[2] - 1], _default_point[plane[2] - 1]), :
         ]
     elif plane[2] - 1 == 2:
         fieldslice = field[
-            :, :, find_nearest(coord[plane[2] - 1], DEFAULT_POINT[plane[2] - 1])
+            :, :, find_nearest(coord[plane[2] - 1], _default_point[plane[2] - 1])
         ]
     else:
         raise ValueError("Plane not defined. Should be any permutation of (1,2,3).")
@@ -1050,9 +1055,10 @@ def choosemean(field, plane, coord):
 def LICstream(
     init,
     on,
+    *,
     plane=(1, 2, 3),
     lines="V",
-    func_proj=no_op,
+    func_proj=None,
     corotate=False,
     isPlanet=False,
     average=False,
@@ -1093,7 +1099,7 @@ def LICstream(
         lx2 = lx2on.data.astype(np.float32)
 
     coordgridmed = meshgrid_from_plane(
-        lx1on.coordmed, plane[0], plane[1], lx1on.DEFAULT_POINT
+        lx1on.coordmed, plane[0], plane[1], lx1on._default_point
     )
 
     if average:
@@ -1101,8 +1107,8 @@ def LICstream(
         lx2avr = choosemean(lx2, plane, lx1on.coord)
         lx = [lx1avr, lx2avr]
     else:
-        lx1slice = chooseslice(lx1, plane, lx1on.coord, lx1on.DEFAULT_POINT)
-        lx2slice = chooseslice(lx2, plane, lx1on.coord, lx1on.DEFAULT_POINT)
+        lx1slice = chooseslice(lx1, plane, lx1on.coord, lx1on._default_point)
+        lx2slice = chooseslice(lx2, plane, lx1on.coord, lx1on._default_point)
         lx = [lx1slice, lx2slice]
 
     xi, yi, lx1i = interpol(
@@ -1156,15 +1162,17 @@ def LICstream(
     )
 
     Xi, Yi = np.meshgrid(xiedge, yiedge)
-    Zi = lx1on.DEFAULT_POINT[plane[2] - 1]
+    Zi = lx1on._default_point[plane[2] - 1]
     # from plane to R,phi,z
     coordgridedge = np.array([Xi, Yi, Zi], dtype=object)[np.array(plane) - 1]
 
-    transform = func_proj(
-        coordgridedge[0],
-        coordgridedge[1],
-        coordgridedge[2],
-    )
+    transform = coordgridedge
+    if func_proj is not None:
+        transform = func_proj(
+            coordgridedge[0],
+            coordgridedge[1],
+            coordgridedge[2],
+        )
 
     return (transform[plane[0] - 1], transform[plane[1] - 1], image_relic_eq)
 
@@ -1219,7 +1227,6 @@ def process_field(
     if dim == 2:
         ploton.plot(
             ax,
-            extent=extent,
             vmin=vmin,
             vmax=vmax,
             plane=plane,
@@ -1229,6 +1236,7 @@ def process_field(
             licres=licres,
             average=avr,
             cmap=cmap,
+            extent=extent,
         )
         # TODO: change that when structure different from cylindrical
         prefix = get_keys_from_geomtransforms(
@@ -1237,7 +1245,7 @@ def process_field(
 
     # plot the 1D profile
     elif dim == 1:
-        ploton.axiplot(ax, extent=extent, vmin=vmin, vmax=vmax, average=avr)
+        ploton.axiplot(ax, vmin=vmin, vmax=vmax, average=avr, extent=extent)
         prefix = "axi"
     filename = f"{prefix}_{field}{f'_lic{lic}_' if is_set(lic) else ''}{'_diff' if diff else ''}{'_log' if log else ''}{geometry if dim==2 else ''}{on:04d}.{fmt}"
 

@@ -47,7 +47,7 @@ def parse_vmin_vmax(vmin, vmax, diff: bool, data: np.ndarray) -> Tuple[float, fl
     return vmin, vmax
 
 
-def parse_range(extent, dim: int) -> Tuple[float, float, float, float]:
+def parse_range(extent, dim: int):
     if not is_set(extent):
         if dim == 2:
             return (None, None, None, None)
@@ -63,36 +63,9 @@ def parse_range(extent, dim: int) -> Tuple[float, float, float, float]:
     return tuple(float(i) if i != "x" else None for i in extent)
 
 
-def range_converter(
-    extent, abscissa: np.ndarray, ordinate: np.ndarray
-) -> Tuple[float, float, float, float]:
+def range_converter(extent, abscissa: np.ndarray, ordinate: np.ndarray):
     trueextent = [abscissa.min(), abscissa.max(), ordinate.min(), ordinate.max()]
     return tuple(i if i is not None else j for (i, j) in zip(extent, trueextent))
-
-
-# def parse_range(
-#     extent,
-#     abscissa: np.ndarray,
-#     ordinate: np.ndarray,
-#     dim: int
-# ) -> Tuple[float, float, float, float]:
-#     if not is_set(extent):
-#         if dim == 2:
-#             extent = (abscissa.min(),abscissa.max(),ordinate.min(),ordinate.max())
-#         elif dim == 1:
-#             extent = (abscissa.min(),abscissa.max())
-#         else:
-#             raise ValueError("dim has to be 1 or 2.")
-
-#     else:
-#         if len(extent) != 2*dim:
-#             raise ValueError(
-#                 f"Need to parse a range from sequence {extent} with exactly {2*dim} values."
-#             )
-#         trueextent = [abscissa.min(), abscissa.max(), ordinate.min(), ordinate.max()]
-#         extent = [float(i) if i!="x" else j for (i,j) in zip(extent,trueextent)]
-
-#     return(tuple(extent))
 
 
 def parse_image_format(s: Optional[str]) -> str:
