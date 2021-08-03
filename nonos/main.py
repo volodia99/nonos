@@ -365,6 +365,15 @@ class InitParamNonos:
                 else:
                     self.omegagrid = np.zeros(len(self.data_files))
 
+            with open("definitions.hpp") as fdef:
+                lines = fdef.readlines()
+                for line in lines:
+                    try:
+                        if line.split()[1] == "GEOMETRY":
+                            self.structure = line.split()[2].lower()
+                    except IndexError:
+                        pass
+
         elif self.code == "pluto":
             self.data_files = list(glob.glob1(self.config["datadir"], "data.*.vtk"))
             # self.h0 = 0.05
@@ -388,6 +397,15 @@ class InitParamNonos:
                     self.omegagrid = self.omegaplanet
                 else:
                     self.omegagrid = np.zeros(len(self.data_files))
+
+            with open("definitions.h") as fdef:
+                lines = fdef.readlines()
+                for line in lines:
+                    try:
+                        if line.split()[1] == "GEOMETRY":
+                            self.structure = line.split()[2].lower()
+                    except IndexError:
+                        pass
 
         elif self.code == "fargo3d":
             self.data_files = [
@@ -436,6 +454,8 @@ class InitParamNonos:
                     self.omegagrid = self.omegaplanet
                 else:
                     self.omegagrid = np.zeros(len(self.data_files))
+
+            self.structure = self.iniconfig["COORDINATES"]
 
         if not self.data_files:
             raise FileNotFoundError("No data files were found.")
@@ -521,7 +541,7 @@ class Mesh(InitParamNonos):
         self.y = self.yedge
         self.z = self.zedge
 
-        # TODO change that when structure no cylindrical
+        # TODO: change that when structure no cylindrical
         # cartesian: DEFAULT = [0,0,0]
         # spherical: DEFAULT = [1,np.pi/2,0]
         self._default_point = [1, 0, 0]
@@ -724,7 +744,7 @@ class PlotNonos(FieldNonos):
         if cmap is None:
             cmap = self.init.config["cmap"]
 
-        # below: works for a cylindrical structure
+        # TODO: below: works for a cylindrical structure
         if geometry == "cylindrical":
             ax.set_aspect("auto")
             if plane[:-1] == (1, 2):
@@ -1088,7 +1108,7 @@ def LICstream(
     )
 
     lx1 = lx1on.data.astype(np.float32)
-    # TODO change/generalize this,
+    # TODO: change/generalize this,
     # as it works for a cylindrical structure,
     # but not a spherical one
     if isPlanet and (2 in plane[:-1]) and (lines == "V"):
@@ -1259,7 +1279,8 @@ def process_field(
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    structure = "cylindrical"  # for now, only cylindrical data
+    # TODO: for now, only cylindrical data structure
+    structure = "cylindrical"
 
     parser = argparse.ArgumentParser(
         prog="nonos",
