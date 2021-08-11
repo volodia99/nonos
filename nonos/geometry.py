@@ -52,7 +52,7 @@ def get_keys_from_geomtransforms(dictionary, values):
     you give this function a dictionary
     of the type GEOM_TRANSFORMS[structure]
     (see dictionary just under the function)
-    + a list of values (ex: plane=(1,2) and geometry="cylindrical"),
+    + a list of values (ex: plane=(1,2,3) and geometry="cylindrical"),
     and it finds the corresponding key (here in the example : "rphi").
     It is used to give the good name for the savefig,
     knowing the plane and the geometry.
@@ -66,27 +66,27 @@ def get_keys_from_geomtransforms(dictionary, values):
 
 GEOM_TRANSFORMS = {
     "cylindrical": {
-        "rphi": [(1, 2), "cylindrical", None],
-        "rz": [(1, 3), "cylindrical", None],
-        "rtheta": [(1, 3), "spherical", cylindrical_to_spherical],
-        "xy": [(1, 2), "cartesian", cylindrical_to_cartesian],
-        "xz": [(1, 3), "cartesian", cylindrical_to_cartesian],
-        "yz": [(2, 3), "cartesian", cylindrical_to_cartesian],
+        "rphi": [(1, 2, 3), "cylindrical", None],
+        "rz": [(1, 3, 2), "cylindrical", None],
+        "rtheta": [(1, 3, 2), "spherical", cylindrical_to_spherical],
+        "xy": [(1, 2, 3), "cartesian", cylindrical_to_cartesian],
+        "xz": [(1, 3, 2), "cartesian", cylindrical_to_cartesian],
+        "yz": [(2, 3, 1), "cartesian", cylindrical_to_cartesian],
     },
     "spherical": {
-        "rtheta": [(1, 2), "spherical", None],
-        "rphi": [(1, 3), "spherical", None],
-        "rz": [(1, 2), "cylindrical", spherical_to_cylindrical],
-        "xy": [(1, 3), "cartesian", spherical_to_cartesian],
-        "xz": [(1, 2), "cartesian", spherical_to_cartesian],
-        "yz": [(2, 3), "cartesian", spherical_to_cartesian],
+        "rtheta": [(1, 2, 3), "spherical", None],
+        "rphi": [(1, 3, 2), "spherical", None],
+        "rz": [(1, 2, 3), "cylindrical", spherical_to_cylindrical],
+        "xy": [(1, 3, 2), "cartesian", spherical_to_cartesian],
+        "xz": [(1, 2, 3), "cartesian", spherical_to_cartesian],
+        "yz": [(2, 3, 1), "cartesian", spherical_to_cartesian],
     },
     "cartesian": {
-        "xy": [(1, 2), "cartesian", None],
-        "xz": [(1, 3), "cartesian", None],
-        "yz": [(2, 3), "cartesian", None],
-        "rphi": [(1, 2), "cylindrical", cartesian_to_cylindrical],
-        "rz": [(1, 3), "cylindrical", cartesian_to_cylindrical],
-        "rtheta": [(1, 3), "spherical", cartesian_to_spherical],
+        "xy": [(1, 2, 3), "cartesian", None],
+        "xz": [(1, 3, 2), "cartesian", None],
+        "yz": [(2, 3, 1), "cartesian", None],
+        "rphi": [(1, 2, 3), "cylindrical", cartesian_to_cylindrical],
+        "rz": [(1, 3, 2), "cylindrical", cartesian_to_cylindrical],
+        "rtheta": [(1, 3, 2), "spherical", cartesian_to_spherical],
     },
 }

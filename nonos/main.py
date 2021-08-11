@@ -323,7 +323,9 @@ class InitParamNonos:
             # self.h0 = self.iniconfig["Setup"]["h0"]
             if self.config["isPlanet"]:
                 if Path(self.config["datadir"]).joinpath("planet0.dat").is_file():
-                    with open("planet0.dat") as f1:
+                    with open(
+                        os.path.join(self.config["datadir"], "planet0.dat")
+                    ) as f1:
                         datafile = f1.readlines()
                         self.qpl = np.array(
                             [float(line.split()[7]) for line in datafile]
@@ -365,14 +367,29 @@ class InitParamNonos:
                 else:
                     self.omegagrid = np.zeros(len(self.data_files))
 
-            with open("definitions.hpp") as fdef:
-                lines = fdef.readlines()
-                for line in lines:
-                    try:
-                        if line.split()[1] == "GEOMETRY":
-                            self.structure = line.split()[2].lower()
-                    except IndexError:
-                        pass
+            if Path(self.config["datadir"]).joinpath("definitions.hpp").is_file():
+                with open(
+                    os.path.join(self.config["datadir"], "definitions.hpp")
+                ) as fh:
+                    while True:
+                        try:
+                            line = next(fh)
+                        except StopIteration as exc:
+                            raise RuntimeError(
+                                "Failed to parse geometry flag from definitions.hpp"
+                            ) from exc
+                        if (
+                            match := re.match(
+                                r"(?:\s*#define\s+GEOMETRY\s+)(\w+)", line
+                            )
+                        ) is not None:
+                            self._native_geometry = match.groups()[0].lower()
+                            break
+            else:
+                raise FileNotFoundError(
+                    "'definitions.hpp' does not exist in '%s' directory"
+                    % self.config["datadir"]
+                )
 
         elif self.code == "pluto":
             self.data_files = list(glob.glob1(self.config["datadir"], "data.*.vtk"))
@@ -398,14 +415,27 @@ class InitParamNonos:
                 else:
                     self.omegagrid = np.zeros(len(self.data_files))
 
-            with open("definitions.h") as fdef:
-                lines = fdef.readlines()
-                for line in lines:
-                    try:
-                        if line.split()[1] == "GEOMETRY":
-                            self.structure = line.split()[2].lower()
-                    except IndexError:
-                        pass
+            if Path(self.config["datadir"]).joinpath("definitions.h").is_file():
+                with open(os.path.join(self.config["datadir"], "definitions.h")) as fh:
+                    while True:
+                        try:
+                            line = next(fh)
+                        except StopIteration as exc:
+                            raise RuntimeError(
+                                "Failed to parse geometry flag from definitions.hpp"
+                            ) from exc
+                        if (
+                            match := re.match(
+                                r"(?:\s*#define\s+GEOMETRY\s+)(\w+)", line
+                            )
+                        ) is not None:
+                            self._native_geometry = match.groups()[0].lower()
+                            break
+            else:
+                raise FileNotFoundError(
+                    "'definitions.h' does not exist in '%s' directory"
+                    % self.config["datadir"]
+                )
 
         elif self.code == "fargo3d":
             self.data_files = [
@@ -428,10 +458,8 @@ class InitParamNonos:
             # self.h0 = self.iniconfig["ASPECTRATIO"]
             if self.config["isPlanet"]:
                 if Path(self.config["datadir"]).joinpath("planet0.dat").is_file():
-                    with open("planet0.dat") as f1:
-                        data = f1.readlines()
-                    columns = np.array(
-                        [[v for v in r.split("\t")] for r in data], dtype="float64"
+                    columns = np.loadtxt(
+                        os.path.join(self.config["datadir"], "planet0.dat")
                     ).T
                     self.qpl = columns[7]
                     self.dpl = np.sqrt(np.sum(columns[1:4] ** 2, axis=0))
@@ -455,10 +483,12 @@ class InitParamNonos:
                 else:
                     self.omegagrid = np.zeros(len(self.data_files))
 
-            self.structure = self.iniconfig["COORDINATES"]
+            self._native_geometry = self.iniconfig["COORDINATES"]
 
         if not self.data_files:
             raise FileNotFoundError("No data files were found.")
+        if self._native_geometry == "polar":
+            self._native_geometry = "cylindrical"
 
 
 class Mesh(InitParamNonos):
@@ -476,11 +506,17 @@ class Mesh(InitParamNonos):
         logging.debug("mesh parameters: started")
         if self.code == "idefix" or self.code == "pluto":
             first_vtk = next(glob.iglob(os.path.join(self.config["datadir"], "*.vtk")))
-            domain = readVTKPolar(
-                first_vtk,
-                cell="edges",
-                computedata=False,
-            )
+            if self._native_geometry in ("cylindrical", "polar"):
+                domain = readVTKPolar(
+                    first_vtk,
+                    cell="edges",
+                    computedata=False,
+                )
+            else:
+                raise NotImplementedError(
+                    f"geometry flag '{self._native_geometry}' not implemented yet for readVTK"
+                )
+
             self.domain = domain
 
             self.nx = self.domain.nx
@@ -541,10 +577,15 @@ class Mesh(InitParamNonos):
         self.y = self.yedge
         self.z = self.zedge
 
-        # TODO: change that when structure no cylindrical
-        # cartesian: DEFAULT = [0,0,0]
-        # spherical: DEFAULT = [1,np.pi/2,0]
-        self._default_point = [1, 0, 0]
+        # TODO: TEST that when _native_geometry no cylindrical
+        if self._native_geometry == "cartesian":
+            self._default_point = [0, 0, 0]
+        elif self._native_geometry == "spherical":
+            self._default_point = [1, np.pi / 2, 0]
+        elif self._native_geometry in ("cylindrical", "polar"):
+            self._default_point = [1, 0, 0]
+        else:
+            raise RuntimeError(f"Got unknown geometry flag '{self._native_geometry}'")
 
         logging.debug("mesh parameters: finished")
 
@@ -639,17 +680,27 @@ class FieldNonos(Mesh, InitParamNonos):
         """
         super().load()
         if self.code == "fargo3d":
-            data = np.fromfile(f, dtype="float64")
-            data = (data.reshape(self.nz, self.nx, self.ny)).transpose(
-                1, 2, 0
-            )  # rad, pĥi, theta
+            if self._native_geometry in ("cylindrical", "polar"):
+                data = np.fromfile(f, dtype="float64")
+                data = (data.reshape(self.nz, self.nx, self.ny)).transpose(
+                    1, 2, 0
+                )  # rad, pĥi, theta
+            else:
+                raise NotImplementedError(
+                    f"geometry flag '{self._native_geometry}' not implemented yet for readVTK"
+                )
         else:
             # Idefix or Pluto
-            data = readVTKPolar(f, cell="edges").data[self.field].astype(np.float32)
-            data = np.concatenate(
-                (data[:, self.ny // 2 : self.ny, :], data[:, 0 : self.ny // 2, :]),
-                axis=1,
-            )
+            if self._native_geometry in ("cylindrical", "polar"):
+                data = readVTKPolar(f, cell="edges").data[self.field].astype(np.float32)
+                data = np.concatenate(
+                    (data[:, self.ny // 2 : self.ny, :], data[:, 0 : self.ny // 2, :]),
+                    axis=1,
+                )
+            else:
+                raise NotImplementedError(
+                    f"geometry flag '{self._native_geometry}' not implemented yet for readVTK"
+                )
 
         """
         if we try to rotate a grid at 0 speed
@@ -670,9 +721,14 @@ class FieldNonos(Mesh, InitParamNonos):
             index = (np.where(Prot[0] > np.pi))[0].min()
         except ValueError:
             index = (np.where(Prot[0] < -np.pi))[0].max()
-        data = np.concatenate(
-            (data[:, index : self.ny, :], data[:, 0:index, :]), axis=1
-        )
+        if self._native_geometry in ("cylindrical", "polar"):
+            data = np.concatenate(
+                (data[:, index : self.ny, :], data[:, 0:index, :]), axis=1
+            )
+        else:
+            raise NotImplementedError(
+                f"geometry flag '{self._native_geometry}' not implemented yet for readVTK"
+            )
         logging.debug("grid rotation: finished")
         return data
 
@@ -685,16 +741,53 @@ class PlotNonos(FieldNonos):
     def axiplot(self, ax, *, vmin=None, vmax=None, average=None, extent=None, **karg):
         if average is None:
             average = self.init.config["average"]
-        if average:
-            dataRZ = np.mean(self.data, axis=1)
-            dataR = np.mean(dataRZ, axis=1) * next(
-                item for item in [self.z.max() - self.z.min(), 1.0] if item != 0
-            )
-            dataProfile = dataR
+        # if average:
+        #     dataRZ = np.mean(self.data, axis=1)
+        #     dataR = np.mean(dataRZ, axis=1) * next(
+        #         item for item in [self.z.max() - self.z.min(), 1.0] if item != 0
+        #     )
+        #     dataProfile = dataR
+        # else:
+        #     dataRZ = self.data[:, self.ny // 2, :]
+        #     dataR = dataRZ[:, self.imidplane]
+        #     dataProfile = dataR
+
+        # TODO: TEST + change for different data _native_geometry
+        if self._native_geometry in ("cylindrical", "polar"):
+            if average:
+                if self.data.shape[1] <= 1:
+                    dataRZ = self.data[:, 0, :]
+                else:
+                    dataRZ = (
+                        np.sum(
+                            (
+                                ((self.data[:, 1:, :] + self.data[:, :-1, :]) / 2)
+                                * np.ediff1d(self.coordmed[1])[None, :, None]
+                            ),
+                            axis=1,
+                        )
+                        / 2.0
+                        / np.pi
+                    )
+                dataR = np.sum(
+                    (
+                        ((dataRZ[:, 1:] + dataRZ[:, :-1]) / 2)
+                        * np.ediff1d(self.coordmed[2])[None, :]
+                    ),
+                    axis=1,
+                )
+
+                # dataRZ = choosemean(self.data, (1,3,2), self.coord)
+                # dataR = choosemean(dataR, (1,3,2), self.coord)
+                dataProfile = dataR
+            else:
+                dataRZ = self.data[:, self.ny // 2, :]
+                dataR = dataRZ[:, self.imidplane]
+                dataProfile = dataR
         else:
-            dataRZ = self.data[:, self.ny // 2, :]
-            dataR = dataRZ[:, self.imidplane]
-            dataProfile = dataR
+            raise NotImplementedError(
+                f"geometry flag '{self._native_geometry}' not implemented yet for axiplot"
+            )
 
         vmin, vmax = parse_vmin_vmax(
             vmin, vmax, diff=self.config["diff"], data=dataProfile
@@ -744,52 +837,56 @@ class PlotNonos(FieldNonos):
         if cmap is None:
             cmap = self.init.config["cmap"]
 
-        # TODO: below: works for a cylindrical structure
-        if geometry == "cylindrical":
-            ax.set_aspect("auto")
-            if plane[:-1] == (1, 2):
-                # ax.set_ylim(-np.pi, np.pi)
-                ax.set_ylabel(r"$\phi$ [c.u.]")
-                ax.set_xlabel("R [c.u.]")
-            elif plane[:-1] == (1, 3):
-                ax.set_ylabel("z [c.u.]")
-                ax.set_xlabel("R [c.u.]")
-            else:
-                raise NotImplementedError(
-                    f"plane {plane[:-1]} is not implemented yet in a {geometry} projection."
-                )
-        elif geometry == "cartesian":
-            if plane[:-1] == (1, 2):
-                ax.set_aspect("equal")
-                ax.set_ylabel("Y [c.u.]")
-                ax.set_xlabel("X [c.u.]")
-            elif plane[:-1] == (1, 3):
+        # TODO: below: works for a cylindrical _native_geometry -> TEST + change for other _native_geometries
+        if self._native_geometry in ("cylindrical", "polar"):
+            if geometry == "cylindrical":
                 ax.set_aspect("auto")
-                ax.set_ylabel("Z [c.u.]")
-                ax.set_xlabel("X [c.u.]")
-            elif plane[:-1] == (2, 3):
-                ax.set_aspect("auto")
-                ax.set_ylabel("Z [c.u.]")
-                ax.set_xlabel("Y [c.u.]")
+                if plane[:-1] == (1, 2):
+                    ax.set_ylabel(r"$\phi$ [c.u.]")
+                    ax.set_xlabel("R [c.u.]")
+                elif plane[:-1] == (1, 3):
+                    ax.set_ylabel("z [c.u.]")
+                    ax.set_xlabel("R [c.u.]")
+                else:
+                    raise NotImplementedError(
+                        f"plane {plane[:-1]} is not implemented yet in a {geometry} projection."
+                    )
+            elif geometry == "cartesian":
+                if plane[:-1] == (1, 2):
+                    ax.set_aspect("equal")
+                    ax.set_ylabel("Y [c.u.]")
+                    ax.set_xlabel("X [c.u.]")
+                elif plane[:-1] == (1, 3):
+                    ax.set_aspect("auto")
+                    ax.set_ylabel("Z [c.u.]")
+                    ax.set_xlabel("X [c.u.]")
+                elif plane[:-1] == (2, 3):
+                    ax.set_aspect("auto")
+                    ax.set_ylabel("Z [c.u.]")
+                    ax.set_xlabel("Y [c.u.]")
+                else:
+                    raise NotImplementedError(
+                        f"plane {plane[:-1]} is not implemented yet in a {geometry} projection."
+                    )
+            elif geometry == "spherical":
+                ax.set_aspect("auto")  # for now
+                ax.set_ylabel(r"$\theta$ [c.u.]")
+                ax.set_xlabel("r [c.u.]")
             else:
-                raise NotImplementedError(
-                    f"plane {plane[:-1]} is not implemented yet in a {geometry} projection."
-                )
-        elif geometry == "spherical":
-            ax.set_aspect("auto")  # for now
-            ax.set_ylabel(r"$\theta$ [c.u.]")
-            ax.set_xlabel("r [c.u.]")
+                raise ValueError(f"Unknown geometry '{geometry}'")
+
+            if (1 in plane[:-1]) and (self.x.shape[0] <= 1):
+                raise IndexError("No radial direction, the simulation is not 3D.")
+            if (2 in plane[:-1]) and (self.y.shape[0] <= 1):
+                raise IndexError("No azimuthal direction, the simulation is not 3D.")
+            if (3 in plane[:-1]) and (self.z.shape[0] <= 1):
+                raise IndexError("No vertical direction, the simulation is not 3D.")
         else:
-            raise ValueError(f"Unknown geometry '{geometry}'")
+            raise NotImplementedError(
+                f"geometry flag '{self._native_geometry}' not implemented yet for plot"
+            )
 
         logging.debug("pcolormesh: started")
-
-        if (1 in plane[:-1]) and (self.x.shape[0] <= 1):
-            raise IndexError("No radial direction, the simulation is not 3D.")
-        if (2 in plane[:-1]) and (self.y.shape[0] <= 1):
-            raise IndexError("No azimuthal direction, the simulation is not 3D.")
-        if (3 in plane[:-1]) and (self.z.shape[0] <= 1):
-            raise IndexError("No vertical direction, the simulation is not 3D.")
 
         # If we plot a slice, we then need to adapt the data itself
         # to be coherent with the projection plan.
@@ -807,129 +904,132 @@ class PlotNonos(FieldNonos):
         coordgrid = meshgrid_from_plane(
             self.coord, plane[0], plane[1], self._default_point
         )
-        coordgrid = np.array(coordgrid, dtype=object)[np.array(plane) - 1]
+        # reorder the coordinates in order to prepare the transformation from a native geometry to a new geometry
+        # coordgrid = tuple(np.array(coordgrid, dtype=object)[np.array(plane) - 1])
+        coordgrid = tuple(coordgrid[_] for _ in np.argsort(plane))
 
         # (coord[0]=R,coord[1]=phi by default)
         # then, depending on the geometry,
         # we transform these 2D coordinates arrays
-        transform = coordgrid
         if func_proj is not None:
-            transform = func_proj(
-                coordgrid[0],
-                coordgrid[1],
-                coordgrid[2],
-            )
+            coordgrid = func_proj(*coordgrid)
 
-        if is_set(lic) and self.code != "fargo3d":
-            # TODO: careful, works for a cylindrical structure
-            # but may be wrong when other structures
-            # will be implemented (in particular the extent of interpolation)
-            if 1 in plane[:-1]:
-                if 3 in plane[:-1]:
-                    extent_i = (None, extent[1], extent[2], extent[3])
+        # TODO: careful, works for a cylindrical _native_geometry
+        # but may be wrong when other _native_geometries
+        # are implemented (in particular the extent of interpolation)
+        if self._native_geometry in ("cylindrical", "polar"):
+            if is_set(lic) and self.code in ("pluto", "idefix"):
+                if 1 in plane[:-1]:
+                    if 3 in plane[:-1]:
+                        extent_i = (None, extent[1], extent[2], extent[3])
+                    else:
+                        extent_i = (None, extent[1], None, None)
+                elif 3 in plane[:-1]:
+                    extent_i = (None, None, extent[2], extent[3])
                 else:
-                    extent_i = (None, extent[1], None, None)
-            elif 3 in plane[:-1]:
-                extent_i = (None, None, extent[2], extent[3])
-            else:
-                extent_i = (None, None, None, None)
+                    extent_i = (None, None, None, None)
 
-            xi, yi, lici = LICstream(
-                self.init,
-                self.on,
-                plane=plane,
-                lines=lic,
-                func_proj=func_proj,
-                corotate=self.config["corotate"],
-                isPlanet=self.config["isPlanet"],
-                average=average,
-                xxmin=extent_i[0],
-                xxmax=extent_i[1],
-                yymin=extent_i[2],
-                yymax=extent_i[3],
-                dxx=licres,
-                dyy=licres,
-                kernel_length=30,
-                niter=2,
-            )
-            # print(f"xmin: {xi.min()}, xmax: {xi.max()}, ymin: {yi.min()}, ymax: {yi.max()}")
-            # print(f"extent: {extent}")
-            coordgridmed = meshgrid_from_plane(
-                self.coordmed, plane[0], plane[1], self._default_point
-            )
-            datai = interpol(
-                coordgridmed[0],
-                coordgridmed[1],
-                data,
-                method="nearest",
-                dxx=licres,
-                dyy=licres,
-                xxmin=extent_i[0],
-                xxmax=extent_i[1],
-                yymin=extent_i[2],
-                yymax=extent_i[3],
-            )[2]
-            if self.config["log"]:
-                datalic = np.log10(lici) + datai
-            else:
-                datalic = lici * datai
-            im = ax.pcolormesh(
-                xi,
-                yi,
-                datalic,
-                cmap=cmap,
-                vmin=vmin,
-                vmax=vmax,
-                **karg,
-            )
+                xi, yi, lici = LICstream(
+                    self.init,
+                    self.on,
+                    plane=plane,
+                    lines=lic,
+                    func_proj=func_proj,
+                    corotate=self.config["corotate"],
+                    isPlanet=self.config["isPlanet"],
+                    average=average,
+                    xxmin=extent_i[0],
+                    xxmax=extent_i[1],
+                    yymin=extent_i[2],
+                    yymax=extent_i[3],
+                    dxx=licres,
+                    dyy=licres,
+                    kernel_length=30,
+                    niter=2,
+                )
+                # print(f"xmin: {xi.min()}, xmax: {xi.max()}, ymin: {yi.min()}, ymax: {yi.max()}")
+                # print(f"extent: {extent}")
+                coordgridmed = meshgrid_from_plane(
+                    self.coordmed, plane[0], plane[1], self._default_point
+                )
+                datai = interpol(
+                    coordgridmed[0],
+                    coordgridmed[1],
+                    data,
+                    method="nearest",
+                    dxx=licres,
+                    dyy=licres,
+                    xxmin=extent_i[0],
+                    xxmax=extent_i[1],
+                    yymin=extent_i[2],
+                    yymax=extent_i[3],
+                )[2]
+                if self.config["log"]:
+                    datalic = np.log10(lici) + datai
+                else:
+                    datalic = lici * datai
+                im = ax.pcolormesh(
+                    xi,
+                    yi,
+                    datalic,
+                    cmap=cmap,
+                    vmin=vmin,
+                    vmax=vmax,
+                    **karg,
+                )
 
-            extent = range_converter(
-                extent,
-                abscissa=xi,
-                ordinate=yi,
-            )
+                extent = range_converter(
+                    extent,
+                    abscissa=xi,
+                    ordinate=yi,
+                )
+
+            else:
+                im = ax.pcolormesh(
+                    coordgrid[plane[0] - 1],
+                    coordgrid[plane[1] - 1],
+                    data,
+                    cmap=cmap,
+                    vmin=vmin,
+                    vmax=vmax,
+                    **karg,
+                )
+
+                extent = range_converter(
+                    extent,
+                    abscissa=coordgrid[plane[0] - 1],
+                    ordinate=coordgrid[plane[1] - 1],
+                )
+
+            if self.init.config["grid"]:
+                ax.plot(
+                    coordgrid[plane[0] - 1], coordgrid[plane[1] - 1], c="k", linewidth=1
+                )
+                ax.plot(
+                    coordgrid[plane[0] - 1].transpose(),
+                    coordgrid[plane[1] - 1].transpose(),
+                    c="k",
+                    linewidth=1,
+                )
+
+            logging.debug("xmin: %f" % extent[0])
+            logging.debug("xmax: %f" % extent[1])
+            logging.debug("ymin: %f" % extent[2])
+            logging.debug("ymax: %f" % extent[3])
+
+            ax.set_xlim(extent[0], extent[1])
+            ax.set_ylim(extent[2], extent[3])
+
+            ax.set_title(self.code)
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="5%", pad=0.05)
+            cbar = plt.colorbar(im, cax=cax, orientation="vertical")
+            cbar.set_label(self.title)
 
         else:
-            im = ax.pcolormesh(
-                transform[plane[0] - 1],
-                transform[plane[1] - 1],
-                data,
-                cmap=cmap,
-                vmin=vmin,
-                vmax=vmax,
-                **karg,
+            raise NotImplementedError(
+                f"geometry flag '{self._native_geometry}' not implemented yet for plot"
             )
-
-            extent = range_converter(
-                extent,
-                abscissa=transform[plane[0] - 1],
-                ordinate=transform[plane[1] - 1],
-            )
-
-        if self.init.config["grid"]:
-            ax.plot(
-                transform[plane[0] - 1], transform[plane[1] - 1], c="k", linewidth=1
-            )
-            ax.plot(
-                transform[plane[0] - 1].transpose(),
-                transform[plane[1] - 1].transpose(),
-                c="k",
-                linewidth=1,
-            )
-
-        logging.debug("xmin: %f" % extent[0])
-        logging.debug("xmax: %f" % extent[1])
-        logging.debug("ymin: %f" % extent[2])
-        logging.debug("ymax: %f" % extent[3])
-
-        ax.set_xlim(extent[0], extent[1])
-        ax.set_ylim(extent[2], extent[3])
-
-        ax.set_title(self.code)
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.05)
-        cbar = plt.colorbar(im, cax=cax, orientation="vertical")
-        cbar.set_label(self.title)
 
         logging.debug("pcolormesh: finished")
 
@@ -1004,7 +1104,7 @@ def interpol(
     yymax=None,
     dxx=None,
     dyy=None,
-):  # ,v):
+):
     if xxmin is None:
         xxmin = xx.min()
     if xxmax is None:
@@ -1109,14 +1209,19 @@ def LICstream(
 
     lx1 = lx1on.data.astype(np.float32)
     # TODO: change/generalize this,
-    # as it works for a cylindrical structure,
+    # as it works for a cylindrical _native_geometry,
     # but not a spherical one
-    if isPlanet and (2 in plane[:-1]) and (lines == "V"):
-        lx2 = (lx2on.data - lx2on.omegaplanet[on] * lx2on.xmed[:, None, None]).astype(
-            np.float32
-        )
+    if lx2on._native_geometry in ("cylindrical", "polar"):
+        if isPlanet and (2 in plane[:-1]) and (lines == "V"):
+            lx2 = (
+                lx2on.data - lx2on.omegaplanet[on] * lx2on.xmed[:, None, None]
+            ).astype(np.float32)
+        else:
+            lx2 = lx2on.data.astype(np.float32)
     else:
-        lx2 = lx2on.data.astype(np.float32)
+        raise NotImplementedError(
+            f"geometry flag '{lx2on._native_geometry}' not implemented yet for LICstream"
+        )
 
     coordgridmed = meshgrid_from_plane(
         lx1on.coordmed, plane[0], plane[1], lx1on._default_point
@@ -1183,18 +1288,17 @@ def LICstream(
 
     Xi, Yi = np.meshgrid(xiedge, yiedge)
     Zi = lx1on._default_point[plane[2] - 1]
+    coordi = (Xi, Yi, Zi)
     # from plane to R,phi,z
-    coordgridedge = np.array([Xi, Yi, Zi], dtype=object)[np.array(plane) - 1]
 
-    transform = coordgridedge
+    # reorder the coordinates in order to prepare the transformation from a native geometry to a new geometry
+    # coordgridedge = tuple(np.array([Xi, Yi, Zi], dtype=object)[np.array(plane) - 1])
+    coordgridedge = tuple(coordi[_] for _ in np.argsort(plane))
+
     if func_proj is not None:
-        transform = func_proj(
-            coordgridedge[0],
-            coordgridedge[1],
-            coordgridedge[2],
-        )
+        coordgridedge = func_proj(*coordgridedge)
 
-    return (transform[plane[0] - 1], transform[plane[1] - 1], image_relic_eq)
+    return (coordgridedge[plane[0] - 1], coordgridedge[plane[1] - 1], image_relic_eq)
 
 
 # process function for parallisation purpose with progress bar
@@ -1258,9 +1362,9 @@ def process_field(
             cmap=cmap,
             extent=extent,
         )
-        # TODO: change that when structure different from cylindrical
+        # TODO: TEST that when _native_geometry different from cylindrical
         prefix = get_keys_from_geomtransforms(
-            GEOM_TRANSFORMS["cylindrical"], [plane[:-1], geometry]
+            GEOM_TRANSFORMS[ploton._native_geometry], [plane, geometry]
         )
 
     # plot the 1D profile
@@ -1279,9 +1383,6 @@ def process_field(
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    # TODO: for now, only cylindrical data structure
-    structure = "cylindrical"
-
     parser = argparse.ArgumentParser(
         prog="nonos",
         description=__doc__,
@@ -1294,7 +1395,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     parser.add_argument(
         "-field",
-        choices=["RHO", "VX1", "VX2", "VX3", "BX1", "BX2", "BX3"],
+        choices=["RHO", "VX1", "VX2", "VX3", "BX1", "BX2", "BX3", "PRS"],
         help=f"name of field to plot (default: '{DEFAULTS['field']}').",
     )
     parser.add_argument(
@@ -1518,10 +1619,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     # this may be seen either as hyperstatism (good thing) or error prone redundancy (bad thing)
     args = ChainMap(clargs, config_file_args, DEFAULTS)
 
-    (k, l), geometry, func_proj = GEOM_TRANSFORMS[structure][args["plane"]]
-    m = list({1, 2, 3} ^ {k, l})[0]
-    plane = (k, l, m)
-
     if clargs.pop("config"):
         conf_repr = {}
         for key in DEFAULTS:
@@ -1536,6 +1633,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         print_err(exc)
         return 1
     init.load()
+
+    plane, geometry, func_proj = GEOM_TRANSFORMS[init._native_geometry][args["plane"]]
 
     available = {int(re.search(r"\d+", fn).group()) for fn in init.data_files}
     if args.pop("all"):
