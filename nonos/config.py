@@ -11,28 +11,24 @@ DEFAULTS = {
     "diff": False,
     # field in log
     "log": False,
+    # default extent of the matplotlib window
+    "range": "unset",
     # default min field when diff
     "vmin": "unset",
     # default max field when diff
     "vmax": "unset",
     # plane to represent (default is midplane)
-    "rz": False,
-    # do we average in the 3rd dimension?
-    "noaverage": False,
-    # do we compute random streams ("random"), fixed streams ("fixed") or lic ("lic")?
-    "streamtype": "unset",
-    # min radius for streamlines computation
-    "rminStream": 0.7,
-    # max radius for streamlines computation
-    "rmaxStream": 1.3,
-    # number of streamlines to draw
-    "nstreamlines": 50,
+    "plane": "xy",
+    # do we perform a slice in the 3rd dimension, or an average?
+    "slice": False,
+    # do we compute lic streamlines?
+    "lic": "unset",
+    # select interpolation cell refinement
+    "licres": 5,
     # do we display the progress (loading+plotting)
     "progressBar": False,
     # do we display the grid?
     "grid": False,
-    # cartesian or polar coordinates
-    "geometry": "cartesian",
     # is there a planet in the grid?
     "isPlanet": False,
     # do the grid rotate with the planet?

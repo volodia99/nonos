@@ -47,6 +47,27 @@ def parse_vmin_vmax(vmin, vmax, diff: bool, data: np.ndarray) -> Tuple[float, fl
     return vmin, vmax
 
 
+def parse_range(extent, dim: int):
+    if not is_set(extent):
+        if dim == 2:
+            return (None, None, None, None)
+        elif dim == 1:
+            return (None, None)
+        else:
+            raise ValueError("dim has to be 1 or 2.")
+
+    if len(extent) != 2 * dim:
+        raise ValueError(
+            f"Received sequence `extent` with incorrect size {len(extent)}. Expected exactly {2*dim=} values."
+        )
+    return tuple(float(i) if i != "x" else None for i in extent)
+
+
+def range_converter(extent, abscissa: np.ndarray, ordinate: np.ndarray):
+    trueextent = [abscissa.min(), abscissa.max(), ordinate.min(), ordinate.max()]
+    return tuple(i if i is not None else j for (i, j) in zip(extent, trueextent))
+
+
 def parse_image_format(s: Optional[str]) -> str:
     from matplotlib.backend_bases import FigureCanvasBase
 

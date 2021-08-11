@@ -3,7 +3,13 @@ import re
 import numpy as np
 import pytest
 
-from nonos.parsing import parse_image_format, parse_output_number_range, parse_vmin_vmax
+from nonos.parsing import (
+    parse_image_format,
+    parse_output_number_range,
+    parse_range,
+    parse_vmin_vmax,
+    range_converter,
+)
 
 
 @pytest.mark.parametrize(
@@ -47,6 +53,28 @@ def test_invalid_nargs():
 
 
 @pytest.mark.parametrize(
+    "abscissa, ordinate, dim, received",
+    [
+        (
+            np.linspace(0.2, 10, 100),
+            np.linspace(-0.4, 0.4, 100),
+            2,
+            ("0.4", "8", "0", "-0.2", "0.2"),
+        ),
+        (np.linspace(0.2, 10, 100), np.linspace(-0.4, 0.4, 100), 1, (0.4, 8, 0.2)),
+    ],
+)
+def test_invalid_nargs_parse_range(abscissa, ordinate, dim, received):
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            f"Received sequence `extent` with incorrect size {len(received)}. Expected exactly {2*dim=} values."
+        ),
+    ):
+        parse_range(received, dim=dim)
+
+
+@pytest.mark.parametrize(
     "received",
     [
         [1, 0],
@@ -81,6 +109,46 @@ def test_nodiff_parse_vmin_vmax(data, expected):
 )
 def test_diff_parse_vmin_vmax(data, expected):
     assert parse_vmin_vmax("unset", "unset", diff=True, data=data) == expected
+
+
+@pytest.mark.parametrize(
+    "abscissa, ordinate, dim, expected",
+    [
+        (
+            np.linspace(0.2, 10, 100),
+            np.linspace(-np.pi, np.pi, 100),
+            2,
+            (0.2, 10.0, -np.pi, np.pi),
+        ),
+        (np.linspace(0.2, 10, 100), np.zeros(2), 1, (0.2, 10.0)),
+    ],
+)
+def test_parse_range(abscissa, ordinate, dim, expected):
+    extent1 = parse_range("unset", dim=dim)
+    assert range_converter(extent1, abscissa=abscissa, ordinate=ordinate) == expected
+    extent2 = parse_range(("0.5", "5", "-0.2", "0.2"), dim=2)
+    assert (
+        range_converter(
+            extent2,
+            abscissa=np.linspace(0.2, 10, 100),
+            ordinate=np.linspace(-0.4, 0.4, 100),
+        )
+        == (0.5, 5, -0.2, 0.2)
+    )
+    extent3 = parse_range(("0.4", "9.5"), dim=1)
+    assert range_converter(
+        extent3, abscissa=np.linspace(0.2, 10, 100), ordinate=np.zeros(2)
+    ) == (0.4, 9.5)
+    extent4 = parse_range(("0.5", "x", "-0.2", "x"), dim=2)
+    assert extent4 == (0.5, None, -0.2, None)
+    assert (
+        range_converter(
+            extent4,
+            abscissa=np.linspace(0.2, 10, 100),
+            ordinate=np.linspace(-0.4, 0.4, 100),
+        )
+        == (0.5, 10.0, -0.2, 0.4)
+    )
 
 
 @pytest.mark.parametrize(

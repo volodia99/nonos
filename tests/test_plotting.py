@@ -1,5 +1,4 @@
 import os
-import time
 from glob import glob
 from pathlib import Path
 
@@ -13,7 +12,7 @@ def test_data_dir():
     return Path(__file__).parent / "data"
 
 
-@pytest.fixture(params=["idefix_rwi", "idefix_planet3d"])
+@pytest.fixture(params=["idefix_rwi", "idefix_planet3d", "fargo3d_planet2d"])
 def simulation_dir(test_data_dir, request):
     return test_data_dir / request.param
 
@@ -22,7 +21,7 @@ ARGS_TO_CHECK = {
     "vanilla_conf": [],
     "diff": ["-diff"],
     "log": ["-log"],
-    "movie": ["-all", "-pol"],
+    "movie_xy": ["-all", "-plane", "xy"],
     "movie_with_diff": ["-all", "-diff"],
     "movie_with_multiproc": ["-all", "-ncpu", "2"],
 }
@@ -75,11 +74,7 @@ def test_verbose(simulation_dir, capsys):
 
     out, err = capsys.readouterr()
     assert err == ""
-    assert (
-        "[%02d:%02d:%02d] INFO     Operation took"
-        % (time.localtime().tm_hour, time.localtime().tm_min, time.localtime().tm_sec)
-        == out[:34]
-    )
+    assert "Operation took" in out
     assert ret == 0
 
 
