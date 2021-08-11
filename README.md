@@ -39,18 +39,16 @@ To get help, run
 $ nonos --help
 ```
 ```
-usage: nonos [-h] [-dir DATADIR] [-field {RHO,VX1,VX2,VX3,BX1,BX2,BX3}] [-plane {rphi,rz,rtheta,xy,xz,yz}]
-             [-range RANGE [RANGE ...]] [-vmin VMIN] [-vmax VMAX] [-cpu NCPU] [-on ON [ON ...] | -all]
-             [-diff] [-log] [-isp] [-corotate] [-grid] [-slice] [-pbar]
-             [-lic {V,B}] [-licres LICRES] [-dim {1,2}] [-scaling SCALING] [-cmap CMAP] [-fmt FORMAT] [-dpi DPI]
-             [-input INPUT | -isolated] [-d | -version | -logo | -config] [-v]
+usage: nonos [-h] [-dir DATADIR] [-field {RHO,VX1,VX2,VX3,BX1,BX2,BX3,PRS}] [-plane {rphi,rz,rtheta,xy,xz,yz}] [-range RANGE [RANGE ...]] [-vmin VMIN] [-vmax VMAX]
+             [-cpu NCPU] [-on ON [ON ...] | -all] [-diff] [-log] [-isp] [-corotate] [-grid] [-slice] [-pbar] [-lic {V,B}] [-licres LICRES] [-dim {1,2}] [-scaling SCALING]
+             [-cmap CMAP] [-fmt FORMAT] [-dpi DPI] [-input INPUT | -isolated] [-d | -version | -logo | -config] [-v]
 
 Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
 
 optional arguments:
   -h, --help            show this help message and exit
   -dir DATADIR          location of output files and param files (default: '.').
-  -field {RHO,VX1,VX2,VX3,BX1,BX2,BX3}
+  -field {RHO,VX1,VX2,VX3,BX1,BX2,BX3,PRS}
                         name of field to plot (default: 'RHO').
   -plane {rphi,rz,rtheta,xy,xz,yz}
                         name of plane of projection (default: 'xy').
@@ -60,7 +58,8 @@ optional arguments:
   -vmax VMAX            max value in -diff mode (default: unset)
   -cpu NCPU, -ncpu NCPU
                         number of parallel processes (default: 1).
-  -on ON [ON ...]       output number(s) (on) to plot. This can be a single value or a range (start, end, [step]) where both ends are inclusive. (default: last output available).
+  -on ON [ON ...]       output number(s) (on) to plot. This can be a single value or a range (start, end, [step]) where both ends are inclusive. (default: last output
+                        available).
   -all                  save an image for every available snapshot (this will force show=False).
   -dim {1,2}            dimensionality in projection: 1 for a line plot, 2 (default) for a map.
   -scaling SCALING      scale the overall sizes of features in the graph (fonts, linewidth...) (default: 1).
