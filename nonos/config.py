@@ -43,4 +43,6 @@ DEFAULTS = {
     "format": "unset",
     # select image resolution
     "dpi": 200,
+    # create binary file
+    "binary": False,
 }
