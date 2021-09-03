@@ -716,7 +716,9 @@ class FieldNonos(Mesh, InitParamNonos):
 
         logging.debug("grid rotation: started")
         P, R = np.meshgrid(self.y, self.x)
-        Prot = P - (self.vtk * sum(self.omegagrid[: self.on])) % (2 * np.pi)
+        ind_on = find_nearest(self.tpl, self.vtk * self.on)
+        Prot = P - (np.arctan2(self.ypl, self.xpl)[ind_on]) % (2 * np.pi)
+        # Prot = P - (self.vtk * sum(self.omegagrid[: self.on])) % (2 * np.pi)
         try:
             index = (np.where(Prot[0] > np.pi))[0].min()
         except ValueError:
