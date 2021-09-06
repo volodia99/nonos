@@ -716,7 +716,9 @@ class FieldNonos(Mesh, InitParamNonos):
 
         logging.debug("grid rotation: started")
         P, R = np.meshgrid(self.y, self.x)
-        Prot = P - (self.vtk * sum(self.omegagrid[: self.on])) % (2 * np.pi)
+        ind_on = find_nearest(self.tpl, self.vtk * self.on)
+        Prot = P - (np.arctan2(self.ypl, self.xpl)[ind_on]) % (2 * np.pi)
+        # Prot = P - (self.vtk * sum(self.omegagrid[: self.on])) % (2 * np.pi)
         try:
             index = (np.where(Prot[0] > np.pi))[0].min()
         except ValueError:
@@ -805,6 +807,10 @@ class PlotNonos(FieldNonos):
         ax.set_ylim(vmin, vmax)
         ax.set_xlabel("Radius")
         ax.set_ylabel(self.title)
+
+        self.xplot = self.xmed
+        self.yplot = np.empty(0)
+        self.dataplot = dataProfile
 
     def plot(
         self,
@@ -1032,6 +1038,15 @@ class PlotNonos(FieldNonos):
             )
 
         logging.debug("pcolormesh: finished")
+
+        if is_set(lic) and self.code in ("pluto", "idefix"):
+            self.xplot = xi
+            self.yplot = yi
+            self.dataplot = datalic
+        else:
+            self.xplot = coordgrid[plane[0] - 1]
+            self.yplot = coordgrid[plane[1] - 1]
+            self.dataplot = data
 
 
 def is_averageSafe(sigma0, sigmaSlope, plot=False):
@@ -1329,6 +1344,7 @@ def process_field(
     show: bool,
     dpi: int,
     fmt: str,
+    binary: bool,
 ):
     set_mpl_style(scaling=scaling)
 
@@ -1371,7 +1387,18 @@ def process_field(
     elif dim == 1:
         ploton.axiplot(ax, vmin=vmin, vmax=vmax, average=avr, extent=extent)
         prefix = "axi"
-    filename = f"{prefix}_{field}{f'_lic{lic}_' if is_set(lic) else ''}{'_diff' if diff else ''}{'_log' if log else ''}{geometry if dim==2 else ''}{on:04d}.{fmt}"
+    filename = f"{prefix}{'_avr' if avr else '_slice'}_{field}{f'_lic{lic}_' if is_set(lic) else ''}{'_diff' if diff else ''}{'_log' if log else ''}{geometry if dim==2 else ''}{on:04d}.{fmt}"
+
+    if binary:
+        logging.debug("saving binary file: started")
+        with open(
+            f"{prefix}{'_avr' if avr else '_slice'}_{field}{f'_lic{lic}_' if is_set(lic) else ''}{'_diff' if diff else ''}{'_log' if log else ''}{geometry if dim==2 else ''}{on:04d}.npy",
+            "wb",
+        ) as fbin:
+            np.save(fbin, ploton.xplot)
+            np.save(fbin, ploton.yplot)
+            np.save(fbin, ploton.dataplot)
+        logging.debug("saving binary file: finished")
 
     if show:
         plt.show()
@@ -1486,6 +1513,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         action="store_true",
         default=None,
         help="display a progress bar",
+    )
+    flag_group.add_argument(
+        "-bin",
+        dest="binary",
+        action="store_true",
+        default=None,
+        help="create a binary file",
     )
 
     stream_group = parser.add_argument_group("streamlines options")
@@ -1735,6 +1769,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         show=show,
         dpi=args["dpi"],
         fmt=args["format"],
+        binary=args["binary"],
     )
 
     tstart = time.time()
