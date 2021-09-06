@@ -15,9 +15,10 @@ def parse_output_number_range(
             raise ValueError("Can't parse a range from unset values without a max.")
         return [maxval]
 
-    if not isinstance(on, list):
-        if isinstance(on, int):
-            return [on]
+    if isinstance(on, int):
+        return [on]
+
+    assert isinstance(on, list) and all(isinstance(o, int) for o in on)
 
     if len(on) > 3:
         raise ValueError(
@@ -74,6 +75,7 @@ def parse_image_format(s: Optional[str]) -> str:
     if not is_set(s):
         return FigureCanvasBase.get_default_filetype()
 
+    assert isinstance(s, str)
     _, _, ext = s.rpartition(".")
     if ext not in (
         available := list(FigureCanvasBase.get_supported_filetypes().keys())
