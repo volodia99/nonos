@@ -1387,23 +1387,30 @@ def process_field(
     elif dim == 1:
         ploton.axiplot(ax, vmin=vmin, vmax=vmax, average=avr, extent=extent)
         prefix = "axi"
-    filename = f"{prefix}{'_avr' if avr else '_slice'}_{field}{f'_lic{lic}_' if is_set(lic) else ''}{'_diff' if diff else ''}{'_log' if log else ''}{geometry if dim==2 else ''}{on:04d}.{fmt}"
 
-    if binary:
-        logging.debug("saving binary file: started")
-        with open(
-            f"{prefix}{'_avr' if avr else '_slice'}_{field}{f'_lic{lic}_' if is_set(lic) else ''}{'_diff' if diff else ''}{'_log' if log else ''}{geometry if dim==2 else ''}{on:04d}.npy",
-            "wb",
-        ) as fbin:
-            np.save(fbin, ploton.xplot)
-            np.save(fbin, ploton.yplot)
-            np.save(fbin, ploton.dataplot)
-        logging.debug("saving binary file: finished")
+    # if binary:
+    #     logging.debug("saving binary file: started")
+    #     with open(
+    #         f"{prefix}{'_avr' if avr else '_slice'}_{field}{f'_lic{lic}_' if is_set(lic) else ''}{'_diff' if diff else ''}{'_log' if log else ''}{geometry if dim==2 else ''}{on:04d}.npy",
+    #         "wb",
+    #     ) as fbin:
+    #         np.save(fbin, ploton.xplot)
+    #         np.save(fbin, ploton.yplot)
+    #         np.save(fbin, ploton.dataplot)
+    #     logging.debug("saving binary file: finished")
 
     if show:
         plt.show()
+    elif binary:
+        logging.debug("saving binary file: started")
+        fnamenpz = f"{prefix}{'_avr' if avr else '_slice'}_{field}{f'_lic{lic}_' if is_set(lic) else ''}{'_diff' if diff else ''}{'_log' if log else ''}{geometry if dim==2 else ''}{on:04d}"
+        np.savez_compressed(
+            fnamenpz, abs=ploton.xplot, ord=ploton.yplot, field=ploton.dataplot
+        )
+        logging.debug("saving binary file: finished")
     else:
         logging.debug("saving plot: started")
+        filename = f"{prefix}{'_avr' if avr else '_slice'}_{field}{f'_lic{lic}_' if is_set(lic) else ''}{'_diff' if diff else ''}{'_log' if log else ''}{geometry if dim==2 else ''}{on:04d}.{fmt}"
         fig.savefig(filename, bbox_inches="tight", dpi=dpi)
         logging.debug("saving plot: finished")
     plt.close(fig)
@@ -1514,13 +1521,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=None,
         help="display a progress bar",
     )
-    flag_group.add_argument(
-        "-bin",
-        dest="binary",
-        action="store_true",
-        default=None,
-        help="create a binary file",
-    )
 
     stream_group = parser.add_argument_group("streamlines options")
     stream_group.add_argument(
@@ -1578,6 +1578,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         dest="display",
         action="store_true",
         help="open a graphic window with the plot (only works with a single image)",
+    )
+    cli_action_group.add_argument(
+        "-bin",
+        dest="binary",
+        action="store_true",
+        default=None,
+        help="create a binary file",
     )
     cli_action_group.add_argument(
         "-version",
