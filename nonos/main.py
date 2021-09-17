@@ -1388,17 +1388,6 @@ def process_field(
         ploton.axiplot(ax, vmin=vmin, vmax=vmax, average=avr, extent=extent)
         prefix = "axi"
 
-    # if binary:
-    #     logging.debug("saving binary file: started")
-    #     with open(
-    #         f"{prefix}{'_avr' if avr else '_slice'}_{field}{f'_lic{lic}_' if is_set(lic) else ''}{'_diff' if diff else ''}{'_log' if log else ''}{geometry if dim==2 else ''}{on:04d}.npy",
-    #         "wb",
-    #     ) as fbin:
-    #         np.save(fbin, ploton.xplot)
-    #         np.save(fbin, ploton.yplot)
-    #         np.save(fbin, ploton.dataplot)
-    #     logging.debug("saving binary file: finished")
-
     if show:
         plt.show()
     elif binary:
