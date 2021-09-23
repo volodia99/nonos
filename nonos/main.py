@@ -1278,7 +1278,11 @@ def LICstream(
     lx2i = lx2i.astype(np.float32)
 
     texture = random_noise(
-        np.zeros((lx1i.shape[0], lx1i.shape[1])), mode="gaussian", mean=0.5, var=0.001
+        np.zeros((lx1i.shape[0], lx1i.shape[1])),
+        mode="gaussian",
+        mean=0.5,
+        var=0.001,
+        seed=0,
     ).astype(np.float32)
     kernel = np.ones(kernel_length).astype(np.float32)
 
