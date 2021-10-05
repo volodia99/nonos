@@ -65,7 +65,7 @@ def get_keys_from_geomtransforms(dictionary, values):
 
 
 GEOM_TRANSFORMS = {
-    "cylindrical": {
+    "polar": {
         "rphi": [(1, 2, 3), "cylindrical", None],
         "rz": [(1, 3, 2), "cylindrical", None],
         "rtheta": [(1, 3, 2), "spherical", cylindrical_to_spherical],
