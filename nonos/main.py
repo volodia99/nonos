@@ -17,6 +17,7 @@ from multiprocessing import Pool
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
+import cblind as cb
 import inifix
 import matplotlib.pyplot as plt
 import numpy as np
@@ -78,14 +79,14 @@ class DataStructure:
     pass
 
 
-def readVTKPolar(filename, *, cell="edges", computedata=True):
+def readVTK(filename, *, geometry="unknown", cell="edges", computedata=True):
     """
     Adapted from Geoffroy Lesur
     Function that reads a vtk file in polar coordinates
     """
     nfound = len(glob.glob(filename))
     if nfound != 1:
-        raise FileNotFoundError("In readVTKPolar: %s not found." % filename)
+        raise FileNotFoundError("In readVTK: %s not found." % filename)
 
     fid = open(filename, "rb")
 
@@ -95,116 +96,339 @@ def readVTKPolar(filename, *, cell="edges", computedata=True):
     # raw data which will be read from the file
     V.data = {}
 
+    # initialize geometry
+    if geometry not in ("unknown", "cartesian", "polar", "spherical"):
+        raise ValueError(f"Received unknown geometry: '{geometry}'.")
+    V.geometry = geometry
+
     # datatype we read
     dt = np.dtype(">f")  # Big endian single precision floats
+    dint = np.dtype(">i4")  # Big endian integer
 
     s = fid.readline()  # VTK DataFile Version x.x
     s = fid.readline()  # Comments
 
     s = fid.readline()  # BINARY
-    s = fid.readline()  # DATASET RECTILINEAR_GRID
-
+    s = fid.readline()  # DATASET RECTILINEAR_GRID or STRUCTURED_GRID
     slist = s.split()
-    grid_type = str(slist[1], "utf-8")
-    if grid_type != "STRUCTURED_GRID":
-        fid.close()
-        raise ValueError(
-            "In readVTKPolar: Wrong VTK file type.\nCurrent type is: '%s'.\nThis routine can only open Polar VTK files."
-            % (grid_type)
-        )
 
     s = fid.readline()  # DIMENSIONS NX NY NZ
     slist = s.split()
+    entry = str(slist[0], "utf-8")
+    if entry == "FIELD":
+        nfield = int(slist[2])
+        for _field in range(nfield):
+            s = fid.readline()
+            slist = s.split()
+            entry = str(slist[0], "utf-8")
+            if entry == "TIME":
+                V.t = np.fromfile(fid, dt, 1)
+            elif entry == "GEOMETRY":
+                g = np.fromfile(fid, dint, 1)
+                if g == 0:
+                    thisgeometry = "cartesian"
+                elif g == 1:
+                    thisgeometry = "polar"
+                elif g == 2:
+                    thisgeometry = "spherical"
+                else:
+                    raise ValueError(
+                        f"Unknown value for GEOMETRY flag ('{g}') was found in the VTK file."
+                    )
+
+                if V.geometry != "unknown":
+                    # We already have a proposed geometry, check that what is read from the file matches
+                    if thisgeometry != V.geometry:
+                        raise ValueError(
+                            f"geometry argument ('{V.geometry}') is inconsistent with GEOMETRY flag from the VTK file ('{thisgeometry}')"
+                        )
+                V.geometry = thisgeometry
+            else:
+                raise ValueError(f"Received unknown field: '{entry}'.")
+
+            s = fid.readline()  # extra linefeed
+
+        # finished reading the field entry
+        # read next line
+        s = fid.readline()  # DIMENSIONS...
+
+    if V.geometry == "unknown":
+        raise RuntimeError(
+            "Geometry couldn't be determined from data. "
+            "Try to set the geometry keyword argument explicitely."
+        )
+
+    slist = s.split()  # DIMENSIONS....
     V.nx = int(slist[1])
     V.ny = int(slist[2])
     V.nz = int(slist[3])
-    # print("nx=%d, ny=%d, nz=%d"%(V.nx,V.ny,V.nz))
 
-    s = fid.readline()  # POINTS NXNYNZ float
-    slist = s.split()
-    npoints = int(slist[1])
+    if V.geometry == "cartesian":
+        # CARTESIAN geometry
+        s = fid.readline()  # X_COORDINATES NX float
+        inipos = (
+            fid.tell()
+        )  # we store the file pointer position before computing points
+        logging.debug("loading the X-grid cells: %d" % V.nx)
+        x = np.memmap(
+            fid, mode="r", dtype=dt, offset=inipos, shape=V.nx
+        )  # some smart memory efficient way to store the array
+        newpos = (
+            np.float32().nbytes * 1 * V.nx + inipos
+        )  # we calculate the offset that we would expect normally with a np.fromfile
+        fid.seek(newpos, os.SEEK_SET)  # we set the file pointer position to this offset
+        s = fid.readline()  # Extra line feed added by idefix
 
-    inipos = fid.tell()  # we store the file pointer position before computing points
-    # print(inipos)
-    # points = np.fromfile(fid, dt, 3 * npoints)
-    logging.debug("loading the grid cells: (%d,%d,%d)." % (V.nx, V.ny, V.nz))
-    points = np.memmap(
-        fid, mode="r", dtype=dt, offset=inipos, shape=3 * npoints
-    )  # some smart memory efficient way to store the array
-    # print(fid.tell())
-    newpos = (
-        np.float32().nbytes * 3 * npoints + inipos
-    )  # we calculate the offset that we would expect normally with a np.fromfile
-    fid.seek(newpos, os.SEEK_SET)  # we set the file pointer position to this offset
-    # print(fid.tell())
-    s = fid.readline()  # EXTRA LINE FEED
+        s = fid.readline()  # Y_COORDINATES NY float
+        inipos = (
+            fid.tell()
+        )  # we store the file pointer position before computing points
+        logging.debug("loading the Y-grid cells: %d" % V.ny)
+        y = np.memmap(
+            fid, mode="r", dtype=dt, offset=inipos, shape=V.ny
+        )  # some smart memory efficient way to store the array
+        newpos = (
+            np.float32().nbytes * 1 * V.ny + inipos
+        )  # we calculate the offset that we would expect normally with a np.fromfile
+        fid.seek(newpos, os.SEEK_SET)  # we set the file pointer position to this offset
+        s = fid.readline()  # Extra line feed added by idefix
 
-    # V.points=points
-    if V.nx * V.ny * V.nz != npoints:
-        raise ValueError(
-            "In readVTKPolar: Grid size (%d) incompatible with number of points (%d) in the data set"
-            % (V.nx * V.ny * V.nz, npoints)
-        )
+        s = fid.readline()  # Z_COORDINATES NZ float
+        inipos = (
+            fid.tell()
+        )  # we store the file pointer position before computing points
+        logging.debug("loading the Z-grid cells: %d" % V.nz)
+        z = np.memmap(
+            fid, mode="r", dtype=dt, offset=inipos, shape=V.nz
+        )  # some smart memory efficient way to store the array
+        newpos = (
+            np.float32().nbytes * 1 * V.nz + inipos
+        )  # we calculate the offset that we would expect normally with a np.fromfile
+        fid.seek(newpos, os.SEEK_SET)  # we set the file pointer position to this offset
+        s = fid.readline()  # Extra line feed added by idefix
 
-    # Reconstruct the polar coordinate system
-    x1d = points[::3]
-    y1d = points[1::3]
-    z1d = points[2::3]
+        s = fid.readline()  # POINT_DATA NXNYNZ
 
-    xcart = np.transpose(x1d.reshape(V.nz, V.ny, V.nx))
-    ycart = np.transpose(y1d.reshape(V.nz, V.ny, V.nx))
-    zcart = np.transpose(z1d.reshape(V.nz, V.ny, V.nx))
+        slist = s.split()
+        point_type = str(slist[0], "utf-8")
+        npoints = int(slist[1])
+        s = fid.readline()  # EXTRA LINE FEED
 
-    r = np.sqrt(xcart[:, 0, 0] ** 2 + ycart[:, 0, 0] ** 2)
-    theta = np.unwrap(np.arctan2(ycart[0, :, 0], xcart[0, :, 0]))
-    z = zcart[0, 0, :]
-
-    s = fid.readline()  # CELL_DATA (NX-1)(NY-1)(NZ-1)
-    slist = s.split()
-    data_type = str(slist[0], "utf-8")
-    if data_type != "CELL_DATA":
-        fid.close()
-        raise ValueError(
-            "In readVTKPolar: this routine expect 'CELL DATA' as produced by PLUTO, not '%s'."
-            % data_type
-        )
-    s = fid.readline()  # Line feed
-
-    if cell == "edges":
-        if V.nx > 1:
-            V.nx = V.nx - 1
-            V.x = r
-        else:
-            V.x = r
-        if V.ny > 1:
-            V.ny = V.ny - 1
-            V.y = theta
-        else:
-            V.y = theta
-        if V.nz > 1:
-            V.nz = V.nz - 1
+        if point_type == "CELL_DATA" or cell == "centers":
+            # The file contains face coordinates, so we extrapolate to get the cell center coordinates.
+            if V.nx > 1:
+                V.nx = V.nx - 1
+                V.x = 0.5 * (x[1:] + x[:-1])
+            else:
+                V.x = x
+            if V.ny > 1:
+                V.ny = V.ny - 1
+                V.y = 0.5 * (y[1:] + y[:-1])
+            else:
+                V.y = y
+            if V.nz > 1:
+                V.nz = V.nz - 1
+                V.z = 0.5 * (z[1:] + z[:-1])
+            else:
+                V.z = z
+        elif point_type == "POINT_DATA" or cell == "edges":
+            V.x = x
+            V.y = y
             V.z = z
-        else:
-            V.z = z
+            if V.nx > 1:
+                V.nx = V.nx - 1
+                V.x = x
+            else:
+                V.x = x
+            if V.ny > 1:
+                V.ny = V.ny - 1
+                V.y = y
+            else:
+                V.y = y
+            if V.nz > 1:
+                V.nz = V.nz - 1
+                V.z = z
+            else:
+                V.z = z
 
-    # Perform averaging on coordinate system to get cell centers
-    # The file contains face coordinates, so we extrapolate to get the cell center coordinates.
-    elif cell == "centers":
-        if V.nx > 1:
-            V.nx = V.nx - 1
-            V.x = 0.5 * (r[1:] + r[:-1])
+        if V.nx * V.ny * V.nz != npoints:
+            raise ValueError(
+                "In readVTK: Grid size (%d) incompatible with number of points (%d) in the data set"
+                % (V.nx * V.ny * V.nz, npoints)
+            )
+
+    else:
+        # POLAR or SPHERICAL coordinates
+        if V.nz == 1:
+            is2d = 1
         else:
-            V.x = r
-        if V.ny > 1:
-            V.ny = V.ny - 1
-            V.y = (0.5 * (theta[1:] + theta[:-1]) + np.pi) % (2.0 * np.pi) - np.pi
-        else:
-            V.y = theta
-        if V.nz > 1:
-            V.nz = V.nz - 1
-            V.z = 0.5 * (z[1:] + z[:-1])
-        else:
-            V.z = z
+            is2d = 0
+
+        s = fid.readline()  # POINTS NXNYNZ float
+        slist = s.split()
+        npoints = int(slist[1])
+
+        inipos = (
+            fid.tell()
+        )  # we store the file pointer position before computing points
+        # print(inipos)
+        # points = np.fromfile(fid, dt, 3 * npoints)
+        logging.debug("loading the grid cells: (%d,%d,%d)." % (V.nx, V.ny, V.nz))
+        points = np.memmap(
+            fid, mode="r", dtype=dt, offset=inipos, shape=3 * npoints
+        )  # some smart memory efficient way to store the array
+        # print(fid.tell())
+        newpos = (
+            np.float32().nbytes * 3 * npoints + inipos
+        )  # we calculate the offset that we would expect normally with a np.fromfile
+        fid.seek(newpos, os.SEEK_SET)  # we set the file pointer position to this offset
+        # print(fid.tell())
+        s = fid.readline()  # EXTRA LINE FEED
+
+        # V.points=points
+        if V.nx * V.ny * V.nz != npoints:
+            raise ValueError(
+                "In readVTK: Grid size (%d) incompatible with number of points (%d) in the data set"
+                % (V.nx * V.ny * V.nz, npoints)
+            )
+
+        # Reconstruct the polar coordinate system
+        x1d = points[::3]
+        y1d = points[1::3]
+        z1d = points[2::3]
+
+        xcart = np.transpose(x1d.reshape(V.nz, V.ny, V.nx))
+        ycart = np.transpose(y1d.reshape(V.nz, V.ny, V.nx))
+        zcart = np.transpose(z1d.reshape(V.nz, V.ny, V.nx))
+
+        # Reconstruct the polar coordinate system
+        if V.geometry == "polar":
+
+            r = np.sqrt(xcart[:, 0, 0] ** 2 + ycart[:, 0, 0] ** 2)
+            theta = np.unwrap(np.arctan2(ycart[0, :, 0], xcart[0, :, 0]))
+            z = zcart[0, 0, :]
+
+            s = fid.readline()  # CELL_DATA (NX-1)(NY-1)(NZ-1)
+            slist = s.split()
+            data_type = str(slist[0], "utf-8")
+            if data_type != "CELL_DATA":
+                fid.close()
+                raise ValueError(
+                    "In readVTK: this routine expect 'CELL DATA' as produced by PLUTO, not '%s'."
+                    % data_type
+                )
+            s = fid.readline()  # Line feed
+
+            if cell == "edges":
+                if V.nx > 1:
+                    V.nx = V.nx - 1
+                    V.x = r
+                else:
+                    V.x = r
+                if V.ny > 1:
+                    V.ny = V.ny - 1
+                    V.y = theta
+                else:
+                    V.y = theta
+                if V.nz > 1:
+                    V.nz = V.nz - 1
+                    V.z = z
+                else:
+                    V.z = z
+
+            # Perform averaging on coordinate system to get cell centers
+            # The file contains face coordinates, so we extrapolate to get the cell center coordinates.
+            elif cell == "centers":
+                if V.nx > 1:
+                    V.nx = V.nx - 1
+                    V.x = 0.5 * (r[1:] + r[:-1])
+                else:
+                    V.x = r
+                if V.ny > 1:
+                    V.ny = V.ny - 1
+                    V.y = (0.5 * (theta[1:] + theta[:-1]) + np.pi) % (
+                        2.0 * np.pi
+                    ) - np.pi
+                else:
+                    V.y = theta
+                if V.nz > 1:
+                    V.nz = V.nz - 1
+                    V.z = 0.5 * (z[1:] + z[:-1])
+                else:
+                    V.z = z
+
+        # Reconstruct the spherical coordinate system
+        if V.geometry == "spherical":
+            if is2d:
+                r = np.sqrt(xcart[:, 0, 0] ** 2 + ycart[:, 0, 0] ** 2)
+                phi = np.unwrap(
+                    np.arctan2(zcart[0, V.ny // 2, :], xcart[0, V.ny // 2, :])
+                )
+                theta = np.arccos(
+                    ycart[0, :, 0] / np.sqrt(xcart[0, :, 0] ** 2 + ycart[0, :, 0] ** 2)
+                )
+            else:
+                r = np.sqrt(
+                    xcart[:, 0, 0] ** 2 + ycart[:, 0, 0] ** 2 + zcart[:, 0, 0] ** 2
+                )
+                phi = np.unwrap(
+                    np.arctan2(
+                        ycart[V.nx // 2, V.ny // 2, :], xcart[V.nx // 2, V.ny // 2, :]
+                    )
+                )
+                theta = np.arccos(
+                    zcart[0, :, 0]
+                    / np.sqrt(
+                        xcart[0, :, 0] ** 2 + ycart[0, :, 0] ** 2 + zcart[0, :, 0] ** 2
+                    )
+                )
+
+            s = fid.readline()  # CELL_DATA (NX-1)(NY-1)(NZ-1)
+            slist = s.split()
+            data_type = str(slist[0], "utf-8")
+            if data_type != "CELL_DATA":
+                fid.close()
+                raise ValueError(
+                    "In readVTK: this routine expect 'CELL DATA' as produced by PLUTO, not '%s'."
+                    % data_type
+                )
+            s = fid.readline()  # Line feed
+
+            if cell == "edges":
+                if V.nx > 1:
+                    V.nx = V.nx - 1
+                    V.r = r
+                else:
+                    V.r = r
+                if V.ny > 1:
+                    V.ny = V.ny - 1
+                    V.theta = theta
+                else:
+                    V.theta = theta
+                if V.nz > 1:
+                    V.nz = V.nz - 1
+                    V.phi = phi
+                else:
+                    V.phi = phi
+
+            # Perform averaging on coordinate system to get cell centers
+            # The file contains face coordinates, so we extrapolate to get the cell center coordinates.
+            elif cell == "centers":
+                if V.nx > 1:
+                    V.nx = V.nx - 1
+                    V.r = 0.5 * (r[1:] + r[:-1])
+                else:
+                    V.r = r
+                if V.ny > 1:
+                    V.ny = V.ny - 1
+                    V.theta = 0.5 * (theta[1:] + theta[:-1])
+                else:
+                    V.theta = theta
+                if V.nz > 1:
+                    V.nz = V.nz - 1
+                    V.phi = 0.5 * (phi[1:] + phi[:-1])
+                else:
+                    V.phi = phi
 
     if computedata:
         logging.debug("loading the data arrays:")
@@ -259,7 +483,7 @@ def readVTKPolar(filename, *, cell="edges", computedata=True):
 
             else:
                 raise ValueError(
-                    "In readVTKPolar: Unknown datatype '%s', should be 'SCALARS' or 'VECTORS'"
+                    "In readVTK: Unknown datatype '%s', should be 'SCALARS' or 'VECTORS'"
                     % datatype
                 )
                 break
@@ -270,6 +494,30 @@ def readVTKPolar(filename, *, cell="edges", computedata=True):
     fid.close()
 
     return V
+
+
+# Former geometry-specific readers
+def readVTKCart(filename, *, cell="edges", computedata=True):
+    Warning(
+        "the use of readVTKCart is discouraged. Use the generic readVTK function with geometry='cartesian'"
+    )
+    return readVTK(filename, geometry="cartesian", cell=cell, computedata=computedata)
+
+
+# Read a vtk file
+def readVTKPolar(filename, *, cell="edges", computedata=True):
+    Warning(
+        "the use of readVTKPolar is discouraged. Use the generic readVTK function with geometry='polar'"
+    )
+    return readVTK(filename, geometry="polar", cell=cell, computedata=computedata)
+
+
+# Read a vtk file
+def readVTKSpherical(filename, *, cell="edges", computedata=True):
+    Warning(
+        "the use of readVTKSpherical is discouraged. Use the generic readVTK function with geometry='spherical'"
+    )
+    return readVTK(filename, geometry="spherical", cell=cell, computedata=computedata)
 
 
 class InitParamNonos:
@@ -367,30 +615,6 @@ class InitParamNonos:
                 else:
                     self.omegagrid = np.zeros(len(self.data_files))
 
-            if Path(self.config["datadir"]).joinpath("definitions.hpp").is_file():
-                with open(
-                    os.path.join(self.config["datadir"], "definitions.hpp")
-                ) as fh:
-                    while True:
-                        try:
-                            line = next(fh)
-                        except StopIteration as exc:
-                            raise RuntimeError(
-                                "Failed to parse geometry flag from definitions.hpp"
-                            ) from exc
-                        if (
-                            match := re.match(
-                                r"(?:\s*#define\s+GEOMETRY\s+)(\w+)", line
-                            )
-                        ) is not None:
-                            self._native_geometry = match.groups()[0].lower()
-                            break
-            else:
-                raise FileNotFoundError(
-                    "'definitions.hpp' does not exist in '%s' directory"
-                    % self.config["datadir"]
-                )
-
         elif self.code == "pluto":
             self.data_files = list(glob.glob1(self.config["datadir"], "data.*.vtk"))
             # self.h0 = 0.05
@@ -414,28 +638,6 @@ class InitParamNonos:
                     self.omegagrid = self.omegaplanet
                 else:
                     self.omegagrid = np.zeros(len(self.data_files))
-
-            if Path(self.config["datadir"]).joinpath("definitions.h").is_file():
-                with open(os.path.join(self.config["datadir"], "definitions.h")) as fh:
-                    while True:
-                        try:
-                            line = next(fh)
-                        except StopIteration as exc:
-                            raise RuntimeError(
-                                "Failed to parse geometry flag from definitions.hpp"
-                            ) from exc
-                        if (
-                            match := re.match(
-                                r"(?:\s*#define\s+GEOMETRY\s+)(\w+)", line
-                            )
-                        ) is not None:
-                            self._native_geometry = match.groups()[0].lower()
-                            break
-            else:
-                raise FileNotFoundError(
-                    "'definitions.h' does not exist in '%s' directory"
-                    % self.config["datadir"]
-                )
 
         elif self.code == "fargo3d":
             self.data_files = [
@@ -483,12 +685,8 @@ class InitParamNonos:
                 else:
                     self.omegagrid = np.zeros(len(self.data_files))
 
-            self._native_geometry = self.iniconfig["COORDINATES"]
-
         if not self.data_files:
             raise FileNotFoundError("No data files were found.")
-        if self._native_geometry == "polar":
-            self._native_geometry = "cylindrical"
 
 
 class Mesh(InitParamNonos):
@@ -506,18 +704,27 @@ class Mesh(InitParamNonos):
         logging.debug("mesh parameters: started")
         if self.code == "idefix" or self.code == "pluto":
             first_vtk = next(glob.iglob(os.path.join(self.config["datadir"], "*.vtk")))
-            if self._native_geometry in ("cylindrical", "polar"):
-                domain = readVTKPolar(
+            try:
+                domain = readVTK(
                     first_vtk,
                     cell="edges",
                     computedata=False,
                 )
-            else:
-                raise NotImplementedError(
-                    f"geometry flag '{self._native_geometry}' not implemented yet for readVTK"
+            except RuntimeError:
+                domain = readVTK(
+                    first_vtk,
+                    geometry="polar",
+                    cell="edges",
+                    computedata=False,
                 )
 
             self.domain = domain
+
+            self._native_geometry = self.domain.geometry
+            if self._native_geometry not in ("cylindrical", "polar"):
+                raise NotImplementedError(
+                    f"geometry flag '{self._native_geometry}' not implemented yet for readVTK"
+                )
 
             self.nx = self.domain.nx
             self.ny = self.domain.ny
@@ -531,6 +738,7 @@ class Mesh(InitParamNonos):
             self.imidplane = self.nz // 2
 
         elif self.code == "fargo3d":
+            self._native_geometry = self.iniconfig["COORDINATES"]
             nfound_x = len(glob.glob1(self.config["datadir"], "domain_x.dat"))
             if nfound_x != 1:
                 raise FileNotFoundError("domain_x.dat not found.")
@@ -563,6 +771,9 @@ class Mesh(InitParamNonos):
                 self.imidplane = self.nz // 2
             else:
                 self.imidplane = -1
+
+        if self._native_geometry == "cylindrical":
+            self._native_geometry = "polar"
 
         self.xmed = 0.5 * (self.xedge[1:] + self.xedge[:-1])  # X-Center
         self.ymed = 0.5 * (self.yedge[1:] + self.yedge[:-1])  # Y-Center
@@ -692,7 +903,11 @@ class FieldNonos(Mesh, InitParamNonos):
         else:
             # Idefix or Pluto
             if self._native_geometry in ("cylindrical", "polar"):
-                data = readVTKPolar(f, cell="edges").data[self.field].astype(np.float32)
+                data = (
+                    readVTK(f, geometry=self._native_geometry, cell="edges")
+                    .data[self.field]
+                    .astype(np.float32)
+                )
                 data = np.concatenate(
                     (data[:, self.ny // 2 : self.ny, :], data[:, 0 : self.ny // 2, :]),
                     axis=1,
@@ -978,7 +1193,7 @@ class PlotNonos(FieldNonos):
                     xi,
                     yi,
                     datalic,
-                    cmap=cmap,
+                    cmap=cb.cbmap(palette=cmap),
                     vmin=vmin,
                     vmax=vmax,
                     **karg,
@@ -995,7 +1210,7 @@ class PlotNonos(FieldNonos):
                     coordgrid[plane[0] - 1],
                     coordgrid[plane[1] - 1],
                     data,
-                    cmap=cmap,
+                    cmap=cb.cbmap(palette=cmap),
                     vmin=vmin,
                     vmax=vmax,
                     **karg,
@@ -1663,12 +1878,13 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     try:
         init = InitParamNonos(nonos_config=args)
+        mesh = Mesh(nonos_config=args)
     except (FileNotFoundError, RuntimeError, ValueError) as exc:
         print_err(exc)
         return 1
     init.load()
 
-    plane, geometry, func_proj = GEOM_TRANSFORMS[init._native_geometry][args["plane"]]
+    plane, geometry, func_proj = GEOM_TRANSFORMS[mesh._native_geometry][args["plane"]]
 
     available = set()
     for fn in init.data_files:
