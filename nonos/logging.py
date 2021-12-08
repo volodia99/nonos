@@ -1,6 +1,8 @@
+import logging
 import sys
 
 from rich import print as rprint
+from rich.logging import RichHandler
 
 
 def print_warn(message):
@@ -23,3 +25,18 @@ def parse_verbose_level(verbose: int):
     levels = ["WARNING", "INFO", "DEBUG"]
     level = levels[min(len(levels) - 1, verbose)]  # capped to number of levels
     return level
+
+
+logger = logging.getLogger("nonos")
+
+
+def config_logger(level):
+    FORMAT = "%(message)s"
+    logging.getLogger("matplotlib").setLevel(logging.WARNING)
+    logging.basicConfig(
+        level=level,
+        force=True,
+        format=FORMAT,
+        datefmt="[%X]",
+        handlers=[RichHandler()],
+    )

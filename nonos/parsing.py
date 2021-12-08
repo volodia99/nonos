@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Union
 
 import numpy as np
 
@@ -38,14 +38,6 @@ def parse_output_number_range(
             f"No output beyond {maxval} is available, but {max_requested} was requested."
         )
     return ret
-
-
-def parse_vmin_vmax(vmin, vmax, diff: bool, data: np.ndarray) -> Tuple[float, float]:
-    if not is_set(vmin):
-        vmin = data.min()
-    if not is_set(vmax):
-        vmax = -data.min() if diff else data.max()
-    return vmin, vmax
 
 
 def parse_range(extent, dim: int):

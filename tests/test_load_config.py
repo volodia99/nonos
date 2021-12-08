@@ -4,7 +4,7 @@ import sys
 import pytest
 import pytomlpp as toml
 
-from nonos import InitParamNonos
+from nonos.api.from_simulation import Parameters
 from nonos.config import DEFAULTS
 from nonos.main import main
 
@@ -12,16 +12,21 @@ from nonos.main import main
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="does not run on windows")
 def test_config_dir_not_found(tmp_path):
     with pytest.raises(FileNotFoundError):
-        InitParamNonos(sim_paramfile=tmp_path / "notafile")
+        Parameters(inifile="notafile", code="idefix", directory=tmp_path)
+
+
+def test_config_inifile_but_nocode(tmp_path):
+    with pytest.raises(ValueError):
+        Parameters(inifile="notafile", directory=tmp_path)
 
 
 @pytest.fixture()
 def minimal_paramfile(tmp_path):
     ifile = tmp_path / "nonos.toml"
     # check that this setup still makes sense
-    assert DEFAULTS["dimensionality"] == 2
+    assert DEFAULTS["field"] == "RHO"
     with open(ifile, "w") as fh:
-        fh.write("dimensionality = 1")
+        fh.write("field = 'VX1'")
     return ifile
 
 
@@ -33,7 +38,7 @@ def test_load_config_file(minimal_paramfile, capsys):
     out, err = capsys.readouterr()
     assert "Using parameters from" in err
     conf = toml.loads(out)
-    assert conf["dimensionality"] == 1
+    assert conf["field"] == "VX1"
 
 
 def test_isolated_mode(minimal_paramfile, capsys):
@@ -44,4 +49,4 @@ def test_isolated_mode(minimal_paramfile, capsys):
     out, err = capsys.readouterr()
     assert err == ""
     conf = toml.loads(out)
-    assert conf["dimensionality"] == DEFAULTS["dimensionality"]
+    assert conf["field"] == DEFAULTS["field"]
