@@ -58,11 +58,13 @@ class Parameters:
             self.vtk = self.inifile["Static Grid Output"]["vtk"][0]
         elif self.code == "fargo3d":
             self.vtk = self.inifile["NINTERM"] * self.inifile["DT"]
+        elif self.code == "fargo-adsg":
+            self.vtk = self.inifile["Ninterm"] * self.inifile["DT"]
 
     def loadPlanetFile(self, *, planet_number: int = 0):
         planet_file = f"planet{planet_number}.dat"
 
-        if self.code in ("idefix", "fargo3d"):
+        if self.code in ("idefix", "fargo3d", "fargo-adsg"):
             if Path(self.directory).joinpath(planet_file).is_file():
                 columns = np.loadtxt(path.join(self.directory, planet_file)).T
                 self.qpl = columns[7]
@@ -78,7 +80,7 @@ class Parameters:
             )
 
     def countSimuFiles(self):
-        if self.code == "fargo3d":
+        if self.code in ("fargo3d", "fargo-adsg"):
             self.data_files = [
                 fn
                 for fn in glob.glob1(self.directory, "gasdens*.dat")
@@ -90,7 +92,13 @@ class Parameters:
     def loadSimuFile(self, on: int, *, geometry: str = "unknown", cell: str = "edges"):
         codeReadFormat = CodeReadFormat()
         if self.code == "fargo3d":
-            return codeReadFormat.fargoReadDat(on, directory=self.directory)
+            return codeReadFormat.fargo3dReadDat(
+                on, directory=self.directory, inifile=self.paramfile
+            )
+        elif self.code == "fargo-adsg":
+            return codeReadFormat.fargoAdsgReadDat(
+                on, directory=self.directory
+            )  # , inifile=self.paramfile)
         elif self.code in ("idefix", "pluto"):
             dataVTK = path.join(self.directory, f"data.{on:04d}.vtk")
             return codeReadFormat.idfxReadVTK(dataVTK, geometry=geometry, cell=cell)
@@ -101,7 +109,7 @@ class Parameters:
 class DataStructure:
     """
     Class that helps create the datastructure
-    in the idfxReadVTK and fargoReadDat functions
+    in the idfxReadVTK and fargo3dReadDat functions
     """
 
     pass
@@ -576,7 +584,63 @@ class CodeReadFormat:
             filename, geometry="spherical", cell=cell, computedata=computedata
         )
 
-    def fargoReadDat(self, on, directory=""):
+    def fargoAdsgReadDat(self, on, *, directory=""):  # , inifile=""):
+        V = DataStructure()
+        filebeg = "gas"
+        densfile = path.join(directory, f"{filebeg}dens{on}.dat")
+        vyfile = path.join(directory, f"{filebeg}vrad{on}.dat")
+        vxfile = path.join(directory, f"{filebeg}vtheta{on}.dat")
+
+        # if inifile=="":
+        #     params = Parameters(directory=directory, inifile=inifile, code="")
+        # else:
+        #     params = Parameters(directory=directory, inifile=inifile, code="fargo-adsg")
+
+        # params.loadIniFile()
+
+        V.geometry = "polar"
+        V.data = {}
+
+        phi = np.loadtxt(path.join(directory, "used_azi.dat"))
+        phil = phi[:, 1]
+        phir = phi[:, 2]
+        domain_x = np.zeros(len(phil) + 1)
+        domain_x[:-1] = phil
+        domain_x[-1] = phir[-1]
+        domain_x -= np.pi
+        # We avoid ghost cells
+        domain_y = np.loadtxt(path.join(directory, "used_rad.dat"))
+        domain_z = np.zeros(2)
+
+        V.x1 = domain_y  # X-Edge
+        V.x2 = domain_x  # Y-Edge
+        V.x3 = domain_z  # Z-Edge #latitute
+
+        V.n1 = len(V.x1) - 1  # if len(V.x1)>2 else 2
+        V.n2 = len(V.x2) - 1  # if len(V.x2)>2 else 2
+        V.n3 = len(V.x3) - 1  # if len(V.x3)>2 else 2
+        if Path(densfile).is_file():
+            V.data["RHO"] = (
+                np.fromfile(densfile, dtype="float64")
+                .reshape(V.n3, V.n1, V.n2)
+                .transpose(1, 2, 0)
+            )  # rad, pĥi, z
+        if Path(vyfile).is_file():
+            V.data["VX1"] = (
+                np.fromfile(vyfile, dtype="float64")
+                .reshape(V.n3, V.n1, V.n2)
+                .transpose(1, 2, 0)
+            )  # rad, pĥi, z
+        if Path(vxfile).is_file():
+            V.data["VX2"] = (
+                np.fromfile(vxfile, dtype="float64")
+                .reshape(V.n3, V.n1, V.n2)
+                .transpose(1, 2, 0)
+            )  # rad, pĥi, z
+
+        return V
+
+    def fargo3dReadDat(self, on, *, directory="", inifile=""):
         V = DataStructure()
         filebeg = "gas"
         densfile = path.join(directory, f"{filebeg}dens{on}.dat")
@@ -584,7 +648,11 @@ class CodeReadFormat:
         vxfile = path.join(directory, f"{filebeg}vx{on}.dat")
         vzfile = path.join(directory, f"{filebeg}vz{on}.dat")
 
-        params = Parameters(directory=directory)
+        if inifile == "":
+            params = Parameters(directory=directory, inifile=inifile, code="")
+        else:
+            params = Parameters(directory=directory, inifile=inifile, code="fargo3d")
+
         params.loadIniFile()
 
         V.geometry = params.inifile["COORDINATES"]
@@ -652,15 +720,15 @@ class CodeReadFormat:
                     .reshape(V.n2, V.n1, V.n3)
                     .transpose(1, 0, 2)
                 )  # rad, pĥi, z
-            if Path(vxfile).is_file():
+            if Path(vzfile).is_file():
                 V.data["VX2"] = (
-                    np.fromfile(vxfile, dtype="float64")
+                    np.fromfile(vzfile, dtype="float64")
                     .reshape(V.n2, V.n1, V.n3)
                     .transpose(1, 0, 2)
                 )  # rad, pĥi, z
-            if Path(vzfile).is_file():
+            if Path(vxfile).is_file():
                 V.data["VX3"] = (
-                    np.fromfile(vzfile, dtype="float64")
+                    np.fromfile(vxfile, dtype="float64")
                     .reshape(V.n2, V.n1, V.n3)
                     .transpose(1, 0, 2)
                 )  # rad, pĥi, z
