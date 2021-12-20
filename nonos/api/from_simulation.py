@@ -601,12 +601,10 @@ class CodeReadFormat:
         V.geometry = "polar"
         V.data = {}
 
-        phi = np.loadtxt(path.join(directory, "used_azi.dat"))
-        phil = phi[:, 1]
-        phir = phi[:, 2]
-        domain_x = np.zeros(len(phil) + 1)
-        domain_x[:-1] = phil
-        domain_x[-1] = phir[-1]
+        phi = np.loadtxt(path.join(directory, "used_azi.dat"))[:, 0]
+        domain_x = np.zeros(len(phi) + 1)
+        domain_x[:-1] = phi
+        domain_x[-1] = 2 * np.pi
         domain_x -= np.pi
         # We avoid ghost cells
         domain_y = np.loadtxt(path.join(directory, "used_rad.dat"))
