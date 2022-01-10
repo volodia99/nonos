@@ -3,7 +3,7 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+    rev: v4.1.0
     hooks:
       - id: trailing-whitespace
       - id: check-toml
@@ -15,23 +15,23 @@ repos:
       - id: debug-statements
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.29.1
+    rev: v2.31.0
     hooks:
       - id: pyupgrade
         args: [--py38-plus]
 
   - repo: https://github.com/asottile/setup-cfg-fmt
-    rev: v1.19.0
+    rev: v1.20.0
     hooks:
       - id: setup-cfg-fmt
 
   - repo: https://github.com/neutrinoceros/inifix.git
-    rev: v0.9.1
+    rev: v0.10.0
     hooks:
       - id: inifix-validate
 
   - repo: https://github.com/psf/black
-    rev: 21.10b0
+    rev: 21.12b0
     hooks:
       - id: black
         language_version: python3
