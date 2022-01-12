@@ -76,17 +76,6 @@ def test_error_no_planet(datadir, tmp_path):
     os.chdir(tmp_path)
     # just check that the call returns the correct err
 
-    # ret = main(["-cor", "0", "-dir", datadir, "-geometry", "polar"])
-    # out, err = capsys.readouterr()
-    # assert out == ""
-    # assert (
-    #     err.strip()
-    #     .replace("\n", " ")
-    #     .endswith(
-    #         r"planet0\.dat not found."
-    #     )
-    # )
-    # assert ret == 0
 
     with pytest.raises(FileNotFoundError, match=r"planet0\.dat not found"):
         main(["-cor", "0", "-dir", datadir, "-geometry", "polar"])
