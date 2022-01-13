@@ -9,7 +9,7 @@ import numpy as np
 
 from nonos.logging import logger
 
-POSSIBLE_INIFILES = {
+_INIFILES_LOOKUP_TABLE = {
     "idefix.ini": "idefix",
     "pluto.ini": "pluto",
     "variables.par": "fargo3d",
@@ -34,19 +34,19 @@ class Parameters:
         elif (self.code, self.paramfile).count("") == 2:
             found_dict = {
                 paramfile: Path(self.directory).joinpath(paramfile).is_file()
-                for paramfile in POSSIBLE_INIFILES
+                for paramfile in _INIFILES_LOOKUP_TABLE
             }
             nfound = sum(list(found_dict.values()))
             if nfound == 0:
                 raise FileNotFoundError(
-                    f"{', '.join(POSSIBLE_INIFILES.keys())} not found."
+                    f"{', '.join(_INIFILES_LOOKUP_TABLE.keys())} not found."
                 )
             elif nfound > 1:
                 raise RuntimeError("found more than one possible ini file.")
-            self.paramfile = list(POSSIBLE_INIFILES.keys())[
+            self.paramfile = list(_INIFILES_LOOKUP_TABLE.keys())[
                 list(found_dict.values()).index(True)
             ]
-            self.code = POSSIBLE_INIFILES[self.paramfile]
+            self.code = _INIFILES_LOOKUP_TABLE[self.paramfile]
         elif (self.code, self.paramfile).count("") == 1:
             raise ValueError("both inifile and code have to be given.")
 
@@ -75,7 +75,7 @@ class Parameters:
             else:
                 raise FileNotFoundError(f"{planet_file} not found")
         else:
-            raise FileNotFoundError(
+            raise NotImplementedError(
                 f"{planet_file} not found for {self.code}. For now, you can't rotate the grid with the planet."
             )
 
@@ -88,6 +88,8 @@ class Parameters:
             ]
         elif self.code in ("idefix", "pluto"):
             self.data_files = list(glob.glob1(self.directory, "data.*.vtk"))
+        else:
+            raise RuntimeError("Unknown file format")
 
     def loadSimuFile(self, on: int, *, geometry: str = "unknown", cell: str = "edges"):
         codeReadFormat = CodeReadFormat()
@@ -112,6 +114,18 @@ class DataStructure:
     in the idfxReadVTK and fargo3dReadDat functions
     """
 
+    __slots__ = (
+        "data",
+        "geometry",
+        "t",
+        "periodicity",
+        "n1",
+        "n2",
+        "n3",
+        "x1",
+        "x2",
+        "x3",
+    )
     pass
 
 
@@ -137,7 +151,7 @@ class CodeReadFormat:
 
         # initialize geometry
         if geometry not in ("unknown", "cartesian", "polar", "spherical"):
-            raise ValueError(f"Received unknown geometry: '{geometry}'.")
+            raise ValueError(f"Unknown geometry value: {geometry!r}")
         V.geometry = geometry
 
         # datatype we read
@@ -557,46 +571,12 @@ class CodeReadFormat:
 
         return V
 
-    # Former geometry-specific readers
-    def idfxReadVTKCart(self, filename, *, cell="edges", computedata=True):
-        Warning(
-            "the use of idfxReadVTKCart is discouraged. Use the generic idfxReadVTK function with geometry='cartesian'"
-        )
-        return self.idfxReadVTK(
-            filename, geometry="cartesian", cell=cell, computedata=computedata
-        )
-
-    # Read a vtk file
-    def idfxReadVTKPolar(self, filename, *, cell="edges", computedata=True):
-        Warning(
-            "the use of idfxReadVTKPolar is discouraged. Use the generic idfxReadVTK function with geometry='polar'"
-        )
-        return self.idfxReadVTK(
-            filename, geometry="polar", cell=cell, computedata=computedata
-        )
-
-    # Read a vtk file
-    def idfxReadVTKSpherical(self, filename, *, cell="edges", computedata=True):
-        Warning(
-            "the use of idfxReadVTKSpherical is discouraged. Use the generic idfxReadVTK function with geometry='spherical'"
-        )
-        return self.idfxReadVTK(
-            filename, geometry="spherical", cell=cell, computedata=computedata
-        )
-
-    def fargoAdsgReadDat(self, on, *, directory=""):  # , inifile=""):
+    def fargoAdsgReadDat(self, on, *, directory=""):
         V = DataStructure()
         filebeg = "gas"
         densfile = path.join(directory, f"{filebeg}dens{on}.dat")
         vyfile = path.join(directory, f"{filebeg}vrad{on}.dat")
         vxfile = path.join(directory, f"{filebeg}vtheta{on}.dat")
-
-        # if inifile=="":
-        #     params = Parameters(directory=directory, inifile=inifile, code="")
-        # else:
-        #     params = Parameters(directory=directory, inifile=inifile, code="fargo-adsg")
-
-        # params.loadIniFile()
 
         V.geometry = "polar"
         V.data = {}

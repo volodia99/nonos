@@ -21,8 +21,7 @@ import pytomlpp as toml
 from inifix.format import iniformat
 
 from nonos.__version__ import __version__
-from nonos.api.analysis import GasDataSet
-from nonos.api.from_simulation import Parameters
+from nonos.api import GasDataSet, Parameters
 from nonos.config import DEFAULTS
 from nonos.logging import (
     config_logger,

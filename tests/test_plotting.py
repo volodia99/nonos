@@ -54,8 +54,10 @@ def test_common_image_formats(format, simulation_dir, capsys, tmp_path):
 @pytest.mark.parametrize(
     "datadir",
     [
-        os.path.join(Path(__file__).parent, "data/idefix_planet3d"),
-        os.path.join(Path(__file__).parent, "data/fargo3d_planet2d"),
+        # os.path.join(Path(__file__).parent, "data", "idefix_planet3d"),
+        # os.path.join(Path(__file__).parent, "data", "fargo3d_planet2d"),
+        str(Path(__file__).parent.joinpath("data", "idefix_planet3d")),
+        str(Path(__file__).parent.joinpath("data", "fargo3d_planet2d")),
     ],
 )
 def test_plot_simple_corotation(datadir, capsys, tmp_path):
@@ -70,24 +72,39 @@ def test_plot_simple_corotation(datadir, capsys, tmp_path):
 
 
 @pytest.mark.parametrize(
-    "datadir", [os.path.join(Path(__file__).parent, "data/idefix_rwi")]
+    # "datadir", [os.path.join(Path(__file__).parent, "data", "idefix_rwi")]
+    "datadir",
+    [str(Path(__file__).parent.joinpath("data", "idefix_rwi"))],
+)
+def test_unknown_geometry(datadir, tmp_path):
+    os.chdir(tmp_path)
+    with pytest.raises(
+        RuntimeError, match=r"Geometry couldn't be determined from data"
+    ):
+        main(["-dir", datadir])
+
+
+@pytest.mark.parametrize(
+    # "datadir", [os.path.join(Path(__file__).parent, "data", "idefix_newvtk_planet2d")]
+    "datadir",
+    [str(Path(__file__).parent.joinpath("data", "idefix_newvtk_planet2d"))],
+)
+def test_newvtk_geometry(datadir, capsys, tmp_path):
+    os.chdir(tmp_path)
+    ret = main(["-cor", "0", "-dir", datadir])
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert err == ""
+    assert ret == 0
+
+
+@pytest.mark.parametrize(
+    # "datadir", [os.path.join(Path(__file__).parent, "data", "idefix_rwi")]
+    "datadir",
+    [str(Path(__file__).parent.joinpath("data", "idefix_rwi"))],
 )
 def test_error_no_planet(datadir, tmp_path):
     os.chdir(tmp_path)
-    # just check that the call returns the correct err
-
-    # ret = main(["-cor", "0", "-dir", datadir, "-geometry", "polar"])
-    # out, err = capsys.readouterr()
-    # assert out == ""
-    # assert (
-    #     err.strip()
-    #     .replace("\n", " ")
-    #     .endswith(
-    #         r"planet0\.dat not found."
-    #     )
-    # )
-    # assert ret == 0
-
     with pytest.raises(FileNotFoundError, match=r"planet0\.dat not found"):
         main(["-cor", "0", "-dir", datadir, "-geometry", "polar"])
 
@@ -102,8 +119,7 @@ def test_verbose(simulation_dir, capsys):
 
 
 def test_plot_planet_corotation(test_data_dir):
-    from nonos.api.analysis import GasDataSet
-    from nonos.api.tools import find_nearest
+    from nonos.api import GasDataSet, find_nearest
 
     os.chdir(test_data_dir / "idefix_planet3d")
 

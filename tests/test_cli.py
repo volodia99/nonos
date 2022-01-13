@@ -4,7 +4,7 @@ import textwrap
 import pytomlpp as toml
 
 from nonos import __version__
-from nonos.api.from_simulation import Parameters
+from nonos.api import Parameters
 from nonos.main import main
 
 

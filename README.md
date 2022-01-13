@@ -158,7 +158,7 @@ z                  =  'unset'
 ### Programmatic usage
 
 ```python
-from nonos.api.analysis import GasDataSet
+from nonos.api import GasDataSet
 import matplotlib.pyplot as plt
 
 plt.close("all")

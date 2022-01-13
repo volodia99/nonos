@@ -4,19 +4,19 @@ import sys
 import pytest
 import pytomlpp as toml
 
-from nonos.api.from_simulation import Parameters
+from nonos.api import Parameters
 from nonos.config import DEFAULTS
 from nonos.main import main
 
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="does not run on windows")
 def test_config_dir_not_found(tmp_path):
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(FileNotFoundError, match=r"not found"):
         Parameters(inifile="notafile", code="idefix", directory=tmp_path)
 
 
 def test_config_inifile_but_nocode(tmp_path):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"both inifile and code have to be given"):
         Parameters(inifile="notafile", directory=tmp_path)
 
 
