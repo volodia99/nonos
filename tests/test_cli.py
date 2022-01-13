@@ -4,7 +4,8 @@ import textwrap
 import pytomlpp as toml
 
 from nonos import __version__
-from nonos.main import InitParamNonos, main
+from nonos.api import Parameters
+from nonos.main import main
 
 
 def test_no_inifile(capsys, tmp_path):
@@ -13,7 +14,7 @@ def test_no_inifile(capsys, tmp_path):
     assert ret != 0
     out, err = capsys.readouterr()
     assert out == ""
-    assert err.endswith("idefix.ini, pluto.ini or variables.par not found.\n")
+    assert err.endswith("idefix.ini, pluto.ini, variables.par not found.\n")
 
 
 def test_default_conf(capsys, tmp_path):
@@ -25,7 +26,8 @@ def test_default_conf(capsys, tmp_path):
 
     # validate output is reusable
     (tmp_path / "idefix.ini").touch()
-    InitParamNonos(nonos_config=toml.loads(out))
+    dictout = toml.loads(out)
+    Parameters(directory=dictout["datadir"])
 
 
 def test_version(capsys, tmp_path):
