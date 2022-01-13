@@ -30,13 +30,8 @@ def parse_verbose_level(verbose: int):
 logger = logging.getLogger("nonos")
 
 
-def config_logger(level):
-    FORMAT = "%(message)s"
-    logging.getLogger("matplotlib").setLevel(logging.WARNING)
-    logging.basicConfig(
-        level=level,
-        force=True,
-        format=FORMAT,
-        datefmt="[%X]",
-        handlers=[RichHandler()],
-    )
+def config_logger():
+    logger.addHandler(RichHandler(log_time_format="[%X]"))
+
+
+config_logger()

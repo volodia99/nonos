@@ -23,13 +23,7 @@ from inifix.format import iniformat
 from nonos.__version__ import __version__
 from nonos.api import GasDataSet, Parameters
 from nonos.config import DEFAULTS
-from nonos.logging import (
-    config_logger,
-    logger,
-    parse_verbose_level,
-    print_err,
-    print_warn,
-)
+from nonos.logging import logger, parse_verbose_level, print_err, print_warn
 from nonos.parsing import (
     is_set,
     parse_image_format,
@@ -95,10 +89,10 @@ def process_field(
     if "rr" in operation:
         dsop = dsop.radial_at_r(distance=distance)
 
-    logger.debug(f"computed {operation} on the dataset.")
+    # logger.debug(f"computed {operation} on the dataset.")
 
     dim = 3 - dsop.shape.count(1)
-    logger.debug(f"plotting a {dim}D plot.")
+    # logger.debug(f"plotting a {dim}D plot.")
 
     if plane is None:
         dsop_dict = dsop.coords.get_attributes
@@ -151,7 +145,7 @@ def process_field(
         ax.set_xlim(extent[0], extent[1])
         ax.set_ylim(extent[2], extent[3])
 
-    logger.debug("processed the data before plotting.")
+    # logger.debug("processed the data before plotting.")
 
     if "x" and "y" in plane:
         ax.set_aspect("equal")
@@ -159,10 +153,10 @@ def process_field(
     if show:
         plt.show()
     else:
-        logger.debug("saving plot: started")
+        # logger.debug("saving plot: started")
         filename = f"{''.join(plane)}_{field}_{'_'.join(operation)}{'_diff' if diff else '_'}{'_log' if log else ''}{on:04d}.{fmt}"
         fig.savefig(filename, bbox_inches="tight", dpi=dpi)
-        logger.debug("saving plot: finished")
+        # logger.debug("saving plot: finished")
 
     plt.close(fig)
 
@@ -374,7 +368,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 0
 
     level = parse_verbose_level(clargs.pop("verbose"))
-    config_logger(level)
+    logger.setLevel(level)
 
     if clargs.pop("isolated"):
         config_file_args: Dict[str, Any] = {}

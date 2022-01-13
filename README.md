@@ -4,8 +4,13 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 
-nonos is a 2D visualization command line application for planet-disk numerical simulations, as well as a Python library.
-It works with vtk-formatted data from Pluto and Idefix, and dat-formatted data for Fargo3D.
+nonos is a 2D visualization command line application for planet-disk numerical simulations, as well as a Python library. It works with vtk-formatted data from Pluto and Idefix, and dat-formatted data for Fargo-adsg and Fargo3D.
+
+##### Data Formats
+We list here the accepted formats for the data:
+Pluto and Idefix: data.\*\*\*\*.vtk
+Fargo-adsg: gasdens.dat, gasvy\*.dat, gasvx\*.dat
+Fargo3D: same as Fargo-adsg + gasvz\*.dat
 
 :construction: This project and documentation are under construction :construction:
 ## Ongoing progress
