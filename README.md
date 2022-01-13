@@ -8,9 +8,9 @@ nonos is a 2D visualization command line application for planet-disk numerical s
 
 ##### Data Formats
 We list here the accepted formats for the data:
-Pluto and Idefix: data.\*\*\*\*.vtk
-Fargo-adsg: gasdens.dat, gasvy\*.dat, gasvx\*.dat
-Fargo3D: same as Fargo-adsg + gasvz\*.dat
+Pluto and Idefix: data.\*\*\*\*.vtk  
+Fargo-adsg: gasdens.dat, gasvy\*.dat, gasvx\*.dat  
+Fargo3D: same as Fargo-adsg + gasvz\*.dat  
 
 :construction: This project and documentation are under construction :construction:
 ## Ongoing progress
