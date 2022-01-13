@@ -1,6 +1,5 @@
 import glob
 import os
-import os.path as path
 from pathlib import Path
 from typing import Any, Optional, Tuple
 
@@ -479,9 +478,9 @@ class GasField:
 
     def save(self, directory="", header_only=False):
         if not header_only:
-            if not path.exists(path.join(directory, self.field.lower())):
-                os.mkdir(path.join(directory, self.field.lower()))
-            filename = path.join(
+            if not os.path.exists(os.path.join(directory, self.field.lower())):
+                os.mkdir(os.path.join(directory, self.field.lower()))
+            filename = os.path.join(
                 directory,
                 self.field.lower(),
                 f"{self.operation}_{self.field}.{self.on:04d}.npy",
@@ -493,15 +492,19 @@ class GasField:
                     np.save(file, self.data)
 
         group_of_files = list(
-            glob.glob1(path.join(directory, self.field.lower()), f"{self.operation}*")
+            glob.glob1(
+                os.path.join(directory, self.field.lower()), f"{self.operation}*"
+            )
         )
         header_file = list(
-            glob.glob1(path.join(directory, "header"), f"header{self.operation}.npy")
+            glob.glob1(os.path.join(directory, "header"), f"header{self.operation}.npy")
         )
         if (len(group_of_files) > 0 and len(header_file) == 0) or header_only:
-            if not path.exists(path.join(directory, "header")):
-                os.mkdir(path.join(directory, "header"))
-            headername = path.join(directory, "header", f"header{self.operation}.npy")
+            if not os.path.exists(os.path.join(directory, "header")):
+                os.mkdir(os.path.join(directory, "header"))
+            headername = os.path.join(
+                directory, "header", f"header{self.operation}.npy"
+            )
             if Path(headername).is_file():
                 logger.info(f"{headername} already exists")
             else:
@@ -1179,14 +1182,14 @@ class GasDataSet:
 
 def from_file(*, field: str, filename: str, on: int, directory=""):
     repout = field.lower()
-    headername = path.join(directory, "header", f"header_{filename}.npy")
+    headername = os.path.join(directory, "header", f"header_{filename}.npy")
     with open(headername, "rb") as file:
         dict_coords = np.load(file, allow_pickle=True).item()
 
     geometry, coord0, coord1, coord2 = dict_coords.values()
     ret_coords = Coordinates(geometry, coord0, coord1, coord2)
 
-    fileout = path.join(directory, repout, f"_{filename}_{field}.{on:04d}.npy")
+    fileout = os.path.join(directory, repout, f"_{filename}_{field}.{on:04d}.npy")
     with open(fileout, "rb") as file:
         ret_data = np.load(file, allow_pickle=True)
 

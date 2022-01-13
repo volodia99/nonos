@@ -54,8 +54,6 @@ def test_common_image_formats(format, simulation_dir, capsys, tmp_path):
 @pytest.mark.parametrize(
     "datadir",
     [
-        # os.path.join(Path(__file__).parent, "data", "idefix_planet3d"),
-        # os.path.join(Path(__file__).parent, "data", "fargo3d_planet2d"),
         str(Path(__file__).parent.joinpath("data", "idefix_planet3d")),
         str(Path(__file__).parent.joinpath("data", "fargo3d_planet2d")),
     ],
@@ -72,7 +70,6 @@ def test_plot_simple_corotation(datadir, capsys, tmp_path):
 
 
 @pytest.mark.parametrize(
-    # "datadir", [os.path.join(Path(__file__).parent, "data", "idefix_rwi")]
     "datadir",
     [str(Path(__file__).parent.joinpath("data", "idefix_rwi"))],
 )
@@ -85,7 +82,6 @@ def test_unknown_geometry(datadir, tmp_path):
 
 
 @pytest.mark.parametrize(
-    # "datadir", [os.path.join(Path(__file__).parent, "data", "idefix_newvtk_planet2d")]
     "datadir",
     [str(Path(__file__).parent.joinpath("data", "idefix_newvtk_planet2d"))],
 )
@@ -99,7 +95,6 @@ def test_newvtk_geometry(datadir, capsys, tmp_path):
 
 
 @pytest.mark.parametrize(
-    # "datadir", [os.path.join(Path(__file__).parent, "data", "idefix_rwi")]
     "datadir",
     [str(Path(__file__).parent.joinpath("data", "idefix_rwi"))],
 )

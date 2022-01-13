@@ -1,6 +1,5 @@
 import glob
 import os
-import os.path as path
 import re
 from pathlib import Path
 
@@ -51,7 +50,7 @@ class Parameters:
             raise ValueError("both inifile and code have to be given.")
 
     def loadIniFile(self):
-        self.inifile = inifix.load(path.join(self.directory, self.paramfile))
+        self.inifile = inifix.load(os.path.join(self.directory, self.paramfile))
         if self.code == "idefix":
             self.vtk = self.inifile["Output"]["vtk"]
         elif self.code == "pluto":
@@ -66,7 +65,7 @@ class Parameters:
 
         if self.code in ("idefix", "fargo3d", "fargo-adsg"):
             if Path(self.directory).joinpath(planet_file).is_file():
-                columns = np.loadtxt(path.join(self.directory, planet_file)).T
+                columns = np.loadtxt(os.path.join(self.directory, planet_file)).T
                 self.qpl = columns[7]
                 self.dpl = np.sqrt(np.sum(columns[1:4] ** 2, axis=0))
                 self.xpl = columns[1]
@@ -102,7 +101,7 @@ class Parameters:
                 on, directory=self.directory
             )  # , inifile=self.paramfile)
         elif self.code in ("idefix", "pluto"):
-            dataVTK = path.join(self.directory, f"data.{on:04d}.vtk")
+            dataVTK = os.path.join(self.directory, f"data.{on:04d}.vtk")
             return codeReadFormat.idfxReadVTK(dataVTK, geometry=geometry, cell=cell)
         else:
             raise ValueError(f"For now, can't read files from {self.code} simulations.")
@@ -574,20 +573,20 @@ class CodeReadFormat:
     def fargoAdsgReadDat(self, on, *, directory=""):
         V = DataStructure()
         filebeg = "gas"
-        densfile = path.join(directory, f"{filebeg}dens{on}.dat")
-        vyfile = path.join(directory, f"{filebeg}vrad{on}.dat")
-        vxfile = path.join(directory, f"{filebeg}vtheta{on}.dat")
+        densfile = os.path.join(directory, f"{filebeg}dens{on}.dat")
+        vyfile = os.path.join(directory, f"{filebeg}vrad{on}.dat")
+        vxfile = os.path.join(directory, f"{filebeg}vtheta{on}.dat")
 
         V.geometry = "polar"
         V.data = {}
 
-        phi = np.loadtxt(path.join(directory, "used_azi.dat"))[:, 0]
+        phi = np.loadtxt(os.path.join(directory, "used_azi.dat"))[:, 0]
         domain_x = np.zeros(len(phi) + 1)
         domain_x[:-1] = phi
         domain_x[-1] = 2 * np.pi
         domain_x -= np.pi
         # We avoid ghost cells
-        domain_y = np.loadtxt(path.join(directory, "used_rad.dat"))
+        domain_y = np.loadtxt(os.path.join(directory, "used_rad.dat"))
         domain_z = np.zeros(2)
 
         V.x1 = domain_y  # X-Edge
@@ -621,10 +620,10 @@ class CodeReadFormat:
     def fargo3dReadDat(self, on, *, directory="", inifile=""):
         V = DataStructure()
         filebeg = "gas"
-        densfile = path.join(directory, f"{filebeg}dens{on}.dat")
-        vyfile = path.join(directory, f"{filebeg}vy{on}.dat")
-        vxfile = path.join(directory, f"{filebeg}vx{on}.dat")
-        vzfile = path.join(directory, f"{filebeg}vz{on}.dat")
+        densfile = os.path.join(directory, f"{filebeg}dens{on}.dat")
+        vyfile = os.path.join(directory, f"{filebeg}vy{on}.dat")
+        vxfile = os.path.join(directory, f"{filebeg}vx{on}.dat")
+        vzfile = os.path.join(directory, f"{filebeg}vz{on}.dat")
 
         if inifile == "":
             params = Parameters(directory=directory, inifile=inifile, code="")
@@ -636,10 +635,10 @@ class CodeReadFormat:
         V.geometry = params.inifile["COORDINATES"]
         V.data = {}
 
-        domain_x = np.loadtxt(path.join(directory, "domain_x.dat"))
+        domain_x = np.loadtxt(os.path.join(directory, "domain_x.dat"))
         # We avoid ghost cells
-        domain_y = np.loadtxt(path.join(directory, "domain_y.dat"))[3:-3]
-        domain_z = np.loadtxt(path.join(directory, "domain_z.dat"))
+        domain_y = np.loadtxt(os.path.join(directory, "domain_y.dat"))[3:-3]
+        domain_z = np.loadtxt(os.path.join(directory, "domain_z.dat"))
         if domain_z.shape[0] > 6:
             domain_z = domain_z[3:-3]
 
