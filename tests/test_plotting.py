@@ -105,6 +105,7 @@ def test_newvtk_geometry(datadir, capsys, tmp_path):
 )
 def test_error_no_planet(datadir, tmp_path):
     os.chdir(tmp_path)
+    # just check that the call returns the correct err
     with pytest.raises(FileNotFoundError, match=r"planet0\.dat not found"):
         main(["-cor", "0", "-dir", datadir, "-geometry", "polar"])
 
