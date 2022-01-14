@@ -41,11 +41,31 @@ To get help, run
 ```shell
 $ nonos --help
 ```
+
+<!-- [[[cog
+from io import StringIO
+import os
+import cog
+from nonos.main import get_parser
+
+columns = os.environ.get("COLUMNS")
+os.environ["COLUMNS"] = "90"
+help = StringIO()
+get_parser().print_help(file=help)
+os.environ["COLUMNS"] = columns or ""
+
+cog.out(f"```\n{help.getvalue()}\n```")
+]]] -->
 ```
-usage: nonos [-h] [-dir DATADIR] [-field {RHO,VX1,VX2,VX3,BX1,BX2,BX3,PRS}] [-geometry {polar,cylindrical,spherical,cartesian}]
-              [-operation {vm,vp,vz,lt,lp,aa,ap,apl,rr} [{vm,vp,vz,lt,lp,aa,ap,apl,rr} ...]] [-plane PLANE [PLANE ...]] [-range RANGE [RANGE ...]] [-vmin VMIN] [-vmax VMAX]
-              [-theta THETA] [-z Z] [-phi PHI] [-distance DISTANCE] [-cpu NCPU] [-on ON [ON ...] | -all] [-diff] [-log] [-corotate COROTATE] [-pbar] [-scaling SCALING]
-              [-cmap CMAP] [-title TITLE] [-fmt FORMAT] [-dpi DPI] [-input INPUT | -isolated] [-d | -version | -logo | -config] [-v]
+usage: nonos [-h] [-dir DATADIR] [-field {RHO,VX1,VX2,VX3,BX1,BX2,BX3,PRS}]
+             [-geometry {polar,cylindrical,spherical,cartesian}]
+             [-operation {vm,vp,vz,lt,lp,aa,ap,apl,rr} [{vm,vp,vz,lt,lp,aa,ap,apl,rr} ...]]
+             [-plane PLANE [PLANE ...]] [-corotate COROTATE] [-range RANGE [RANGE ...]]
+             [-vmin VMIN] [-vmax VMAX] [-theta THETA] [-z Z] [-phi PHI]
+             [-distance DISTANCE] [-cpu NCPU] [-on ON [ON ...] | -all] [-diff] [-log]
+             [-pbar] [-scaling SCALING] [-cmap CMAP] [-title TITLE] [-fmt FORMAT]
+             [-dpi DPI] [-input INPUT | -isolated] [-d | -version | -logo | -config]
+             [-v]
 
 Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
 
@@ -55,11 +75,13 @@ optional arguments:
   -field {RHO,VX1,VX2,VX3,BX1,BX2,BX3,PRS}
                         name of field to plot (default: 'RHO').
   -geometry {polar,cylindrical,spherical,cartesian}
-                        if the geometry of idefix outputs is not recognized (default: 'unset').
+                        if the geometry of idefix outputs is not recognized (default:
+                        'unset').
   -operation {vm,vp,vz,lt,lp,aa,ap,apl,rr} [{vm,vp,vz,lt,lp,aa,ap,apl,rr} ...]
                         operation to apply to the fild (default: 'unset').
   -plane PLANE [PLANE ...]
-                        abscissa and ordinate of the plane of projection (default: 'unset'), example: r phi
+                        abscissa and ordinate of the plane of projection (default:
+                        'unset'), example: r phi
   -corotate COROTATE    planet number that defines with which planet the grid corotates.
   -range RANGE [RANGE ...]
                         range of matplotlib window (default: unset), example: x x -2 2
@@ -71,11 +93,16 @@ optional arguments:
   -distance DISTANCE    if radial operation (default: unset)
   -cpu NCPU, -ncpu NCPU
                         number of parallel processes (default: 1).
-  -on ON [ON ...]       output number(s) (on) to plot. This can be a single value or a range (start, end, [step]) where both ends are inclusive. (default: last output available).
-  -all                  save an image for every available snapshot (this will force show=False).
-  -scaling SCALING      scale the overall sizes of features in the graph (fonts, linewidth...) (default: 1).
+  -on ON [ON ...]       output number(s) (on) to plot. This can be a single value or a
+                        range (start, end, [step]) where both ends are inclusive.
+                        (default: last output available).
+  -all                  save an image for every available snapshot (this will force
+                        show=False).
+  -scaling SCALING      scale the overall sizes of features in the graph (fonts,
+                        linewidth...) (default: 1).
   -cmap CMAP            choice of colormap for the 2D maps (default: 'RdYlBu_r').
-  -title TITLE          name of the field in the colorbar for the 2D maps (default: 'unset').
+  -title TITLE          name of the field in the colorbar for the 2D maps (default:
+                        'unset').
   -fmt FORMAT, -format FORMAT
                         select output image file format (default: unset)
   -dpi DPI              image file resolution (default: DEFAULTS['dpi'])
@@ -89,13 +116,16 @@ CLI-only options:
   -input INPUT, -i INPUT
                         specify a configuration file.
   -isolated             ignore any existing 'nonos.toml' file.
-  -d, -display          open a graphic window with the plot (only works with a single image)
+  -d, -display          open a graphic window with the plot (only works with a single
+                        image)
   -version, --version   show raw version number and exit
   -logo                 show Nonos logo with version number, and exit.
   -config               show configuration and exit.
   -v, -verbose, --verbose
                         increase output verbosity (-v: info, -vv: debug).
+
 ```
+<!-- [[[end]]] -->
 
 The `-operation` command allows you to choose what operation is applied to the data, and can be paired with `-z`, `-theta`, `-phi`, or `-distance` depending on the operation.
 - `vm`: vertical_at_midplane
