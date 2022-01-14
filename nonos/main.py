@@ -161,7 +161,7 @@ def process_field(
     plt.close(fig)
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="nonos",
         description=__doc__,
@@ -352,7 +352,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=0,
         help="increase output verbosity (-v: info, -vv: debug).",
     )
+    return parser
 
+
+def main(argv: Optional[List[str]] = None) -> int:
+    parser = get_parser()
     clargs = vars(parser.parse_args(argv))
 
     # special cases: destructively consume CLI-only arguments with dict.pop
