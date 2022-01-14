@@ -44,7 +44,7 @@ from nonos.styling import set_mpl_style
 # counterParallel = Value('i', 0) # initialization of a counter
 def process_field(
     on,
-    operation,
+    operations: List[str],
     field,
     plane,
     geometry,
@@ -78,28 +78,28 @@ def process_field(
     dsop = ds[field]
     if diff:
         dsop = dsop.diff(0)
-    if "vm" in operation:
+    if "vm" in operations:
         dsop = dsop.vertical_at_midplane()
-    elif "vp" in operation:
+    elif "vp" in operations:
         dsop = dsop.vertical_projection(z=z)
-    elif "lt" in operation:
+    elif "lt" in operations:
         dsop = dsop.latitudinal_at_theta(theta=theta)
-    elif "lp" in operation:
+    elif "lp" in operations:
         dsop = dsop.latitudinal_projection(theta=theta)
-    elif "vz" in operation:
+    elif "vz" in operations:
         dsop = dsop.vertical_at_z(z=z)
 
-    if "ap" in operation:
+    if "ap" in operations:
         dsop = dsop.azimuthal_at_phi(phi=phi)
-    elif "apl" in operation:
+    elif "apl" in operations:
         dsop = dsop.azimuthal_at_planet(planet_number=corotate)
-    elif "aa" in operation:
+    elif "aa" in operations:
         dsop = dsop.azimuthal_average()
 
-    if "rr" in operation:
+    if "rr" in operations:
         dsop = dsop.radial_at_r(distance=distance)
 
-    logger.debug("computed {} on the dataset.", operation)
+    logger.debug("operations performed: {}", operations)
 
     dim = 3 - dsop.shape.count(1)
     logger.debug("plotting a {}D plot.", dim)
@@ -171,7 +171,7 @@ def process_field(
         plt.show()
     else:
         logger.debug("saving plot: started")
-        filename = f"{''.join(plane)}_{field}_{'_'.join(operation)}{'_diff' if diff else '_'}{'_log' if log else ''}{on:04d}.{fmt}"
+        filename = f"{''.join(plane)}_{field}_{'_'.join(operations)}{'_diff' if diff else '_'}{'_log' if log else ''}{on:04d}.{fmt}"
         fig.savefig(filename, bbox_inches="tight", dpi=dpi)
         logger.debug("saving plot: finished ({})", filename)
 
@@ -441,9 +441,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     data_files = params.data_files
 
     if not is_set(args["operation"]):
-        operation = ["vm"]
+        operations = ["vm"]
     else:
-        operation = args["operation"]
+        operations = args["operation"]
 
     if not is_set(args["plane"]):
         plane = None
@@ -551,7 +551,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # TODO: reduce this to the bare minimum
     func = functools.partial(
         process_field,
-        operation=operation,
+        operations=operations,
         field=args["field"],
         plane=plane,
         geometry=geometry,
