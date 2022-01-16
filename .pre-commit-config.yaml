@@ -26,7 +26,7 @@ repos:
       - id: setup-cfg-fmt
 
   - repo: https://github.com/neutrinoceros/inifix.git
-    rev: v0.10.0
+    rev: v1.0.0
     hooks:
       - id: inifix-validate
 
