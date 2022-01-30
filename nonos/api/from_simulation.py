@@ -559,7 +559,6 @@ class CodeReadFormat:
                         "In idfxReadVTK: Unknown datatype '%s', should be 'SCALARS' or 'VECTORS'"
                         % datatype
                     )
-                    break
 
                 # logger.debug("field: %s" % varname)
 
