@@ -1238,8 +1238,11 @@ def temporal_all(
         datafield = from_file(
             field=field, filename=operation, on=on, directory=directory
         )
-        datafield_rot = datafield.rotate(planet_corotation=planet_corotation)
-        datasum += datafield_rot.data
+        if planet_corotation is not None:
+            datafield_rot = datafield.rotate(planet_corotation=planet_corotation)
+            datasum += datafield_rot.data
+        else:
+            datasum += datafield.data
     datafieldsum = from_data(
         field="".join([field, "T_ALL"]),
         data=np.array(datasum / don),
@@ -1264,14 +1267,23 @@ def temporal(
         datafield = from_file(
             field=field, filename=operation, on=onbeg, directory=directory
         )
-        datafield_rot = datafield.rotate(planet_corotation=planet_corotation)
-        datafieldsum = from_data(
-            field=field,
-            data=datafield_rot.data,
-            coords=datafield_rot.coords,
-            on=onbeg,
-            operation="_" + operation,
-        )
+        if planet_corotation is not None:
+            datafield_rot = datafield.rotate(planet_corotation=planet_corotation)
+            datafieldsum = from_data(
+                field=field,
+                data=datafield_rot.data,
+                coords=datafield_rot.coords,
+                on=onbeg,
+                operation="_" + operation,
+            )
+        else:
+            datafieldsum = from_data(
+                field=field,
+                data=datafield.data,
+                coords=datafield.coords,
+                on=onbeg,
+                operation="_" + operation,
+            )
         return datafieldsum
     else:
         don = onend - onbeg
@@ -1279,8 +1291,11 @@ def temporal(
             datafield = from_file(
                 field=field, filename=operation, on=on, directory=directory
             )
-            datafield_rot = datafield.rotate(planet_corotation=planet_corotation)
-            datasum += datafield_rot.data
+            if planet_corotation is not None:
+                datafield_rot = datafield.rotate(planet_corotation=planet_corotation)
+                datasum += datafield_rot.data
+            else:
+                datasum += datafield.data
         datafieldsum = from_data(
             field="".join([field, f"T_{onbeg}_{onend}"]),
             data=np.array(datasum / don),
