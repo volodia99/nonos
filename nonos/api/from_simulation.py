@@ -61,7 +61,7 @@ class Parameters:
     def loadPlanetFile(self, *, planet_number: int = 0):
         planet_file = f"planet{planet_number}.dat"
 
-        if self.code in ("idefix", "fargo3d", "fargo-adsg"):
+        if self.code in ("idefix", "fargo3d"):
             if Path(self.directory).joinpath(planet_file).is_file():
                 columns = np.loadtxt(os.path.join(self.directory, planet_file)).T
                 self.qpl = columns[7]
@@ -71,6 +71,14 @@ class Parameters:
                 self.tpl = columns[8]
             else:
                 raise FileNotFoundError(f"{planet_file} not found")
+        elif self.code in ("fargo-adsg"):
+            if Path(self.directory).joinpath(planet_file).is_file():
+                columns = np.loadtxt(os.path.join(self.directory, planet_file)).T
+                self.qpl = columns[5]
+                self.dpl = np.sqrt(np.sum(columns[1:3] ** 2, axis=0))
+                self.xpl = columns[1]
+                self.ypl = columns[2]
+                self.tpl = columns[7]
         else:
             raise NotImplementedError(
                 f"{planet_file} not found for {self.code}. For now, you can't rotate the grid with the planet."

@@ -534,6 +534,15 @@ class GasField:
         if self.native_geometry in ("polar", "spherical"):
             return find_nearest(phi, self.coords.phimed) % self.coords.phimed.shape[0]
 
+    def find_rp(self, planet_number: int = 0):
+        init = Parameters(
+            inifile=self.inifile, code=self.code, directory=self.directory
+        )
+        init.loadIniFile()
+        init.loadPlanetFile(planet_number=planet_number)
+        ind_on = find_nearest(init.tpl, init.vtk * self.on)
+        return init.dpl[ind_on]
+
     def find_phip(self, planet_number: int = 0):
         init = Parameters(
             inifile=self.inifile, code=self.code, directory=self.directory
