@@ -298,7 +298,7 @@ class Coordinates:
                 x = r * np.sin(theta) * np.cos(phi)
                 y = r * np.sin(theta) * np.sin(phi)
                 z = r * np.cos(theta)
-                if len(theta.shape) == 0:
+                if len(theta.shape) <= 1:
                     x = r * np.sin(theta) * np.cos(phi)
                     y = r * np.sin(theta) * np.sin(phi)
                     z = np.cos(theta)
@@ -515,24 +515,22 @@ class GasField:
     def find_ir(self, distance=1.0):
         r1 = distance
         if self.native_geometry in ("polar"):
-            return find_nearest(r1, self.coords.Rmed)
+            return find_nearest(self.coords.Rmed, r1)
         if self.native_geometry in ("spherical"):
-            return find_nearest(r1, self.coords.rmed)
+            return find_nearest(self.coords.rmed, r1)
 
     def find_imid(self, altitude=None):
         if altitude is None:
-            if self.native_geometry in ("cartesian", "polar"):
+            if self.native_geometry in ("cartesian", "polar", "spherical"):
                 altitude = 0.0
-            if self.native_geometry in ("spherical"):
-                altitude = np.pi / 2
         if self.native_geometry in ("cartesian", "polar"):
-            return find_nearest(altitude, self.coords.zmed)
+            return find_nearest(self.coords.zmed, altitude)
         if self.native_geometry in ("spherical"):
-            return find_nearest(np.pi / 2 - altitude, self.coords.thetamed)
+            return find_nearest(self.coords.thetamed, np.pi / 2 - altitude)
 
     def find_iphi(self, phi=0):
         if self.native_geometry in ("polar", "spherical"):
-            return find_nearest(phi, self.coords.phimed) % self.coords.phimed.shape[0]
+            return find_nearest(self.coords.phimed, phi) % self.coords.phimed.shape[0]
 
     def find_rp(self, planet_number: int = 0):
         init = Parameters(
@@ -591,11 +589,11 @@ class GasField:
                 find_around(self.coords.theta, self.coords.thetamed[imid]),
                 self.coords.phi,
             )
-            km = find_nearest(self.coords.theta, self.coords.theta.min())
-            kp = find_nearest(self.coords.theta, self.coords.theta.max())
+            km = find_nearest(self.coords.thetamed, self.coords.theta.min())
+            kp = find_nearest(self.coords.thetamed, self.coords.theta.max())
             if theta is not None:
-                km = find_nearest(self.coords.theta, np.pi / 2 + theta)
-                kp = find_nearest(self.coords.theta, np.pi / 2 - theta)
+                km = find_nearest(self.coords.thetamed, np.pi / 2 + theta)
+                kp = find_nearest(self.coords.thetamed, np.pi / 2 - theta)
             ret_data = (
                 np.sum(
                     (
@@ -630,11 +628,11 @@ class GasField:
                 self.coords.y,
                 find_around(self.coords.z, self.coords.zmed[imid]),
             )
-            km = find_nearest(self.coords.z, self.coords.z.min())
-            kp = find_nearest(self.coords.z, self.coords.z.max())
+            km = find_nearest(self.coords.zmed, self.coords.z.min())
+            kp = find_nearest(self.coords.zmed, self.coords.z.max())
             if z is not None:
-                km = find_nearest(self.coords.z, -z)
-                kp = find_nearest(self.coords.z, z)
+                km = find_nearest(self.coords.zmed, -z)
+                kp = find_nearest(self.coords.zmed, z)
             ret_data = (
                 np.sum(
                     (self.data * np.ediff1d(self.coords.z))[:, :, km : kp + 1],
@@ -649,11 +647,11 @@ class GasField:
                 self.coords.phi,
                 find_around(self.coords.z, self.coords.zmed[imid]),
             )
-            km = find_nearest(self.coords.z, self.coords.z.min())
-            kp = find_nearest(self.coords.z, self.coords.z.max())
+            km = find_nearest(self.coords.zmed, self.coords.z.min())
+            kp = find_nearest(self.coords.zmed, self.coords.z.max())
             if z is not None:
-                km = find_nearest(self.coords.z, -z)
-                kp = find_nearest(self.coords.z, z)
+                km = find_nearest(self.coords.zmed, -z)
+                kp = find_nearest(self.coords.zmed, z)
             ret_data = (
                 np.sum(
                     (self.data * np.ediff1d(self.coords.z))[:, :, km : kp + 1],
@@ -755,7 +753,8 @@ class GasField:
     def latitudinal_at_theta(self, theta=None, name_operation=None):
         logger.info("latitudinal_at_theta TO BE TESTED")
         if theta is None:
-            theta = 0
+            if self.native_geometry in ("cartesian", "polar", "spherical"):
+                theta = 0.0
         if name_operation is None:
             operation = self.operation + f"_latitudinal_at_theta{np.pi/2-theta}"
         else:
@@ -766,20 +765,24 @@ class GasField:
             for i in range(self.shape[0]):
                 if np.sign(theta) >= 0:
                     if (
-                        find_nearest(self.coords.z, theta * self.coords.R[i])
+                        find_nearest(self.coords.zmed, theta * self.coords.R[i])
                         < self.shape[2]
                     ):
                         # print(i,find_nearest(rhoon.x,rhoon.x[i]),find_nearest(rhoon.z,4*0.05*rhoon.x[i]))
                         # rvz[find_nearest(rhoon.x,rhoon.x[i]),:,find_nearest(rhoon.z,4*0.05*rhoon.x[i])] = 1
                         data_at_theta[i, :] = self.data[
-                            i, :, find_nearest(self.coords.z, theta * self.coords.R[i])
+                            i,
+                            :,
+                            find_nearest(self.coords.zmed, theta * self.coords.R[i]),
                         ]
                     else:
                         data_at_theta[i, :] = np.nan
                 else:
-                    if find_nearest(self.coords.z, theta * self.coords.R[i]) > 0:
+                    if find_nearest(self.coords.zmed, theta * self.coords.R[i]) > 0:
                         data_at_theta[i, :] = self.data[
-                            i, :, find_nearest(self.coords.z, theta * self.coords.R[i])
+                            i,
+                            :,
+                            find_nearest(self.coords.zmed, theta * self.coords.R[i]),
                         ]
                     else:
                         data_at_theta[i, :] = np.nan
@@ -798,7 +801,7 @@ class GasField:
                 self.coords.phi,
             )
             ret_data = self.data[
-                :, find_nearest(self.coords.theta, np.pi / 2 - theta), :
+                :, find_nearest(self.coords.thetamed, np.pi / 2 - theta), :
             ].reshape(self.shape[0], 1, self.shape[2])
         return GasField(
             self.field,
@@ -830,7 +833,7 @@ class GasField:
                 self.coords.y,
                 find_around(self.coords.z, self.coords.zmed[imid]),
             )
-            ret_data = self.data[:, :, find_nearest(self.coords.z, z)].reshape(
+            ret_data = self.data[:, :, find_nearest(self.coords.zmed, z)].reshape(
                 self.shape[0], self.shape[1], 1
             )
         if self.native_geometry == "polar":
@@ -840,7 +843,7 @@ class GasField:
                 self.coords.phi,
                 find_around(self.coords.z, self.coords.zmed[imid]),
             )
-            ret_data = self.data[:, :, find_nearest(self.coords.z, z)].reshape(
+            ret_data = self.data[:, :, find_nearest(self.coords.zmed, z)].reshape(
                 self.shape[0], self.shape[1], 1
             )
         if self.native_geometry == "spherical":
@@ -848,7 +851,9 @@ class GasField:
             for i in range(self.shape[0]):
                 if np.sign(z) >= 0:
                     if (
-                        find_nearest(self.coords.theta, np.arctan2(self.coords.r[i], z))
+                        find_nearest(
+                            self.coords.thetamed, np.arctan2(self.coords.r[i], z)
+                        )
                         < self.shape[2]
                     ):
                         # print(i,find_nearest(rhoon.x,rhoon.x[i]),find_nearest(rhoon.z,4*0.05*rhoon.x[i]))
@@ -856,7 +861,7 @@ class GasField:
                         data_at_z[i, :] = self.data[
                             i,
                             find_nearest(
-                                self.coords.theta, np.arctan2(self.coords.r[i], z)
+                                self.coords.thetamed, np.arctan2(self.coords.r[i], z)
                             ),
                             :,
                         ]
@@ -864,13 +869,15 @@ class GasField:
                         data_at_z[i, :] = np.nan
                 else:
                     if (
-                        find_nearest(self.coords.theta, np.arctan2(self.coords.r[i], z))
+                        find_nearest(
+                            self.coords.thetamed, np.arctan2(self.coords.r[i], z)
+                        )
                         > 0
                     ):
                         data_at_z[i, :] = self.data[
                             i,
                             find_nearest(
-                                self.coords.theta, np.arctan2(self.coords.r[i], z)
+                                self.coords.thetamed, np.arctan2(self.coords.r[i], z)
                             ),
                             :,
                         ]
