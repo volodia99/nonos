@@ -563,21 +563,48 @@ class GasField:
             # ret_coords = Coordinates(self.native_geometry, self.coords.R, find_around(self.coords.phi, self.coords.phimed[0]), self.coords.z)
             R = self.coords.Rmed
             z = self.coords.zmed
+            kall = []
+            iall = []
             integral = np.zeros((self.shape[0], self.shape[1]), dtype=">f4")
-            # integral = np.zeros((self.shape[0],self.shape[2]), dtype='>f4')
             for i in range(self.shape[0]):
                 km = find_nearest(z, z.min())
                 kp = find_nearest(z, z.max())
                 if theta is not None:
-                    km = find_nearest(z, -R[i] * theta)
-                    kp = find_nearest(z, R[i] * theta)
+                    km = find_nearest(z, R[i] / np.tan(np.pi / 2 - theta))
+                    kp = find_nearest(z, R[i] / np.tan(np.pi / 2 + theta))
+                for k in range(kp, km - 2, -1):
+                    kall.append(k)
+                    iall.append(find_nearest(R, np.sqrt(R[i] ** 2 - z[k] ** 2)))
+                knall = np.array(kall)[
+                    np.where(
+                        (z[kall] < R[iall] / np.tan(np.pi / 2 - theta))
+                        & (z[kall] > R[iall] / np.tan(np.pi / 2 + theta))
+                    )[0]
+                ]
+                inall = np.array(iall)[
+                    np.where(
+                        (z[kall] < R[iall] / np.tan(np.pi / 2 - theta))
+                        & (z[kall] > R[iall] / np.tan(np.pi / 2 + theta))
+                    )[0]
+                ]
+                kall = knall
+                iall = inall
                 integral[i, :] = np.sum(
-                    (self.data[i, :, :] * np.ediff1d(self.coords.z)[None, :])[
-                        :, km : kp + 1
-                    ],
-                    axis=1,
+                    self.data[iall[:-1], :, kall[:-1]]
+                    * R[iall[:-1]][:, None]
+                    * np.ediff1d(np.arctan2(R[iall], z[kall]))[:, None],
+                    axis=0,
                     dtype="float64",
                 )
+                iall = []
+                kall = []
+                # integral[i, :] = np.sum(
+                #     (self.data[i, :, :] * np.ediff1d(self.coords.z)[None, :])[
+                #         :, km : kp + 1
+                #     ],
+                #     axis=1,
+                #     dtype="float64",
+                # )
                 # integral[i,km] = -1
                 # integral[i,kp] = 1
             ret_data = integral.reshape(self.shape[0], self.shape[1], 1)
@@ -592,8 +619,8 @@ class GasField:
             km = find_nearest(self.coords.thetamed, self.coords.theta.min())
             kp = find_nearest(self.coords.thetamed, self.coords.theta.max())
             if theta is not None:
-                km = find_nearest(self.coords.thetamed, np.pi / 2 + theta)
-                kp = find_nearest(self.coords.thetamed, np.pi / 2 - theta)
+                km = find_nearest(self.coords.thetamed, np.pi / 2 - theta)
+                kp = find_nearest(self.coords.thetamed, np.pi / 2 + theta)
             ret_data = (
                 np.sum(
                     (
@@ -601,7 +628,7 @@ class GasField:
                         * self.coords.rmed[:, None, None]
                         * np.sin(self.coords.thetamed[None, :, None])
                         * np.ediff1d(self.coords.theta)[None, :, None]
-                    )[:, :, km : kp + 1],
+                    )[:, km : kp + 1, :],
                     axis=1,
                     dtype="float64",
                 )
@@ -659,10 +686,10 @@ class GasField:
                     dtype="float64",
                 )
             ).reshape(self.shape[0], self.shape[1], 1)
-        # if self.native_geometry=="spherical":
-        #     ret_coords = Coordinates(self.native_geometry, self.coords.r, find_around(self.coords.theta, self.coords.thetamed[imid]), self.coords.phi)
-        #     ret_data = (np.sum(self.data * self.coords.rmed[:,None,None] * np.sin(self.coords.thetamed[None,:,None]) * np.ediff1d(self.coords.theta)[None,:,None], axis=1, dtype="float64")).reshape(self.shape[0],1,self.shape[2])
         if self.native_geometry == "spherical":
+            raise NotImplementedError(
+                "vertical projection in spherical coordinates not implemented yet."
+            )
             ret_coords = Coordinates(
                 self.native_geometry,
                 self.coords.r,
@@ -673,26 +700,26 @@ class GasField:
             r = self.coords.rmed
             theta = self.coords.thetamed
             integral = np.zeros((self.shape[0], self.shape[2]), dtype=">f4")
+            kall = []
+            iall = []
             for i in range(self.shape[0]):
                 kp = find_nearest(theta, theta.max())
                 km = find_nearest(theta, theta.min())
                 if z is not None:
                     kp = find_nearest(theta, np.arctan2(r[i], -z))
                     km = find_nearest(theta, np.arctan2(r[i], z))
-                # integral[i,:] = np.sum((((self.data[i,1:,:]*np.sin(theta[1:,None])+self.data[i,:-1,:]*np.sin(theta[:-1,None]))/2)*r[i]*np.ediff1d(theta)[:,None])[km:kp+1,:], axis=0, dtype="float64")
+                for k in range(kp, km - 2, -1):
+                    kall.append(k)
+                    iall.append(find_nearest(r * np.sin(theta[k]), r[i]))
                 integral[i, :] = np.sum(
-                    (
-                        (self.data[i, :, :] * np.sin(theta[:, None]))
-                        * r[i]
-                        * np.ediff1d(self.coords.theta)[:, None]
-                    )[km : kp + 1, :],
+                    self.data[iall[:-1], kall[:-1], :]
+                    * np.ediff1d(r[iall] * np.cos(theta[kall]))[:, None],
                     axis=0,
                     dtype="float64",
                 )
-                # integral[i,km] = -1
-                # integral[i,kp] = 1
+                iall = []
+                kall = []
             ret_data = integral.reshape(self.shape[0], 1, self.shape[2])
-            # ret_data = integral.reshape(self.shape[0],self.shape[1],1)
         return GasField(
             self.field,
             np.float32(ret_data),
@@ -765,7 +792,10 @@ class GasField:
             for i in range(self.shape[0]):
                 if np.sign(theta) >= 0:
                     if (
-                        find_nearest(self.coords.zmed, theta * self.coords.R[i])
+                        find_nearest(
+                            self.coords.zmed,
+                            self.coords.R[i] / np.tan(np.pi / 2 - theta),
+                        )
                         < self.shape[2]
                     ):
                         # print(i,find_nearest(rhoon.x,rhoon.x[i]),find_nearest(rhoon.z,4*0.05*rhoon.x[i]))
@@ -773,16 +803,28 @@ class GasField:
                         data_at_theta[i, :] = self.data[
                             i,
                             :,
-                            find_nearest(self.coords.zmed, theta * self.coords.R[i]),
+                            find_nearest(
+                                self.coords.zmed,
+                                self.coords.R[i] / np.tan(np.pi / 2 - theta),
+                            ),
                         ]
                     else:
                         data_at_theta[i, :] = np.nan
                 else:
-                    if find_nearest(self.coords.zmed, theta * self.coords.R[i]) > 0:
+                    if (
+                        find_nearest(
+                            self.coords.zmed,
+                            self.coords.R[i] / np.tan(np.pi / 2 - theta),
+                        )
+                        > 0
+                    ):
                         data_at_theta[i, :] = self.data[
                             i,
                             :,
-                            find_nearest(self.coords.zmed, theta * self.coords.R[i]),
+                            find_nearest(
+                                self.coords.zmed,
+                                self.coords.R[i] / np.tan(np.pi / 2 - theta),
+                            ),
                         ]
                     else:
                         data_at_theta[i, :] = np.nan
@@ -847,6 +889,9 @@ class GasField:
                 self.shape[0], self.shape[1], 1
             )
         if self.native_geometry == "spherical":
+            raise NotImplementedError(
+                "vertical at z in spherical coordinates not implemented yet."
+            )
             data_at_z = np.zeros((self.shape[0], self.shape[2]), dtype=">f4")
             for i in range(self.shape[0]):
                 if np.sign(z) >= 0:
