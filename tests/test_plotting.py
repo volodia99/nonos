@@ -144,3 +144,25 @@ def test_plot_planet_corotation(test_data_dir):
     assert (
         find_nearest(azimfieldPlanet, azimfieldPlanet.max()) == ds["RHO"].shape[2] // 2
     )
+
+
+def test_unit_conversion(test_data_dir):
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    from nonos.api import GasDataSet
+
+    os.chdir(test_data_dir / "idefix_planet3d")
+
+    ds = GasDataSet(43, geometry="polar")
+    fig, ax = plt.subplots()
+
+    plotfield10 = (
+        ds["RHO"]
+        .vertical_at_midplane()
+        .map("R", "phi")
+        .plot(fig, ax, unit_conversion=10)
+    )
+    plotfield = ds["RHO"].vertical_at_midplane().map("R", "phi").plot(fig, ax)
+
+    np.testing.assert_array_equal(plotfield10.get_array(), 10 * plotfield.get_array())
