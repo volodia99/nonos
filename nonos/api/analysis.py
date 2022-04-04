@@ -1049,7 +1049,7 @@ class GasField:
         iphip_p = self.find_iphi(phi=phip + 2 * rhill / rp)
         if self.native_geometry == "cartesian":
             raise NotImplementedError(
-                f"geometry flag '{self._native_geometry}' not implemented yet for azimuthal_average_except_planet_hill"
+                f"geometry flag '{self.native_geometry}' not implemented yet for azimuthal_average_except_planet_hill"
             )
         if self.native_geometry == "polar":
             ret_coords = Coordinates(
@@ -1093,7 +1093,7 @@ class GasField:
             # )
         return GasField(
             self.field,
-            np.float32(ret_data),
+            ret_data,
             ret_coords,
             self.native_geometry,
             self.on,
