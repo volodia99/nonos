@@ -41,6 +41,8 @@ DEFAULTS = {
     "cmap": "RdYlBu_r",
     # name of colorbar
     "title": "unset",
+    # conversion factor
+    "unit_conversion": 1,
     # select image file format
     "format": "unset",
     # select image resolution

@@ -63,9 +63,9 @@ usage: nonos [-h] [-dir DATADIR] [-field {RHO,VX1,VX2,VX3,BX1,BX2,BX3,PRS}]
              [-plane PLANE [PLANE ...]] [-corotate COROTATE] [-range RANGE [RANGE ...]]
              [-vmin VMIN] [-vmax VMAX] [-theta THETA] [-z Z] [-phi PHI]
              [-distance DISTANCE] [-cpu NCPU] [-on ON [ON ...] | -all] [-diff] [-log]
-             [-pbar] [-scaling SCALING] [-cmap CMAP] [-title TITLE] [-fmt FORMAT]
-             [-dpi DPI] [-input INPUT | -isolated] [-d | -version | -logo | -config]
-             [-v]
+             [-pbar] [-scaling SCALING] [-cmap CMAP] [-title TITLE]
+             [-uc UNIT_CONVERSION] [-fmt FORMAT] [-dpi DPI] [-input INPUT | -isolated]
+             [-d | -version | -logo | -config] [-v]
 
 Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
 
@@ -103,9 +103,11 @@ optional arguments:
   -cmap CMAP            choice of colormap for the 2D maps (default: 'RdYlBu_r').
   -title TITLE          name of the field in the colorbar for the 2D maps (default:
                         'unset').
+  -uc UNIT_CONVERSION, -unit_conversion UNIT_CONVERSION
+                        conversion factor for the considered quantity (default: '1').
   -fmt FORMAT, -format FORMAT
                         select output image file format (default: unset)
-  -dpi DPI              image file resolution (default: DEFAULTS['dpi'])
+  -dpi DPI              image file resolution (default: 200)
 
 boolean flags:
   -diff                 plot the relative perturbation of the field f, i.e. (f-f0)/f0.

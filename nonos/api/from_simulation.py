@@ -68,7 +68,39 @@ class Parameters:
                 self.dpl = np.sqrt(np.sum(columns[1:4] ** 2, axis=0))
                 self.xpl = columns[1]
                 self.ypl = columns[2]
+                self.zpl = columns[3]
+                self.vxpl = columns[4]
+                self.vypl = columns[5]
+                self.vzpl = columns[6]
                 self.tpl = columns[8]
+
+                hx = self.ypl * self.vzpl - self.zpl * self.vypl
+                hy = self.zpl * self.vxpl - self.xpl * self.vzpl
+                hz = self.xpl * self.vypl - self.ypl * self.vxpl
+                hhor = np.sqrt(hx * hx + hy * hy)
+
+                h2 = hx * hx + hy * hy + hz * hz
+                h = np.sqrt(h2)
+                self.ipl = np.arcsin(hhor / h)
+
+                Ax = (
+                    self.vypl * hz
+                    - self.vzpl * hy
+                    - (1.0 + self.qpl) * self.xpl / self.dpl
+                )
+                Ay = (
+                    self.vzpl * hx
+                    - self.vxpl * hz
+                    - (1.0 + self.qpl) * self.ypl / self.dpl
+                )
+                Az = (
+                    self.vxpl * hy
+                    - self.vypl * hx
+                    - (1.0 + self.qpl) * self.zpl / self.dpl
+                )
+
+                self.epl = np.sqrt(Ax * Ax + Ay * Ay + Az * Az) / (1.0 + self.qpl)
+                self.apl = h * h / ((1.0 + self.qpl) * (1.0 - self.epl * self.epl))
             else:
                 raise FileNotFoundError(f"{planet_file} not found")
         elif self.code in ("fargo-adsg"):
@@ -78,7 +110,40 @@ class Parameters:
                 self.dpl = np.sqrt(np.sum(columns[1:3] ** 2, axis=0))
                 self.xpl = columns[1]
                 self.ypl = columns[2]
+                self.zpl = 0.0
+                self.vxpl = columns[3]
+                self.vypl = columns[4]
+                self.vzpl = 0.0
                 self.tpl = columns[7]
+
+                hx = self.ypl * self.vzpl - self.zpl * self.vypl
+                hy = self.zpl * self.vxpl - self.xpl * self.vzpl
+                hz = self.xpl * self.vypl - self.ypl * self.vxpl
+                hhor = np.sqrt(hx * hx + hy * hy)
+
+                h2 = hx * hx + hy * hy + hz * hz
+                h = np.sqrt(h2)
+                self.ipl = np.arcsin(hhor / h)
+
+                Ax = (
+                    self.vypl * hz
+                    - self.vzpl * hy
+                    - (1.0 + self.qpl) * self.xpl / self.dpl
+                )
+                Ay = (
+                    self.vzpl * hx
+                    - self.vxpl * hz
+                    - (1.0 + self.qpl) * self.ypl / self.dpl
+                )
+                Az = (
+                    self.vxpl * hy
+                    - self.vypl * hx
+                    - (1.0 + self.qpl) * self.zpl / self.dpl
+                )
+
+                self.epl = np.sqrt(Ax * Ax + Ay * Ay + Az * Az) / (1.0 + self.qpl)
+                self.apl = h * h / ((1.0 + self.qpl) * (1.0 - self.epl * self.epl))
+
         else:
             raise NotImplementedError(
                 f"{planet_file} not found for {self.code}. For now, you can't rotate the grid with the planet."

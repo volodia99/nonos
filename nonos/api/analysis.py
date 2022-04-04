@@ -31,9 +31,12 @@ class Plotable:
         fmt="png",
         dpi=500,
         title=None,
+        unit_conversion=None,
         **kwargs,
     ):
         data = self.data
+        if unit_conversion is not None:
+            data = data * unit_conversion
         if log:
             data = np.log10(data)
         if vmin is None:
@@ -352,6 +355,7 @@ class GasField:
         inifile: str = "",
         code: str = "",
         directory="",
+        rotate_grid: bool = False,
     ):
         self.field = field
         self.operation = operation
@@ -363,6 +367,7 @@ class GasField:
         self.inifile = inifile
         self.code = code
         self.directory = directory
+        self.rotate_grid = rotate_grid
 
     @property
     def shape(self) -> Tuple[Any, ...]:
@@ -530,7 +535,7 @@ class GasField:
 
     def find_iphi(self, phi=0):
         if self.native_geometry in ("polar", "spherical"):
-            return find_nearest(self.coords.phimed, phi) % self.coords.phimed.shape[0]
+            return find_nearest(self.coords.phi, phi) % self.coords.phimed.shape[0]
 
     def find_rp(self, planet_number: int = 0):
         init = Parameters(
@@ -541,7 +546,18 @@ class GasField:
         ind_on = find_nearest(init.tpl, init.vtk * self.on)
         return init.dpl[ind_on]
 
+    def find_rhill(self, planet_number: int = 0):
+        init = Parameters(
+            inifile=self.inifile, code=self.code, directory=self.directory
+        )
+        init.loadIniFile()
+        init.loadPlanetFile(planet_number=planet_number)
+        ind_on = find_nearest(init.tpl, init.vtk * self.on)
+        return pow(init.qpl[ind_on] / 3.0, 1.0 / 3.0) * init.apl[ind_on]
+
     def find_phip(self, planet_number: int = 0):
+        if self.rotate_grid:
+            return 0.0
         init = Parameters(
             inifile=self.inifile, code=self.code, directory=self.directory
         )
@@ -589,7 +605,7 @@ class GasField:
                 ]
                 kall = knall
                 iall = inall
-                integral[i, :] = np.sum(
+                integral[i, :] = np.nansum(
                     self.data[iall[:-1], :, kall[:-1]]
                     * R[iall[:-1]][:, None]
                     * np.ediff1d(np.arctan2(R[iall], z[kall]))[:, None],
@@ -598,7 +614,7 @@ class GasField:
                 )
                 iall = []
                 kall = []
-                # integral[i, :] = np.sum(
+                # integral[i, :] = np.nansum(
                 #     (self.data[i, :, :] * np.ediff1d(self.coords.z)[None, :])[
                 #         :, km : kp + 1
                 #     ],
@@ -622,7 +638,7 @@ class GasField:
                 km = find_nearest(self.coords.thetamed, np.pi / 2 - theta)
                 kp = find_nearest(self.coords.thetamed, np.pi / 2 + theta)
             ret_data = (
-                np.sum(
+                np.nansum(
                     (
                         self.data
                         * self.coords.rmed[:, None, None]
@@ -643,6 +659,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
+            rotate_grid=self.rotate_grid,
         )
 
     def vertical_projection(self, z=None):
@@ -661,7 +678,7 @@ class GasField:
                 km = find_nearest(self.coords.zmed, -z)
                 kp = find_nearest(self.coords.zmed, z)
             ret_data = (
-                np.sum(
+                np.nansum(
                     (self.data * np.ediff1d(self.coords.z))[:, :, km : kp + 1],
                     axis=2,
                     dtype="float64",
@@ -680,7 +697,7 @@ class GasField:
                 km = find_nearest(self.coords.zmed, -z)
                 kp = find_nearest(self.coords.zmed, z)
             ret_data = (
-                np.sum(
+                np.nansum(
                     (self.data * np.ediff1d(self.coords.z))[:, :, km : kp + 1],
                     axis=2,
                     dtype="float64",
@@ -688,38 +705,11 @@ class GasField:
             ).reshape(self.shape[0], self.shape[1], 1)
         if self.native_geometry == "spherical":
             raise NotImplementedError(
-                "vertical projection in spherical coordinates not implemented yet."
+                """
+                vertical_projection(z) function not implemented in spherical coordinates.\n
+                Maybe you could use the function latitudinal_projection(theta)?
+                """
             )
-            ret_coords = Coordinates(
-                self.native_geometry,
-                self.coords.r,
-                find_around(self.coords.theta, self.coords.thetamed[imid]),
-                self.coords.phi,
-            )
-            # ret_coords = Coordinates(self.native_geometry, self.coords.r, self.coords.theta, find_around(self.coords.phi, self.coords.phimed[0]))
-            r = self.coords.rmed
-            theta = self.coords.thetamed
-            integral = np.zeros((self.shape[0], self.shape[2]), dtype=">f4")
-            kall = []
-            iall = []
-            for i in range(self.shape[0]):
-                kp = find_nearest(theta, theta.max())
-                km = find_nearest(theta, theta.min())
-                if z is not None:
-                    kp = find_nearest(theta, np.arctan2(r[i], -z))
-                    km = find_nearest(theta, np.arctan2(r[i], z))
-                for k in range(kp, km - 2, -1):
-                    kall.append(k)
-                    iall.append(find_nearest(r * np.sin(theta[k]), r[i]))
-                integral[i, :] = np.sum(
-                    self.data[iall[:-1], kall[:-1], :]
-                    * np.ediff1d(r[iall] * np.cos(theta[kall]))[:, None],
-                    axis=0,
-                    dtype="float64",
-                )
-                iall = []
-                kall = []
-            ret_data = integral.reshape(self.shape[0], 1, self.shape[2])
         return GasField(
             self.field,
             np.float32(ret_data),
@@ -730,6 +720,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
+            rotate_grid=self.rotate_grid,
         )
 
     def vertical_at_midplane(self):
@@ -775,6 +766,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
+            rotate_grid=self.rotate_grid,
         )
 
     def latitudinal_at_theta(self, theta=None, name_operation=None):
@@ -855,6 +847,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
+            rotate_grid=self.rotate_grid,
         )
 
     def vertical_at_z(self, z=None, name_operation=None):
@@ -945,6 +938,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
+            rotate_grid=self.rotate_grid,
         )
 
     def azimuthal_at_phi(self, phi=None):
@@ -984,6 +978,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
+            rotate_grid=self.rotate_grid,
         )
 
     def azimuthal_at_planet(self, planet_number: int = 0):
@@ -1000,6 +995,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
+            rotate_grid=self.rotate_grid,
         )
 
     def azimuthal_average(self):
@@ -1017,7 +1013,7 @@ class GasField:
                 find_around(self.coords.phi, self.coords.phimed[iphi]),
                 self.coords.z,
             )
-            ret_data = np.mean(self.data, axis=1, dtype="float64").reshape(
+            ret_data = np.nanmean(self.data, axis=1, dtype="float64").reshape(
                 self.shape[0], 1, self.shape[2]
             )
         if self.native_geometry == "spherical":
@@ -1027,7 +1023,7 @@ class GasField:
                 self.coords.theta,
                 find_around(self.coords.phi, self.coords.phimed[iphi]),
             )
-            ret_data = np.mean(self.data, axis=2, dtype="float64").reshape(
+            ret_data = np.nanmean(self.data, axis=2, dtype="float64").reshape(
                 self.shape[0], self.shape[1], 1
             )
         return GasField(
@@ -1040,6 +1036,72 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
+            rotate_grid=self.rotate_grid,
+        )
+
+    def remove_planet_hill(self, planet_number: int = 0):
+        # self.field = r"$\langle$%s$\rangle$" % self.field
+        operation = self.operation + "_remove_planet_hill"
+        phip = self.find_phip(planet_number=planet_number)
+        rp = self.find_rp(planet_number=planet_number)
+        rhill = self.find_rhill(planet_number=planet_number)
+        iphip_m = self.find_iphi(phi=phip - 2 * rhill / rp)
+        iphip_p = self.find_iphi(phi=phip + 2 * rhill / rp)
+        if self.native_geometry == "cartesian":
+            raise NotImplementedError(
+                f"geometry flag '{self._native_geometry}' not implemented yet for azimuthal_average_except_planet_hill"
+            )
+        if self.native_geometry == "polar":
+            ret_coords = Coordinates(
+                self.native_geometry,
+                self.coords.R,
+                # find_around(self.coords.phi, phip),
+                self.coords.phi,
+                self.coords.z,
+            )
+            ret_data = self.data.copy()
+            if iphip_p >= iphip_m and iphip_p != self.coords.shape[1]:
+                ret_data[:, iphip_m : iphip_p + 1, :] = np.nan
+            else:
+                if iphip_p == self.coords.shape[1]:
+                    ret_data[:, iphip_m:iphip_p, :] = np.nan
+                else:
+                    ret_data[:, 0 : iphip_p + 1, :] = np.nan
+                    ret_data[:, iphip_m : self.coords.shape[1], :] = np.nan
+            # ret_data = np.nanmean(self.data, axis=1, dtype="float64").reshape(
+            #     self.shape[0], 1, self.shape[2]
+            # )
+        if self.native_geometry == "spherical":
+            ret_coords = Coordinates(
+                self.native_geometry,
+                self.coords.r,
+                self.coords.theta,
+                # find_around(self.coords.phi, phip),
+                self.coords.phi,
+            )
+            ret_data = self.data.copy()
+            if iphip_p >= iphip_m and iphip_p != self.coords.shape[2]:
+                ret_data[:, :, iphip_m : iphip_p + 1] = np.nan
+            else:
+                if iphip_p == self.coords.shape[2]:
+                    ret_data[:, :, iphip_m:iphip_p] = np.nan
+                else:
+                    ret_data[:, :, 0 : iphip_p + 1] = np.nan
+                    ret_data[:, :, iphip_m : self.coords.shape[2]] = np.nan
+            # ret_data = np.nanmean(self.data, axis=2, dtype="float64").reshape(
+            #     self.shape[0], self.shape[1], 1
+            # )
+        return GasField(
+            self.field,
+            np.float32(ret_data),
+            ret_coords,
+            self.native_geometry,
+            self.on,
+            operation,
+            inifile=self.inifile,
+            code=self.code,
+            directory=self.directory,
+            rotate_grid=self.rotate_grid,
         )
 
     def radial_at_r(self, distance=None):
@@ -1078,6 +1140,54 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
+            rotate_grid=self.rotate_grid,
+        )
+
+    def radial_average_interval(self, vmin=None, vmax=None):
+        operation = self.operation + f"_radial_average_interval_{vmin}_{vmax}"
+        irmin = self.find_ir(distance=vmin)
+        irmax = self.find_ir(distance=vmax)
+        ir = self.find_ir(distance=(vmax - vmin) / 2)
+        if self.native_geometry == "cartesian":
+            raise NotImplementedError(
+                f"geometry flag '{self._native_geometry}' not implemented yet for radial_at_r"
+            )
+        if self.native_geometry == "polar":
+            if vmin is None:
+                vmin = self.coords.R.min()
+            if vmax is None:
+                vmax = self.coords.R.max()
+            ret_coords = Coordinates(
+                self.native_geometry,
+                find_around(self.coords.R, self.coords.Rmed[ir]),
+                self.coords.phi,
+                self.coords.z,
+            )
+        if self.native_geometry == "spherical":
+            if vmin is None:
+                vmin = self.coords.r.min()
+            if vmax is None:
+                vmax = self.coords.r.max()
+            ret_coords = Coordinates(
+                self.native_geometry,
+                find_around(self.coords.r, self.coords.rmed[ir]),
+                self.coords.theta,
+                self.coords.phi,
+            )
+        ret_data = np.nanmean(
+            self.data[irmin : irmax + 1, :, :], axis=0, dtype="float64"
+        ).reshape(1, self.shape[1], self.shape[2])
+        return GasField(
+            self.field,
+            ret_data,
+            ret_coords,
+            self.native_geometry,
+            self.on,
+            operation,
+            inifile=self.inifile,
+            code=self.code,
+            directory=self.directory,
+            rotate_grid=self.rotate_grid,
         )
 
     def diff(self, on_2):
@@ -1106,6 +1216,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
+            rotate_grid=self.rotate_grid,
         )
 
     def rotate(self, planet_corotation: Optional[int] = None):
@@ -1163,6 +1274,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
+            rotate_grid=True,
         )
 
 
@@ -1272,6 +1384,8 @@ def from_data(
     coords: Coordinates,
     on: int,
     operation: str,
+    directory: str = "",
+    rotate_grid: bool = False,
 ):
     ret_data = data
     ret_coords = coords
@@ -1283,6 +1397,8 @@ def from_data(
         geometry,
         on,
         operation=operation,
+        directory=directory,
+        rotate_grid=rotate_grid,
     )
 
 
@@ -1310,6 +1426,8 @@ def temporal_all(
         coords=datafield.coords,
         on=0,
         operation="_" + operation,
+        directory=directory,
+        rotate_grid=datafield.rotate_grid,
     )
     return datafieldsum
 
@@ -1336,6 +1454,8 @@ def temporal(
                 coords=datafield_rot.coords,
                 on=onbeg,
                 operation="_" + operation,
+                directory=directory,
+                rotate_grid=datafield_rot.rotate_grid,
             )
         else:
             datafieldsum = from_data(
@@ -1344,6 +1464,8 @@ def temporal(
                 coords=datafield.coords,
                 on=onbeg,
                 operation="_" + operation,
+                directory=directory,
+                rotate_grid=datafield.rotate_grid,
             )
         return datafieldsum
     else:
@@ -1363,5 +1485,7 @@ def temporal(
             coords=datafield.coords,
             on=onend,
             operation="_" + operation,
+            directory=directory,
+            rotate_grid=datafield.rotate_grid,
         )
         return datafieldsum

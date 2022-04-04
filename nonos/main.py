@@ -51,6 +51,7 @@ def process_field(
     scaling: float,
     cmap,
     title,
+    unit_conversion: int,
     datadir,
     show: bool,
     dpi: int,
@@ -107,7 +108,13 @@ def process_field(
     ax = fig.add_subplot(111, polar=False)
     if dim == 1:
         dsop.map(plane[0], planet_corotation=corotate).plot(
-            fig, ax, log=log, vmin=vmin, vmax=vmax, title="$%s$" % title
+            fig,
+            ax,
+            log=log,
+            vmin=vmin,
+            vmax=vmax,
+            title="$%s$" % title,
+            unit_conversion=unit_conversion,
         )
         akey = dsop.map(plane[0], planet_corotation=corotate).dict_plotable["abscissa"]
         avalue = dsop.map(plane[0], planet_corotation=corotate).dict_plotable[akey]
@@ -123,6 +130,7 @@ def process_field(
             vmax=vmax,
             cmap=cb.cbmap(cmap, nbin=None),
             title="$%s$" % title,
+            unit_conversion=unit_conversion,
         )
         akey = dsop.map(plane[0], plane[1], planet_corotation=corotate).dict_plotable[
             "abscissa"
@@ -301,6 +309,13 @@ def get_parser() -> argparse.ArgumentParser:
         help=f"name of the field in the colorbar for the 2D maps (default: '{DEFAULTS['title']}').",
     )
     parser.add_argument(
+        "-uc",
+        "-unit_conversion",
+        dest="unit_conversion",
+        type=float,
+        help=f"conversion factor for the considered quantity (default: '{DEFAULTS['unit_conversion']}').",
+    )
+    parser.add_argument(
         "-fmt",
         "-format",
         dest="format",
@@ -309,7 +324,7 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-dpi",
         type=int,
-        help="image file resolution (default: DEFAULTS['dpi'])",
+        help=f"image file resolution (default: {DEFAULTS['dpi']})",
     )
 
     cli_only_group = parser.add_argument_group("CLI-only options")
@@ -538,6 +553,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         scaling=args["scaling"],
         cmap=args["cmap"],
         title=title,
+        unit_conversion=args["unit_conversion"],
         datadir=args["datadir"],
         show=show,
         dpi=args["dpi"],
