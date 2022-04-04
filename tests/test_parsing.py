@@ -102,28 +102,22 @@ def test_parse_range(abscissa, ordinate, dim, expected):
     extent1 = parse_range("unset", dim=dim)
     assert range_converter(extent1, abscissa=abscissa, ordinate=ordinate) == expected
     extent2 = parse_range(("0.5", "5", "-0.2", "0.2"), dim=2)
-    assert (
-        range_converter(
-            extent2,
-            abscissa=np.linspace(0.2, 10, 100),
-            ordinate=np.linspace(-0.4, 0.4, 100),
-        )
-        == (0.5, 5, -0.2, 0.2)
-    )
+    assert range_converter(
+        extent2,
+        abscissa=np.linspace(0.2, 10, 100),
+        ordinate=np.linspace(-0.4, 0.4, 100),
+    ) == (0.5, 5, -0.2, 0.2)
     extent3 = parse_range(("0.4", "9.5"), dim=1)
     assert range_converter(
         extent3, abscissa=np.linspace(0.2, 10, 100), ordinate=np.zeros(2)
     ) == (0.4, 9.5)
     extent4 = parse_range(("0.5", "x", "-0.2", "x"), dim=2)
     assert extent4 == (0.5, None, -0.2, None)
-    assert (
-        range_converter(
-            extent4,
-            abscissa=np.linspace(0.2, 10, 100),
-            ordinate=np.linspace(-0.4, 0.4, 100),
-        )
-        == (0.5, 10.0, -0.2, 0.4)
-    )
+    assert range_converter(
+        extent4,
+        abscissa=np.linspace(0.2, 10, 100),
+        ordinate=np.linspace(-0.4, 0.4, 100),
+    ) == (0.5, 10.0, -0.2, 0.4)
 
 
 @pytest.mark.parametrize(

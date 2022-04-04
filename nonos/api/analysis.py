@@ -268,7 +268,7 @@ class Coordinates:
                 y = R * np.sin(phi)
                 target_coords = {"x": x, "y": y, "z": z}
             elif target_geometry == "spherical":
-                r = np.sqrt(R ** 2 + z ** 2)
+                r = np.sqrt(R**2 + z**2)
                 theta = np.arctan2(R, z)
                 target_coords = {"r": r, "theta": theta, "phi": phi}
             else:
@@ -277,12 +277,12 @@ class Coordinates:
         elif self.geometry == "cartesian":
             x, y, z = (coords["x"], coords["y"], coords["z"])
             if target_geometry == "polar":
-                R = np.sqrt(x ** 2 + y ** 2)
+                R = np.sqrt(x**2 + y**2)
                 phi = np.arctan2(y, x)
                 target_coords = {"R": R, "phi": phi, "z": z}
             elif target_geometry == "spherical":
-                r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
-                theta = np.arctan2(np.sqrt(x ** 2 + y ** 2), z)
+                r = np.sqrt(x**2 + y**2 + z**2)
+                theta = np.arctan2(np.sqrt(x**2 + y**2), z)
                 phi = np.arctan2(y, x)
                 target_coords = {"r": r, "theta": theta, "phi": phi}
             else:
