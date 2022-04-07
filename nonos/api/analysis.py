@@ -39,9 +39,6 @@ class Plotable:
         if log:
             data = np.log10(data)
 
-        vmin = kwargs.pop("vmin") if "vmin" in kwargs else np.nanmin(data)
-        vmax = kwargs.pop("vmax") if "vmax" in kwargs else np.nanmax(data)
-
         if self.dimension == 2:
             self.akey = self.dict_plotable["abscissa"]
             self.okey = self.dict_plotable["ordinate"]
@@ -49,9 +46,13 @@ class Plotable:
             self.ovalue = self.dict_plotable[self.okey]
             kw = {}
             if (norm := kwargs.get("norm")) is not None:
-                norm.vmin = vmin
-                norm.vmax = vmax
+                if "vmin" in kwargs:
+                    norm.vmin = kwargs.pop("vmin")
+                if "vmax" in kwargs:
+                    norm.vmax = kwargs.pop("vmax")
             else:
+                vmin = kwargs.pop("vmin") if "vmin" in kwargs else np.nanmin(data)
+                vmax = kwargs.pop("vmax") if "vmax" in kwargs else np.nanmax(data)
                 kw.update(dict(vmin=vmin, vmax=vmax))
 
             im = ax.pcolormesh(
@@ -75,6 +76,8 @@ class Plotable:
             else:
                 return im
         if self.dimension == 1:
+            vmin = kwargs.pop("vmin") if "vmin" in kwargs else np.nanmin(data)
+            vmax = kwargs.pop("vmax") if "vmax" in kwargs else np.nanmax(data)
             self.akey = self.dict_plotable["abscissa"]
             self.avalue = self.dict_plotable[self.akey]
             if "norm" in kwargs:
