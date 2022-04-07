@@ -5,8 +5,10 @@ from typing import Any, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.colors import SymLogNorm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+from nonos._mpl_utils import set_symlog_minor_ticks
 from nonos.api.from_simulation import Parameters
 from nonos.api.tools import find_around, find_nearest
 from nonos.logging import logger
@@ -73,6 +75,9 @@ class Plotable:
                     im, cax=cax, orientation="vertical"
                 )  # , format='%.0e')
                 cbar.set_label(title)
+                if isinstance(norm, SymLogNorm):
+                    # special cases logic layer, heavily inspired from yt
+                    set_symlog_minor_ticks(norm, cax)
             else:
                 return im
         if self.dimension == 1:
