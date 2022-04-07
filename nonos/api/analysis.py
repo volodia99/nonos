@@ -38,42 +38,31 @@ class Plotable:
             data = data * unit_conversion
         if log:
             data = np.log10(data)
-        vmin = kwargs.setdefault("vmin")
-        vmax = kwargs.setdefault("vmax")
-        if vmin is None:
-            vmin = np.nanmin(data)
-        if vmax is None:
-            vmax = np.nanmax(data)
-        if (norm := kwargs.get("norm")) is not None:
-            norm.vmin = kwargs.pop("vmin")
-            norm.vmax = kwargs.pop("vmax")
-        else:
-            kwargs.pop("vmin")
-            kwargs.pop("vmax")
+
+        vmin = kwargs.pop("vmin") if "vmin" in kwargs else np.nanmin(data)
+        vmax = kwargs.pop("vmax") if "vmax" in kwargs else np.nanmax(data)
 
         if self.dimension == 2:
             self.akey = self.dict_plotable["abscissa"]
             self.okey = self.dict_plotable["ordinate"]
             self.avalue = self.dict_plotable[self.akey]
             self.ovalue = self.dict_plotable[self.okey]
-            if norm is not None:
-                im = ax.pcolormesh(
-                    self.avalue,
-                    self.ovalue,
-                    data,
-                    cmap=cmap,
-                    **kwargs,
-                )
+            kw = {}
+            if (norm := kwargs.get("norm")) is not None:
+                norm.vmin = vmin
+                norm.vmax = vmax
             else:
-                im = ax.pcolormesh(
-                    self.avalue,
-                    self.ovalue,
-                    data,
-                    vmin=vmin,
-                    vmax=vmax,
-                    cmap=cmap,
-                    **kwargs,
-                )
+                kw.update(dict(vmin=vmin, vmax=vmax))
+
+            im = ax.pcolormesh(
+                self.avalue,
+                self.ovalue,
+                data,
+                cmap=cmap,
+                **kwargs,
+                **kw,
+            )
+
             ax.set_xlabel(self.akey)
             ax.set_ylabel(self.okey)
             if title is not None:
@@ -88,7 +77,7 @@ class Plotable:
         if self.dimension == 1:
             self.akey = self.dict_plotable["abscissa"]
             self.avalue = self.dict_plotable[self.akey]
-            if norm is not None:
+            if "norm" in kwargs:
                 logger.info("norm has no meaning in 1D.")
                 kwargs.pop("norm")
             im = ax.plot(
