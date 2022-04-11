@@ -2,8 +2,12 @@ import os
 from glob import glob
 from pathlib import Path
 
+import matplotlib.pyplot as plt
+import numpy.testing as npt
 import pytest
+from matplotlib.colors import SymLogNorm
 
+from nonos.api import GasDataSet, find_nearest
 from nonos.main import main
 
 
@@ -12,9 +16,21 @@ def test_data_dir():
     return Path(__file__).parent / "data"
 
 
+@pytest.fixture(params=["idefix_planet3d", "fargo3d_planet2d"])
+def planet_simulation_dir(test_data_dir, request):
+    return test_data_dir / request.param
+
+
 @pytest.fixture(params=["idefix_rwi", "idefix_planet3d", "fargo3d_planet2d"])
 def simulation_dir(test_data_dir, request):
     return test_data_dir / request.param
+
+
+@pytest.fixture()
+def temp_figure_and_axis():
+    fig, ax = plt.subplots()
+    yield (fig, ax)
+    plt.close(fig)
 
 
 ARGS_TO_CHECK = {
@@ -25,6 +41,9 @@ ARGS_TO_CHECK = {
     "movie_with_diff": ["-geometry", "polar", "-all", "-diff"],
     "movie_with_multiproc": ["-geometry", "polar", "-all", "-ncpu", "2"],
 }
+
+
+# CLI testing
 
 
 @pytest.mark.parametrize("argv", ARGS_TO_CHECK.values(), ids=ARGS_TO_CHECK.keys())
@@ -51,17 +70,10 @@ def test_common_image_formats(format, simulation_dir, capsys, tmp_path):
     assert len(glob(f"*.{format}")) == 1
 
 
-@pytest.mark.parametrize(
-    "datadir",
-    [
-        str(Path(__file__).parent.joinpath("data", "idefix_planet3d")),
-        str(Path(__file__).parent.joinpath("data", "fargo3d_planet2d")),
-    ],
-)
-def test_plot_simple_corotation(datadir, capsys, tmp_path):
+def test_plot_simple_corotation(planet_simulation_dir, capsys, tmp_path):
     os.chdir(tmp_path)
     # just check that the call returns no err
-    ret = main(["-cor", "0", "-dir", datadir, "-geometry", "polar"])
+    ret = main(["-cor", "0", "-dir", str(planet_simulation_dir), "-geometry", "polar"])
 
     out, err = capsys.readouterr()
     assert out == ""
@@ -69,40 +81,37 @@ def test_plot_simple_corotation(datadir, capsys, tmp_path):
     assert ret == 0
 
 
-@pytest.mark.parametrize(
-    "datadir",
-    [str(Path(__file__).parent.joinpath("data", "idefix_rwi"))],
-)
-def test_unknown_geometry(datadir, tmp_path):
+def test_unknown_geometry(test_data_dir, tmp_path):
     os.chdir(tmp_path)
     with pytest.raises(
         RuntimeError, match=r"Geometry couldn't be determined from data"
     ):
-        main(["-dir", datadir])
+        main(["-dir", str(test_data_dir / "idefix_rwi")])
 
 
-@pytest.mark.parametrize(
-    "datadir",
-    [str(Path(__file__).parent.joinpath("data", "idefix_newvtk_planet2d"))],
-)
-def test_newvtk_geometry(datadir, capsys, tmp_path):
+def test_newvtk_geometry(test_data_dir, capsys, tmp_path):
     os.chdir(tmp_path)
-    ret = main(["-cor", "0", "-dir", datadir])
+    ret = main(["-cor", "0", "-dir", str(test_data_dir / "idefix_newvtk_planet2d")])
     out, err = capsys.readouterr()
     assert out == ""
     assert err == ""
     assert ret == 0
 
 
-@pytest.mark.parametrize(
-    "datadir",
-    [str(Path(__file__).parent.joinpath("data", "idefix_rwi"))],
-)
-def test_error_no_planet(datadir, tmp_path):
+def test_error_no_planet(test_data_dir, tmp_path):
     os.chdir(tmp_path)
     # just check that the call returns the correct err
     with pytest.raises(FileNotFoundError, match=r"planet0\.dat not found"):
-        main(["-cor", "0", "-dir", datadir, "-geometry", "polar"])
+        main(
+            [
+                "-cor",
+                "0",
+                "-dir",
+                str(test_data_dir / "idefix_rwi"),
+                "-geometry",
+                "polar",
+            ]
+        )
 
 
 def test_verbose_info(simulation_dir, capsys):
@@ -115,19 +124,20 @@ def test_verbose_info(simulation_dir, capsys):
     assert ret == 0
 
 
-# # @pytest.mark.xfail("broken test for now.")
-# def test_verbose_debug(simulation_dir, capsys):
-#     ret = main(["-vv", "-dir", str(simulation_dir), "-geometry", "polar"])
+@pytest.mark.xfail(strict=True)
+def test_verbose_debug(simulation_dir, capsys):
+    ret = main(["-vv", "-dir", str(simulation_dir), "-geometry", "polar"])
 
-#     out, err = capsys.readouterr()
-#     assert err == ""
-#     assert "DEBUG" in out
-#     assert ret == 0
+    out, err = capsys.readouterr()
+    assert err == ""
+    assert "DEBUG" in out
+    assert ret == 0
+
+
+# API testing
 
 
 def test_plot_planet_corotation(test_data_dir):
-    from nonos.api import GasDataSet, find_nearest
-
     os.chdir(test_data_dir / "idefix_planet3d")
 
     ds = GasDataSet(43, geometry="polar")
@@ -146,16 +156,11 @@ def test_plot_planet_corotation(test_data_dir):
     )
 
 
-def test_unit_conversion(test_data_dir):
-    import matplotlib.pyplot as plt
-    import numpy as np
-
-    from nonos.api import GasDataSet
-
+def test_unit_conversion(test_data_dir, temp_figure_and_axis):
     os.chdir(test_data_dir / "idefix_planet3d")
 
     ds = GasDataSet(43, geometry="polar")
-    fig, ax = plt.subplots()
+    fig, ax = temp_figure_and_axis
 
     plotfield10 = (
         ds["RHO"]
@@ -165,4 +170,16 @@ def test_unit_conversion(test_data_dir):
     )
     plotfield = ds["RHO"].vertical_at_midplane().map("R", "phi").plot(fig, ax)
 
-    np.testing.assert_array_equal(plotfield10.get_array(), 10 * plotfield.get_array())
+    npt.assert_array_equal(plotfield10.get_array(), 10 * plotfield.get_array())
+
+
+def test_vmin_vmax_api(test_data_dir, temp_figure_and_axis):
+    ds = GasDataSet(1, directory=test_data_dir / "idefix_rwi", geometry="polar")
+    fig, ax = temp_figure_and_axis
+    p = ds["VX1"].vertical_at_midplane().map("R", "phi")
+
+    # check that no warning is emitted from matplotlib
+    im1 = p.plot(fig, ax, vmin=-1, vmax=1, norm=SymLogNorm(linthresh=0.1, base=10))
+    im2 = p.plot(fig, ax, norm=SymLogNorm(linthresh=0.1, base=10, vmin=-1, vmax=1))
+
+    npt.assert_array_equal(im1.get_array(), im2.get_array())
