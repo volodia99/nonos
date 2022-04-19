@@ -183,3 +183,12 @@ def test_vmin_vmax_api(test_data_dir, temp_figure_and_axis):
     im2 = p.plot(fig, ax, norm=SymLogNorm(linthresh=0.1, base=10, vmin=-1, vmax=1))
 
     npt.assert_array_equal(im1.get_array(), im2.get_array())
+
+
+def test_pbar(simulation_dir, capsys):
+    ret = main(["-pbar", "-dir", str(simulation_dir), "-geometry", "polar"])
+
+    out, err = capsys.readouterr()
+    assert err == ""
+    assert "Processing snapshots" in out
+    assert ret == 0
