@@ -117,7 +117,7 @@ boolean flags:
 CLI-only options:
   -input INPUT, -i INPUT
                         specify a configuration file.
-  -isolated             ignore any existing 'nonos.toml' file.
+  -isolated             ignore any existing 'nonos.ini' file.
   -d, -display          open a graphic window with the plot (only works with a single
                         image)
   -version, --version   show raw version number and exit
@@ -163,33 +163,33 @@ This method can also be used to store a complete configuration file from command
 ```shell
 $ nonos -ncpu 8 -cmap viridis -operation vm -diff -vmin=-10 -vmax=+100 -config
 ```
-As of nonos 0.6.0, this will print
+As of nonos 0.7.0, this will print
 ```
-# Generated with nonos 0.6.0
-cmap               =  'viridis'
-corotate           =  'unset'
-datadir            =  '.'
-diff               =  true
-distance           =  'unset'
-dpi                =  200
-field              =  'RHO'
-format             =  'unset'
-geometry           =  'unset'
-log                =  false
-ncpu               =  8
-on                 =  'unset'
-operation          =  [  'vm'  ]
-
-phi                =  'unset'
-plane              =  'unset'
-progressBar        =  false
-range              =  'unset'
-scaling            =  1
-theta              =  'unset'
-title              =  'unset'
-vmax               =  100.0
-vmin               =  -10.0
-z                  =  'unset'
+# Generated with nonos 0.7.0
+datadir            .
+field              RHO
+operation          vm
+theta              unset
+z                  unset
+phi                unset
+distance           unset
+geometry           unset
+on                 unset
+diff               True
+log                False
+range              unset
+vmin               -1e1
+vmax               1e2
+plane              unset
+progressBar        False
+corotate           unset
+ncpu               8
+scaling            1
+cmap               viridis
+title              unset
+unit_conversion    1
+format             unset
+dpi                200
 ````
 
 ### Programmatic usage

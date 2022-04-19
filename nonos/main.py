@@ -14,10 +14,10 @@ from multiprocessing import Pool
 from typing import Any, Dict, List, Optional
 
 import cblind as cb
+import inifix
 import matplotlib.pyplot as plt
 import numpy as np
 import pkg_resources
-import pytomlpp as toml
 from inifix.format import iniformat
 
 from nonos.__version__ import __version__
@@ -333,7 +333,7 @@ def get_parser() -> argparse.ArgumentParser:
         "-input", "-i", dest="input", type=str, help="specify a configuration file."
     )
     cli_input_group.add_argument(
-        "-isolated", action="store_true", help="ignore any existing 'nonos.toml' file."
+        "-isolated", action="store_true", help="ignore any existing 'nonos.ini' file."
     )
     cli_action_group = cli_only_group.add_mutually_exclusive_group()
     cli_action_group.add_argument(
@@ -396,10 +396,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             print_err(f"Couldn't find requested input file '{ifile}'.")
             return 1
         print_warn(f"[bold white]Using parameters from '{ifile}'.")
-        config_file_args = toml.load(ifile)
-    elif os.path.isfile("nonos.toml"):
-        print_warn("[bold white]Using parameters from 'nonos.toml'.")
-        config_file_args = toml.load("nonos.toml")
+        config_file_args = inifix.load(ifile)
+    elif os.path.isfile("nonos.ini"):
+        print_warn("[bold white]Using parameters from 'nonos.ini'.")
+        config_file_args = inifix.load("nonos.ini")
     else:
         config_file_args = {}
 
@@ -417,7 +417,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         for key in DEFAULTS:
             conf_repr[key] = args[key]
         print(f"# Generated with nonos {__version__}")
-        print(iniformat(toml.dumps(conf_repr)))
+        print(iniformat(inifix.dumps(conf_repr)))
         return 0
 
     try:
