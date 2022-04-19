@@ -493,10 +493,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         corotate = args["corotate"]
 
-    if not is_set(args["vmin"]) or not is_set(args["vmax"]):
-        vmin, vmax = None, None
+    if not is_set(args["vmin"]):
+        vmin = None
     else:
-        vmin, vmax = args["vmin"], args["vmax"]
+        vmin = args["vmin"]
+
+    if not is_set(args["vmax"]):
+        vmax = None
+    else:
+        vmax = args["vmax"]
 
     if not is_set(args["theta"]):
         theta = None
