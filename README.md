@@ -145,9 +145,9 @@ Note that for old idefix outputs, you will need to add the `-geometry` command t
 
 ### Using a configuration file
 
-The CLI will read parameters from a local file named `nonos.toml` if it exists,
+The CLI will read parameters from a local file named `nonos.ini` if it exists,
 or any other name specified using the `-i/-input` parameter.
-To ignore any existing `nonos.toml` file, use the `-isolated` flag.
+To ignore any existing `nonos.ini` file, use the `-isolated` flag.
 
 One way to configure nonos is to use
 ```shell
@@ -157,7 +157,7 @@ $ nonos -config
 which prints the current configuration to stdout.
 You can then redirect it to get a working configuration file as
 ```shell
-$ nonos -config > nonos.toml
+$ nonos -config > nonos.ini
 ```
 This method can also be used to store a complete configuration file from command line arguments:
 ```shell
