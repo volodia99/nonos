@@ -182,7 +182,7 @@ def get_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "-field",
-        choices=["RHO", "VX1", "VX2", "VX3", "BX1", "BX2", "BX3", "PRS"],
+        # choices=["RHO", "VX1", "VX2", "VX3", "BX1", "BX2", "BX3", "PRS"],
         help=f"name of field to plot (default: '{DEFAULTS['field']}').",
     )
     parser.add_argument(
