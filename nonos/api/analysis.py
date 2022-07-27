@@ -509,7 +509,7 @@ class GasField:
                 f"{self.operation}_{self.field}.{self.on:04d}.npy",
             )
             if Path(filename).is_file():
-                logger.info(f"{filename} already exists")
+                logger.info("{} already exists", filename)
             else:
                 with open(filename, "wb") as file:
                     np.save(file, self.data)
@@ -529,7 +529,7 @@ class GasField:
                 directory, "header", f"header{self.operation}.npy"
             )
             if Path(headername).is_file():
-                logger.info(f"{headername} already exists")
+                logger.info("{} already exists", headername)
             else:
                 dictsaved = self.coords.get_attributes
                 with open(headername, "wb") as file:
