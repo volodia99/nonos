@@ -51,12 +51,32 @@ class Parameters:
         self.inifile = inifix.load(os.path.join(self.directory, self.paramfile))
         if self.code == "idefix":
             self.vtk = self.inifile["Output"]["vtk"]
+            try:
+                self.omegaframe = self.inifile["Hydro"]["rotation"]
+                self.frame = "F"
+            except KeyError:
+                self.omegaframe = None
+                self.frame = None
         elif self.code == "pluto":
             self.vtk = self.inifile["Static Grid Output"]["vtk"][0]
+            self.omegaframe = None
+            self.frame = None
         elif self.code == "fargo3d":
             self.vtk = self.inifile["NINTERM"] * self.inifile["DT"]
+            if self.inifile["FRAME"] == "F":
+                self.frame = "F"
+                self.omegaframe = self.inifile["OMEGAFRAME"]
+            else:
+                self.omegaframe = None
+                self.frame = None
         elif self.code == "fargo-adsg":
             self.vtk = self.inifile["Ninterm"] * self.inifile["DT"]
+            if self.inifile["Frame"] == "F":
+                self.omegaframe = self.inifile["OmegaFrame"]
+                self.frame = None
+            else:
+                self.omegaframe = None
+                self.frame = None
 
     def loadPlanetFile(self, *, planet_number: int = 0):
         planet_file = f"planet{planet_number}.dat"
@@ -66,6 +86,11 @@ class Parameters:
                 columns = np.loadtxt(os.path.join(self.directory, planet_file)).T
                 self.qpl = columns[7]
                 self.dpl = np.sqrt(np.sum(columns[1:4] ** 2, axis=0))
+                if self.code == "fargo3d" and self.inifile["FRAME"] == "C":
+                    self.omegaframe = np.sqrt((1.0 + self.qpl) / pow(self.dpl, 3.0))
+                    self.frame = "C"
+                # TODO: change (x,y,z) and (vx,vy,vz) when rotation
+                self.dtpl = columns[0]
                 self.xpl = columns[1]
                 self.ypl = columns[2]
                 self.zpl = columns[3]
@@ -73,34 +98,6 @@ class Parameters:
                 self.vypl = columns[5]
                 self.vzpl = columns[6]
                 self.tpl = columns[8]
-
-                hx = self.ypl * self.vzpl - self.zpl * self.vypl
-                hy = self.zpl * self.vxpl - self.xpl * self.vzpl
-                hz = self.xpl * self.vypl - self.ypl * self.vxpl
-                hhor = np.sqrt(hx * hx + hy * hy)
-
-                h2 = hx * hx + hy * hy + hz * hz
-                h = np.sqrt(h2)
-                self.ipl = np.arcsin(hhor / h)
-
-                Ax = (
-                    self.vypl * hz
-                    - self.vzpl * hy
-                    - (1.0 + self.qpl) * self.xpl / self.dpl
-                )
-                Ay = (
-                    self.vzpl * hx
-                    - self.vxpl * hz
-                    - (1.0 + self.qpl) * self.ypl / self.dpl
-                )
-                Az = (
-                    self.vxpl * hy
-                    - self.vypl * hx
-                    - (1.0 + self.qpl) * self.zpl / self.dpl
-                )
-
-                self.epl = np.sqrt(Ax * Ax + Ay * Ay + Az * Az) / (1.0 + self.qpl)
-                self.apl = h * h / ((1.0 + self.qpl) * (1.0 - self.epl * self.epl))
             else:
                 raise FileNotFoundError(f"{planet_file} not found")
         elif self.code in ("fargo-adsg"):
@@ -108,6 +105,11 @@ class Parameters:
                 columns = np.loadtxt(os.path.join(self.directory, planet_file)).T
                 self.qpl = columns[5]
                 self.dpl = np.sqrt(np.sum(columns[1:3] ** 2, axis=0))
+                if self.inifile["Frame"] == "C":
+                    self.omegaframe = np.sqrt((1.0 + self.qpl) / pow(self.dpl, 3.0))
+                    self.frame = "C"
+                # TODO: change (x,y,z) and (vx,vy,vz) when rotation
+                self.dtpl = columns[0]
                 self.xpl = columns[1]
                 self.ypl = columns[2]
                 self.zpl = 0.0
@@ -115,7 +117,15 @@ class Parameters:
                 self.vypl = columns[4]
                 self.vzpl = 0.0
                 self.tpl = columns[7]
+            else:
+                raise FileNotFoundError(f"{planet_file} not found")
+        else:
+            raise NotImplementedError(
+                f"{planet_file} not found for {self.code}. For now, you can't rotate the grid with the planet."
+            )
 
+        if self.code in ("idefix", "fargo3d", "fargo-adsg"):
+            if self.omegaframe is None or self.frame == "C":
                 hx = self.ypl * self.vzpl - self.zpl * self.vypl
                 hy = self.zpl * self.vxpl - self.xpl * self.vzpl
                 hz = self.xpl * self.vypl - self.ypl * self.vxpl
@@ -143,11 +153,10 @@ class Parameters:
 
                 self.epl = np.sqrt(Ax * Ax + Ay * Ay + Az * Az) / (1.0 + self.qpl)
                 self.apl = h * h / ((1.0 + self.qpl) * (1.0 - self.epl * self.epl))
-
-        else:
-            raise NotImplementedError(
-                f"{planet_file} not found for {self.code}. For now, you can't rotate the grid with the planet."
-            )
+            # else:
+            #     raise NotImplementedError(
+            #         "We do not yet compute eccentricity, inclination and semi-major axis if fixed rotating frame."
+            #     )
 
     def countSimuFiles(self):
         if self.code in ("fargo3d", "fargo-adsg"):
