@@ -1,8 +1,21 @@
-import logging
 import sys
 
+from loguru import logger
 from rich import print as rprint
 from rich.logging import RichHandler
+
+
+def configure_logger(level: int = 30, **kwargs):
+    logger.remove()  # remove pre-existing handler
+    logger.add(
+        RichHandler(
+            log_time_format="[%X] nonos",
+            omit_repeated_times=False,
+        ),
+        format="{message}",
+        level=level,
+        **kwargs,
+    )
 
 
 def print_warn(message):
@@ -25,13 +38,3 @@ def parse_verbose_level(verbose: int):
     levels = ["WARNING", "INFO", "DEBUG"]
     level = levels[min(len(levels) - 1, verbose)]  # capped to number of levels
     return level
-
-
-logger = logging.getLogger("nonos")
-
-
-def config_logger():
-    logger.addHandler(RichHandler(log_time_format="[%X]"))
-
-
-config_logger()

@@ -1,6 +1,5 @@
 import os
 from glob import glob
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numexpr as ne
@@ -10,29 +9,6 @@ from matplotlib.colors import SymLogNorm
 
 from nonos.api import GasDataSet, compute, find_nearest, from_data
 from nonos.main import main
-
-
-@pytest.fixture()
-def test_data_dir():
-    return Path(__file__).parent / "data"
-
-
-@pytest.fixture(params=["idefix_planet3d", "fargo3d_planet2d"])
-def planet_simulation_dir(test_data_dir, request):
-    return test_data_dir / request.param
-
-
-@pytest.fixture(params=["idefix_rwi", "idefix_planet3d", "fargo3d_planet2d"])
-def simulation_dir(test_data_dir, request):
-    return test_data_dir / request.param
-
-
-@pytest.fixture()
-def temp_figure_and_axis():
-    fig, ax = plt.subplots()
-    yield (fig, ax)
-    plt.close(fig)
-
 
 ARGS_TO_CHECK = {
     "vanilla_conf": ["-geometry", "polar"],
@@ -218,3 +194,12 @@ def test_compute_from_data(test_data_dir):
     )
 
     npt.assert_array_equal(rhovx2_from_data.data, rhovx2_compute.data)
+
+
+def test_pbar(simulation_dir, capsys):
+    ret = main(["-pbar", "-dir", str(simulation_dir), "-geometry", "polar"])
+
+    out, err = capsys.readouterr()
+    assert err == ""
+    assert "Processing snapshots" in out
+    assert ret == 0

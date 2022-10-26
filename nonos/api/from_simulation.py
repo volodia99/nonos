@@ -6,6 +6,8 @@ from pathlib import Path
 import inifix
 import numpy as np
 
+from nonos.logging import logger
+
 _INIFILES_LOOKUP_TABLE = {
     "idefix.ini": "idefix",
     "pluto.ini": "pluto",
@@ -306,7 +308,7 @@ class CodeReadFormat:
             inipos = (
                 fid.tell()
             )  # we store the file pointer position before computing points
-            # logger.debug("loading the X-grid cells: %d" % V.n1)
+            logger.debug("loading the X-grid cells: {}", V.n1)
             x = np.memmap(
                 fid, mode="r", dtype=dt, offset=inipos, shape=V.n1
             )  # some smart memory efficient way to store the array
@@ -322,7 +324,7 @@ class CodeReadFormat:
             inipos = (
                 fid.tell()
             )  # we store the file pointer position before computing points
-            # logger.debug("loading the Y-grid cells: %d" % V.n2)
+            logger.debug("loading the Y-grid cells: {}", V.n2)
             y = np.memmap(
                 fid, mode="r", dtype=dt, offset=inipos, shape=V.n2
             )  # some smart memory efficient way to store the array
@@ -338,7 +340,7 @@ class CodeReadFormat:
             inipos = (
                 fid.tell()
             )  # we store the file pointer position before computing points
-            # logger.debug("loading the Z-grid cells: %d" % V.n3)
+            logger.debug("loading the Z-grid cells: {}", V.n3)
             z = np.memmap(
                 fid, mode="r", dtype=dt, offset=inipos, shape=V.n3
             )  # some smart memory efficient way to store the array
@@ -416,7 +418,7 @@ class CodeReadFormat:
             )  # we store the file pointer position before computing points
             # print(inipos)
             # points = np.fromfile(fid, dt, 3 * npoints)
-            # logger.debug("loading the grid cells: (%d,%d,%d)." % (V.n1, V.n2, V.n3))
+            logger.debug("loading grid (shape = ({},{},{}))", V.n1, V.n2, V.n3)
             points = np.memmap(
                 fid, mode="r", dtype=dt, offset=inipos, shape=3 * npoints
             )  # some smart memory efficient way to store the array
@@ -580,7 +582,7 @@ class CodeReadFormat:
                         V.x3 = phi
 
         if computedata:
-            # logger.debug("loading the data arrays:")
+            logger.debug("loading data arrays")
             while 1:
                 s = (
                     fid.readline()
@@ -642,7 +644,7 @@ class CodeReadFormat:
                         % datatype
                     )
 
-                # logger.debug("field: %s" % varname)
+                logger.debug("read field: {}", varname)
 
                 fid.readline()  # extra line feed
         fid.close()

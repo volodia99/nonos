@@ -1,7 +1,7 @@
 import os
 import textwrap
 
-import pytomlpp as toml
+import inifix
 
 from nonos import __version__
 from nonos.api import Parameters
@@ -26,7 +26,7 @@ def test_default_conf(capsys, tmp_path):
 
     # validate output is reusable
     (tmp_path / "idefix.ini").touch()
-    dictout = toml.loads(out)
+    dictout = inifix.loads(out)
     Parameters(directory=dictout["datadir"])
 
 
