@@ -1,7 +1,6 @@
 import os
 from glob import glob
 
-import matplotlib.pyplot as plt
 import numexpr as ne
 import numpy.testing as npt
 import pytest
