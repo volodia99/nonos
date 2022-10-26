@@ -14,16 +14,22 @@ from multiprocessing import Pool
 from typing import Any, Dict, List, Optional
 
 import cblind as cb
+import inifix
 import matplotlib.pyplot as plt
 import numpy as np
 import pkg_resources
-import pytomlpp as toml
 from inifix.format import iniformat
 
 from nonos.__version__ import __version__
 from nonos.api import GasDataSet, Parameters
 from nonos.config import DEFAULTS
-from nonos.logging import logger, parse_verbose_level, print_err, print_warn
+from nonos.logging import (
+    configure_logger,
+    logger,
+    parse_verbose_level,
+    print_err,
+    print_warn,
+)
 from nonos.parsing import (
     is_set,
     parse_image_format,
@@ -38,7 +44,7 @@ from nonos.styling import set_mpl_style
 # counterParallel = Value('i', 0) # initialization of a counter
 def process_field(
     on,
-    operation,
+    operations: List[str],
     field,
     plane,
     geometry,
@@ -62,38 +68,41 @@ def process_field(
     z,
     phi,
     distance,
+    *,
+    log_level,
 ):
+    configure_logger(level=log_level)
     set_mpl_style(scaling=scaling)
 
     ds = GasDataSet(on, geometry=geometry, directory=datadir)
     dsop = ds[field]
     if diff:
         dsop = dsop.diff(0)
-    if "vm" in operation:
+    if "vm" in operations:
         dsop = dsop.vertical_at_midplane()
-    elif "vp" in operation:
+    elif "vp" in operations:
         dsop = dsop.vertical_projection(z=z)
-    elif "lt" in operation:
+    elif "lt" in operations:
         dsop = dsop.latitudinal_at_theta(theta=theta)
-    elif "lp" in operation:
+    elif "lp" in operations:
         dsop = dsop.latitudinal_projection(theta=theta)
-    elif "vz" in operation:
+    elif "vz" in operations:
         dsop = dsop.vertical_at_z(z=z)
 
-    if "ap" in operation:
+    if "ap" in operations:
         dsop = dsop.azimuthal_at_phi(phi=phi)
-    elif "apl" in operation:
+    elif "apl" in operations:
         dsop = dsop.azimuthal_at_planet(planet_number=corotate)
-    elif "aa" in operation:
+    elif "aa" in operations:
         dsop = dsop.azimuthal_average()
 
-    if "rr" in operation:
+    if "rr" in operations:
         dsop = dsop.radial_at_r(distance=distance)
 
-    # logger.debug(f"computed {operation} on the dataset.")
+    logger.debug("operations performed: {}", operations)
 
     dim = 3 - dsop.shape.count(1)
-    # logger.debug(f"plotting a {dim}D plot.")
+    logger.debug("plotting a {}D plot.", dim)
 
     if plane is None:
         dsop_dict = dsop.coords.get_attributes
@@ -153,7 +162,7 @@ def process_field(
         ax.set_xlim(extent[0], extent[1])
         ax.set_ylim(extent[2], extent[3])
 
-    # logger.debug("processed the data before plotting.")
+    logger.debug("processed the data before plotting.")
 
     if "x" and "y" in plane:
         ax.set_aspect("equal")
@@ -161,10 +170,10 @@ def process_field(
     if show:
         plt.show()
     else:
-        # logger.debug("saving plot: started")
-        filename = f"{''.join(plane)}_{field}_{'_'.join(operation)}{'_diff' if diff else '_'}{'_log' if log else ''}{on:04d}.{fmt}"
+        logger.debug("saving plot: started")
+        filename = f"{''.join(plane)}_{field}_{'_'.join(operations)}{'_diff' if diff else '_'}{'_log' if log else ''}{on:04d}.{fmt}"
         fig.savefig(filename, bbox_inches="tight", dpi=dpi)
-        # logger.debug("saving plot: finished")
+        logger.debug("saving plot: finished ({})", filename)
 
     plt.close(fig)
 
@@ -333,7 +342,7 @@ def get_parser() -> argparse.ArgumentParser:
         "-input", "-i", dest="input", type=str, help="specify a configuration file."
     )
     cli_input_group.add_argument(
-        "-isolated", action="store_true", help="ignore any existing 'nonos.toml' file."
+        "-isolated", action="store_true", help="ignore any existing 'nonos.ini' file."
     )
     cli_action_group = cli_only_group.add_mutually_exclusive_group()
     cli_action_group.add_argument(
@@ -386,8 +395,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(__version__)
         return 0
 
+    # clargs.pop("verbose")
     level = parse_verbose_level(clargs.pop("verbose"))
-    logger.setLevel(level)
+    configure_logger(level=level)
+    # logger.setLevel(level)
 
     if clargs.pop("isolated"):
         config_file_args: Dict[str, Any] = {}
@@ -396,10 +407,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             print_err(f"Couldn't find requested input file '{ifile}'.")
             return 1
         print_warn(f"[bold white]Using parameters from '{ifile}'.")
-        config_file_args = toml.load(ifile)
-    elif os.path.isfile("nonos.toml"):
-        print_warn("[bold white]Using parameters from 'nonos.toml'.")
-        config_file_args = toml.load("nonos.toml")
+        config_file_args = inifix.load(ifile)
+    elif os.path.isfile("nonos.ini"):
+        print_warn("[bold white]Using parameters from 'nonos.ini'.")
+        config_file_args = inifix.load("nonos.ini")
     else:
         config_file_args = {}
 
@@ -417,7 +428,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         for key in DEFAULTS:
             conf_repr[key] = args[key]
         print(f"# Generated with nonos {__version__}")
-        print(iniformat(toml.dumps(conf_repr)))
+        print(iniformat(inifix.dumps(conf_repr)))
         return 0
 
     try:
@@ -430,9 +441,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     data_files = params.data_files
 
     if not is_set(args["operation"]):
-        operation = ["vm"]
+        operations = ["vm"]
     else:
-        operation = args["operation"]
+        operations = args["operation"]
 
     if not is_set(args["plane"]):
         plane = None
@@ -493,10 +504,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         corotate = args["corotate"]
 
-    if not is_set(args["vmin"]) or not is_set(args["vmax"]):
-        vmin, vmax = None, None
+    if not is_set(args["vmin"]):
+        vmin = None
     else:
-        vmin, vmax = args["vmin"], args["vmax"]
+        vmin = args["vmin"]
+
+    if not is_set(args["vmax"]):
+        vmax = None
+    else:
+        vmax = args["vmax"]
 
     if not is_set(args["theta"]):
         theta = None
@@ -540,7 +556,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # TODO: reduce this to the bare minimum
     func = functools.partial(
         process_field,
-        operation=operation,
+        operations=operations,
         field=args["field"],
         plane=plane,
         geometry=geometry,
@@ -564,8 +580,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         z=z,
         phi=phi,
         distance=distance,
+        log_level=level,
     )
 
+    logger.info("Starting main loop")
     tstart = time.time()
     with Pool(ncpu) as pool:
         list(
@@ -576,6 +594,6 @@ def main(argv: Optional[List[str]] = None) -> int:
             )
         )
     if not show:
-        logger.info("Operation took %.2fs" % (time.time() - tstart))
+        logger.info("Operation took {:.2f}s", time.time() - tstart)
 
     return 0
