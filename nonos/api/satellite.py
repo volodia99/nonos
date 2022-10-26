@@ -136,7 +136,7 @@ class NonosLick:
 
         # print("find names --> done")
 
-        field_operation = {}
+        field_operation: Dict[str, Any] = {}
         fields = [field, line1, line2]
         # find an abreviation of operation by considering the first character after each "_" (ex: "vertical_at_midplane" -> "VAM")
         operations = [
@@ -234,14 +234,14 @@ class NonosLick:
             raise NotImplementedError(
                 f"Not yet fully implemented, try {self.ordinate_str,self.abscissa_str} instead"
             )
-            data_background = np.moveaxis(
-                self.background.data, position_of_3d_dimension, 0
-            )[0].T
-            # data_lines = (np.moveaxis(self.lines[0].data, position_of_3d_dimension, 0)[0].T, np.moveaxis(self.lines[1].data, position_of_3d_dimension, 0)[0].T)
-            data_lines = [
-                np.moveaxis(self.lines[i].data, position_of_3d_dimension, 0)[0].T
-                for i in (0, 1)
-            ]
+            # data_background = np.moveaxis(
+            #     self.background.data, position_of_3d_dimension, 0
+            # )[0].T
+            # # data_lines = (np.moveaxis(self.lines[0].data, position_of_3d_dimension, 0)[0].T, np.moveaxis(self.lines[1].data, position_of_3d_dimension, 0)[0].T)
+            # data_lines = [
+            #     np.moveaxis(self.lines[i].data, position_of_3d_dimension, 0)[0].T
+            #     for i in (0, 1)
+            # ]
 
         if "VX2" in self.fields[1:]:
             logger.info(
