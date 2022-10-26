@@ -529,7 +529,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         from rich.progress import track
 
         def mytrack(iterable, *args, **kwargs):
-            return track
+            return track(iterable, *args, **kwargs)
 
     else:
         # replace rich.progress.track with a no-op dummy

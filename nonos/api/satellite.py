@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -6,7 +7,7 @@ from lick.lick import lick_box
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.ndimage.filters import uniform_filter1d
 
-from nonos.api.analysis import Plotable, from_data, temporal
+from nonos.api.analysis import GasField, Plotable, from_data, temporal
 from nonos.api.from_simulation import Parameters
 from nonos.logging import logger
 
@@ -15,7 +16,7 @@ def file_analysis(filename, *, inifile="", code="", directory="", norb=None):
     fullpath = os.path.join(directory, filename)
     with open(fullpath) as f1:
         data = f1.readlines()
-    y = [[v for v in r.split("\t")] for r in data]
+    y = [[v for v in re.split(r"[\t ]+", r)] for r in data]
     columns = np.array(y, dtype="float64").T
     if norb is not None:
         init = Parameters(inifile=inifile, code=code, directory=directory)
@@ -534,3 +535,30 @@ class NonosSpacetime:
             cax = divider.append_axes("right", size="5%", pad=0.05)
             cbar = fig.colorbar(im, cax=cax, orientation="vertical")  # , format='%.0e')
             cbar.set_label(title)
+
+
+def compute(
+    field: str,
+    data: np.ndarray,
+    ref: GasField,
+    *,
+    inifile: str = "",
+    code: str = "",
+    directory: str = "",
+    rotate_grid: bool = False,
+):
+    ret_data = data
+    ret_coords = ref.coords
+    geometry = ret_coords.geometry
+    return GasField(
+        field,
+        ret_data,
+        ret_coords,
+        geometry,
+        ref.on,
+        operation=ref.operation,
+        inifile=inifile,
+        code=code,
+        directory=directory,
+        rotate_grid=rotate_grid,
+    )

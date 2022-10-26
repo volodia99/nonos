@@ -12,6 +12,7 @@ from .from_simulation import Parameters
 from .satellite import (
     NonosLick,
     NonosSpacetime,
+    compute,
     file_analysis,
     load_fields,
     planet_analysis,
