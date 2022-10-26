@@ -1,11 +1,11 @@
 import os
 from glob import glob
 
+import matplotlib.pyplot as plt
+import numexpr as ne
 import numpy.testing as npt
 import pytest
 from matplotlib.colors import SymLogNorm
-import matplotlib.pyplot as plt
-import numexpr as ne
 
 from nonos.api import GasDataSet, compute, find_nearest, from_data
 from nonos.main import main
@@ -194,6 +194,7 @@ def test_compute_from_data(test_data_dir):
     )
 
     npt.assert_array_equal(rhovx2_from_data.data, rhovx2_compute.data)
+
 
 def test_pbar(simulation_dir, capsys):
     ret = main(["-pbar", "-dir", str(simulation_dir), "-geometry", "polar"])
