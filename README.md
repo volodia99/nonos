@@ -58,7 +58,7 @@ os.environ["COLUMNS"] = columns or ""
 cog.out(f"```\n{help.getvalue()}\n```")
 ]]] -->
 ```
-usage: nonos [-h] [-dir DATADIR] [-field {RHO,VX1,VX2,VX3,BX1,BX2,BX3,PRS}]
+usage: nonos [-h] [-dir DATADIR] [-field FIELD]
              [-geometry {polar,cylindrical,spherical,cartesian}]
              [-operation {vm,vp,vz,lt,lp,aa,ap,apl,rr} [{vm,vp,vz,lt,lp,aa,ap,apl,rr} ...]]
              [-plane PLANE [PLANE ...]] [-corotate COROTATE] [-range RANGE [RANGE ...]]
@@ -73,8 +73,7 @@ Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
 optional arguments:
   -h, --help            show this help message and exit
   -dir DATADIR          location of output files and param files (default: '.').
-  -field {RHO,VX1,VX2,VX3,BX1,BX2,BX3,PRS}
-                        name of field to plot (default: 'RHO').
+  -field FIELD          name of field to plot (default: 'RHO').
   -geometry {polar,cylindrical,spherical,cartesian}
                         if the geometry of idefix outputs is not recognized (default:
                         'unset').

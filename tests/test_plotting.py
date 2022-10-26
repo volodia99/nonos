@@ -1,11 +1,12 @@
 import os
 from glob import glob
 
+import numexpr as ne
 import numpy.testing as npt
 import pytest
 from matplotlib.colors import SymLogNorm
 
-from nonos.api import GasDataSet, find_nearest
+from nonos.api import GasDataSet, compute, find_nearest, from_data
 from nonos.main import main
 
 ARGS_TO_CHECK = {
@@ -158,6 +159,40 @@ def test_vmin_vmax_api(test_data_dir, temp_figure_and_axis):
     im2 = p.plot(fig, ax, norm=SymLogNorm(linthresh=0.1, base=10, vmin=-1, vmax=1))
 
     npt.assert_array_equal(im1.get_array(), im2.get_array())
+
+
+def test_compute_from_data(test_data_dir):
+    directory = test_data_dir / "idefix_planet3d"
+    os.chdir(directory)
+
+    ds = GasDataSet(43, geometry="polar")
+
+    rhovpfield = ds["RHO"].vertical_projection()
+    vx2vpfield = ds["VX2"].vertical_projection()
+
+    rhovp = rhovpfield.data
+    vx2vp = vx2vpfield.data
+
+    rhovx2_from_data = from_data(
+        field="RHOVX2",
+        data=rhovp * vx2vp,
+        coords=rhovpfield.coords,
+        on=rhovpfield.on,
+        operation=rhovpfield.operation,
+        directory=directory,
+        rotate_grid=rhovpfield.rotate_grid,
+    )
+
+    datane = ne.evaluate("rhovp*vx2vp")
+    rhovx2_compute = compute(
+        field="RHOVX2",
+        data=datane,
+        ref=rhovpfield,
+        directory=directory,
+        rotate_grid=rhovpfield.rotate_grid,
+    )
+
+    npt.assert_array_equal(rhovx2_from_data.data, rhovx2_compute.data)
 
 
 def test_pbar(simulation_dir, capsys):

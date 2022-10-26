@@ -601,48 +601,21 @@ class GasField:
             # ret_coords = Coordinates(self.native_geometry, self.coords.R, find_around(self.coords.phi, self.coords.phimed[0]), self.coords.z)
             R = self.coords.Rmed
             z = self.coords.zmed
-            kall = []
-            iall = []
             integral = np.zeros((self.shape[0], self.shape[1]), dtype=">f4")
+            # integral = np.zeros((self.shape[0],self.shape[2]), dtype='>f4')
             for i in range(self.shape[0]):
                 km = find_nearest(z, z.min())
                 kp = find_nearest(z, z.max())
                 if theta is not None:
-                    km = find_nearest(z, R[i] / np.tan(np.pi / 2 - theta))
-                    kp = find_nearest(z, R[i] / np.tan(np.pi / 2 + theta))
-                for k in range(kp, km - 2, -1):
-                    kall.append(k)
-                    iall.append(find_nearest(R, np.sqrt(R[i] ** 2 - z[k] ** 2)))
-                knall = np.array(kall)[
-                    np.where(
-                        (z[kall] < R[iall] / np.tan(np.pi / 2 - theta))
-                        & (z[kall] > R[iall] / np.tan(np.pi / 2 + theta))
-                    )[0]
-                ]
-                inall = np.array(iall)[
-                    np.where(
-                        (z[kall] < R[iall] / np.tan(np.pi / 2 - theta))
-                        & (z[kall] > R[iall] / np.tan(np.pi / 2 + theta))
-                    )[0]
-                ]
-                kall = knall
-                iall = inall
-                integral[i, :] = np.nansum(
-                    self.data[iall[:-1], :, kall[:-1]]
-                    * R[iall[:-1]][:, None]
-                    * np.ediff1d(np.arctan2(R[iall], z[kall]))[:, None],
-                    axis=0,
+                    km = find_nearest(z, -R[i] * theta)
+                    kp = find_nearest(z, R[i] * theta)
+                integral[i, :] = np.sum(
+                    (self.data[i, :, :] * np.ediff1d(self.coords.z)[None, :])[
+                        :, km : kp + 1
+                    ],
+                    axis=1,
                     dtype="float64",
                 )
-                iall = []
-                kall = []
-                # integral[i, :] = np.nansum(
-                #     (self.data[i, :, :] * np.ediff1d(self.coords.z)[None, :])[
-                #         :, km : kp + 1
-                #     ],
-                #     axis=1,
-                #     dtype="float64",
-                # )
                 # integral[i,km] = -1
                 # integral[i,kp] = 1
             ret_data = integral.reshape(self.shape[0], self.shape[1], 1)
@@ -654,13 +627,13 @@ class GasField:
                 find_around(self.coords.theta, self.coords.thetamed[imid]),
                 self.coords.phi,
             )
-            km = find_nearest(self.coords.thetamed, self.coords.theta.min())
-            kp = find_nearest(self.coords.thetamed, self.coords.theta.max())
+            km = find_nearest(self.coords.theta, self.coords.theta.min())
+            kp = find_nearest(self.coords.theta, self.coords.theta.max())
             if theta is not None:
-                km = find_nearest(self.coords.thetamed, np.pi / 2 - theta)
-                kp = find_nearest(self.coords.thetamed, np.pi / 2 + theta)
+                km = find_nearest(self.coords.theta, np.pi / 2 + theta)
+                kp = find_nearest(self.coords.theta, np.pi / 2 - theta)
             ret_data = (
-                np.nansum(
+                np.sum(
                     (
                         self.data
                         * self.coords.rmed[:, None, None]
@@ -683,6 +656,102 @@ class GasField:
             directory=self.directory,
             rotate_grid=self.rotate_grid,
         )
+
+    # def latitudinal_projection(self, theta=None):
+    #     operation = self.operation + "_latitudinal_projection"
+    #     imid = self.find_imid()
+    #     if self.native_geometry == "polar":
+    #         ret_coords = Coordinates(
+    #             self.native_geometry,
+    #             self.coords.R,
+    #             self.coords.phi,
+    #             find_around(self.coords.z, self.coords.zmed[imid]),
+    #         )
+    #         # ret_coords = Coordinates(self.native_geometry, self.coords.R, find_around(self.coords.phi, self.coords.phimed[0]), self.coords.z)
+    #         R = self.coords.Rmed
+    #         z = self.coords.zmed
+    #         kall = []
+    #         iall = []
+    #         integral = np.zeros((self.shape[0], self.shape[1]), dtype=">f4")
+    #         for i in range(self.shape[0]):
+    #             km = find_nearest(z, z.min())
+    #             kp = find_nearest(z, z.max())
+    #             if theta is not None:
+    #                 km = find_nearest(z, R[i] / np.tan(np.pi / 2 - theta))
+    #                 kp = find_nearest(z, R[i] / np.tan(np.pi / 2 + theta))
+    #             for k in range(kp, km - 2, -1):
+    #                 kall.append(k)
+    #                 iall.append(find_nearest(R, np.sqrt(R[i] ** 2 - z[k] ** 2)))
+    #             knall = np.array(kall)[
+    #                 np.where(
+    #                     (z[kall] < R[iall] / np.tan(np.pi / 2 - theta))
+    #                     & (z[kall] > R[iall] / np.tan(np.pi / 2 + theta))
+    #                 )[0]
+    #             ]
+    #             inall = np.array(iall)[
+    #                 np.where(
+    #                     (z[kall] < R[iall] / np.tan(np.pi / 2 - theta))
+    #                     & (z[kall] > R[iall] / np.tan(np.pi / 2 + theta))
+    #                 )[0]
+    #             ]
+    #             kall = knall
+    #             iall = inall
+    #             integral[i, :] = np.nansum(
+    #                 self.data[iall[:-1], :, kall[:-1]]
+    #                 * R[iall[:-1]][:, None]
+    #                 * np.ediff1d(np.arctan2(R[iall], z[kall]))[:, None],
+    #                 axis=0,
+    #                 dtype="float64",
+    #             )
+    #             iall = []
+    #             kall = []
+    #             # integral[i, :] = np.nansum(
+    #             #     (self.data[i, :, :] * np.ediff1d(self.coords.z)[None, :])[
+    #             #         :, km : kp + 1
+    #             #     ],
+    #             #     axis=1,
+    #             #     dtype="float64",
+    #             # )
+    #             # integral[i,km] = -1
+    #             # integral[i,kp] = 1
+    #         ret_data = integral.reshape(self.shape[0], self.shape[1], 1)
+    #         # ret_data = integral.reshape(self.shape[0],1,self.shape[2])
+    #     if self.native_geometry == "spherical":
+    #         ret_coords = Coordinates(
+    #             self.native_geometry,
+    #             self.coords.r,
+    #             find_around(self.coords.theta, self.coords.thetamed[imid]),
+    #             self.coords.phi,
+    #         )
+    #         km = find_nearest(self.coords.thetamed, self.coords.theta.min())
+    #         kp = find_nearest(self.coords.thetamed, self.coords.theta.max())
+    #         if theta is not None:
+    #             km = find_nearest(self.coords.thetamed, np.pi / 2 - theta)
+    #             kp = find_nearest(self.coords.thetamed, np.pi / 2 + theta)
+    #         ret_data = (
+    #             np.nansum(
+    #                 (
+    #                     self.data
+    #                     * self.coords.rmed[:, None, None]
+    #                     * np.sin(self.coords.thetamed[None, :, None])
+    #                     * np.ediff1d(self.coords.theta)[None, :, None]
+    #                 )[:, km : kp + 1, :],
+    #                 axis=1,
+    #                 dtype="float64",
+    #             )
+    #         ).reshape(self.shape[0], 1, self.shape[2])
+    #     return GasField(
+    #         self.field,
+    #         np.float32(ret_data),
+    #         ret_coords,
+    #         self.native_geometry,
+    #         self.on,
+    #         operation,
+    #         inifile=self.inifile,
+    #         code=self.code,
+    #         directory=self.directory,
+    #         rotate_grid=self.rotate_grid,
+    #     )
 
     def vertical_projection(self, z=None):
         operation = self.operation + "_vertical_projection"
@@ -1406,6 +1475,8 @@ def from_data(
     coords: Coordinates,
     on: int,
     operation: str,
+    inifile: str = "",
+    code: str = "",
     directory: str = "",
     rotate_grid: bool = False,
 ):
@@ -1419,6 +1490,8 @@ def from_data(
         geometry,
         on,
         operation=operation,
+        inifile=inifile,
+        code=code,
         directory=directory,
         rotate_grid=rotate_grid,
     )
