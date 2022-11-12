@@ -1,5 +1,70 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = [
+    "setuptools>=61.2",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nonos"
+version = "0.7.1"
+description = "A tool to analyze results from idefix/pluto simulations (for protoplanetary disks more specifically)"
+authors = [
+    { name = "G. Wafflard-Fernandez & C.M.T. Robert" },
+]
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Typing :: Typed",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "cblind>=2.2.2",
+    "inifix>=3.0.0",
+    "lick>=0.1.0",
+    "loguru>=0.5.3",
+    "matplotlib>=3.2.1",
+    "numpy>=1.18.5",
+    "packaging>=21.3",
+    "rich>=10.13.0",
+    "scipy>=1.6.1",
+]
+
+[project.license]
+text = "GPL-3.0"
+
+[project.optional-dependencies]
+dev = [
+    "cogapp>=3.3.0",
+    "numexpr>=2.8.3",
+    "pytest>=6.1",
+    "pytest-mpl>=0.15.1",
+]
+minimal = [
+    "cblind==2.2.2",
+    "inifix==3.0.0",
+    "lick==0.1.0",
+    "loguru>=0.5.3",
+    "matplotlib==3.2.1",
+    "numpy==1.18.5",
+    "packaging==21.3",
+    "rich==10.13.0",
+    "scipy==1.6.1",
+]
+typecheck = [
+    "mypy==0.931",
+    "types-setuptools~=57.4.8",
+]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[project.scripts]
+nonos = "nonos.main:main"
+
+[project.urls]
+Homepage = "https://github.com/volodia99/nonos"
 
 [tool.black]
 line-length = 88
@@ -16,7 +81,20 @@ warn_unused_ignores = true
 warn_unreachable = true
 show_error_context = true
 disallow_untyped_defs = false  # TODO: add missing annotations and switch this option to true
-
-# TODO: switch off when upstream is correctly typed
-# see https://github.com/matplotlib/matplotlib/issues/20504
 ignore_missing_imports = true
+
+[tool.setuptools]
+license-files = [
+    "LICENSE",
+]
+include-package-data = false
+
+[tool.setuptools.package-data]
+nonos = [
+    "py.typed",
+    "logo.txt",
+    "nonos.mplstyle",
+]
+
+[tool.setuptools.packages.find]
+namespaces = false

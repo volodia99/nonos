@@ -2,14 +2,14 @@ name: CI
 on:
   push:
     branches:
-      - main
+    - main
   pull_request:
     paths-ignore:
-      - README.md
+    - README.md
 
   schedule:
     # run this once a week (wednesday) at 3 am UTC
-    - cron: '0 3 * * 3'
+  - cron: 0 3 * * 3
   workflow_dispatch:
 jobs:
   tests:
@@ -19,9 +19,9 @@ jobs:
         python-version: ['3.10']
         dependencies: [dev]
         include:
-          - os: ubuntu-20.04
-            python-version: '3.8'
-            dependencies: 'dev,minimal'
+        - os: ubuntu-20.04
+          python-version: '3.8'
+          dependencies: dev,minimal
 
     runs-on: ${{ matrix.os }}
     steps:
