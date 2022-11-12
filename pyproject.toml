@@ -21,9 +21,9 @@ requires-python = ">=3.8"
 dependencies = [
     "cblind>=2.2.2",
     "inifix>=3.0.0",
-    "lick>=0.1.0",
+    "lick>=0.2.0",
     "loguru>=0.5.3",
-    "matplotlib>=3.2.1",
+    "matplotlib>=3.4.0",
     "numpy>=1.18.5",
     "packaging>=21.3",
     "rich>=10.13.0",
@@ -43,9 +43,9 @@ dev = [
 minimal = [
     "cblind==2.2.2",
     "inifix==3.0.0",
-    "lick==0.1.0",
+    "lick==0.2.0",
     "loguru>=0.5.3",
-    "matplotlib==3.2.1",
+    "matplotlib==3.4.0",
     "numpy==1.18.5",
     "packaging==21.3",
     "rich==10.13.0",
