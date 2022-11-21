@@ -38,3 +38,6 @@ def parse_verbose_level(verbose: int):
     levels = ["WARNING", "INFO", "DEBUG"]
     level = levels[min(len(levels) - 1, verbose)]  # capped to number of levels
     return level
+
+
+configure_logger(level=30)
