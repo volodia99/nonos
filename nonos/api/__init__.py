@@ -1,3 +1,4 @@
+from ..logging import configure_logger
 from .analysis import (
     Coordinates,
     GasDataSet,
@@ -19,3 +20,5 @@ from .satellite import (
     save_temporal,
 )
 from .tools import find_around, find_nearest
+
+configure_logger(level=30)
