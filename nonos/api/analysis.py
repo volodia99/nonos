@@ -66,8 +66,8 @@ class Plotable:
                 **kw,
             )
             ax.set(
-                xlim=(self.avalue.flat[0], self.avalue.flat[-1]),
-                ylim=(self.ovalue.flat[0], self.ovalue.flat[-1]),
+                xlim=(self.avalue.min(), self.avalue.max()),
+                ylim=(self.ovalue.min(), self.ovalue.max()),
             )
 
             ax.set_xlabel(self.akey)
