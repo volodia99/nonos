@@ -363,38 +363,32 @@ class CodeReadFormat:
                 # The file contains face coordinates, so we extrapolate to get the cell center coordinates.
                 if V.n1 > 1:
                     V.n1 = V.n1 - 1
-                    V.x1 = 0.5 * (x[1:] + x[:-1])
+                    if cell == "centers":
+                        V.x1 = 0.5 * (x[1:] + x[:-1])
+                    elif cell == "edges":
+                        V.x1 = x
                 else:
                     V.x1 = x
                 if V.n2 > 1:
                     V.n2 = V.n2 - 1
-                    V.x2 = 0.5 * (y[1:] + y[:-1])
+                    if cell == "centers":
+                        V.x2 = 0.5 * (y[1:] + y[:-1])
+                    elif cell == "edges":
+                        V.x2 = y
                 else:
                     V.x2 = y
                 if V.n3 > 1:
                     V.n3 = V.n3 - 1
-                    V.x3 = 0.5 * (z[1:] + z[:-1])
+                    if cell == "centers":
+                        V.x3 = 0.5 * (z[1:] + z[:-1])
+                    elif cell == "edges":
+                        V.x3 = z
                 else:
                     V.x3 = z
-            elif point_type == "POINT_DATA" or cell == "edges":
+            elif point_type == "POINT_DATA":
                 V.x1 = x
                 V.x2 = y
                 V.x3 = z
-                if V.n1 > 1:
-                    V.n1 = V.n1 - 1
-                    V.x1 = x
-                else:
-                    V.x1 = x
-                if V.n2 > 1:
-                    V.n2 = V.n2 - 1
-                    V.x2 = y
-                else:
-                    V.x2 = y
-                if V.n3 > 1:
-                    V.n3 = V.n3 - 1
-                    V.x3 = z
-                else:
-                    V.x3 = z
 
             if V.n1 * V.n2 * V.n3 != npoints:
                 raise ValueError(
