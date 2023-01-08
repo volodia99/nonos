@@ -9,7 +9,8 @@ name = "nonos"
 version = "0.7.2"
 description = "A tool to analyze results from idefix/pluto simulations (for protoplanetary disks more specifically)"
 authors = [
-    { name = "G. Wafflard-Fernandez & C.M.T. Robert" },
+    { name = "G. Wafflard-Fernandez" },
+    { name = "C.M.T. Robert" },
 ]
 classifiers = [
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
