@@ -6,8 +6,10 @@ Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
 
 import argparse
 import functools
+import importlib.resources
 import os
 import re
+import sys
 import time
 from collections import ChainMap
 from multiprocessing import Pool
@@ -17,7 +19,6 @@ import cblind as cb
 import inifix
 import matplotlib.pyplot as plt
 import numpy as np
-import pkg_resources
 from inifix.format import iniformat
 
 from nonos.__version__ import __version__
@@ -386,8 +387,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     # special cases: destructively consume CLI-only arguments with dict.pop
 
     if clargs.pop("logo"):
-        with open(pkg_resources.resource_filename("nonos", "logo.txt")) as fh:
-            logo = fh.read()
+        if sys.version_info >= (3, 9):
+            logo = importlib.resources.files("nonos").joinpath("logo.txt").read_text()
+        else:
+            import pkg_resources
+
+            with pkg_resources.resource_stream("nonos", "logo.txt") as fh:
+                logo = fh.read().decode()
         print(f"{logo}{__doc__}Version {__version__}")
         return 0
 
