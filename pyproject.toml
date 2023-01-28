@@ -53,8 +53,8 @@ minimal = [
     "scipy==1.6.1",
 ]
 typecheck = [
-    "mypy==0.931",
-    "types-setuptools~=57.4.8", # this can be removed when Python 3.8 is dropped
+    "mypy==0.991",
+    "types-setuptools~=57.4.8", # this is needed to typecheck pkg_resources usages. It should be removed when Python 3.8 is dropped
 ]
 
 [project.readme]
