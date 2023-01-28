@@ -54,7 +54,7 @@ minimal = [
 ]
 typecheck = [
     "mypy==0.931",
-    "types-setuptools~=57.4.8", # this can be removed when Python 3.8 is dropped
+    "types-setuptools~=57.4.8; python_version<'3.9'",
 ]
 
 [project.readme]
