@@ -53,7 +53,7 @@ minimal = [
     "scipy==1.6.1",
 ]
 typecheck = [
-    "mypy==0.931",
+    "mypy==0.991",
     "types-setuptools~=57.4.8; python_version<'3.9'",
 ]
 
