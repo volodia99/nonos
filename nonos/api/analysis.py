@@ -285,7 +285,6 @@ class Coordinates:
 
     # for 2D arrays
     def target_from_native(self, target_geometry, coords):
-
         if self.geometry == "polar":
             R, phi, z = (coords["R"], coords["phi"], coords["z"])
             if target_geometry == "cartesian":
