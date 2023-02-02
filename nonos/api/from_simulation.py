@@ -444,7 +444,6 @@ class CodeReadFormat:
 
             # Reconstruct the polar coordinate system
             if V.geometry == "polar":
-
                 r = np.sqrt(xcart[:, 0, 0] ** 2 + ycart[:, 0, 0] ** 2)
                 theta = np.unwrap(np.arctan2(ycart[0, :, 0], xcart[0, :, 0]))
                 z = zcart[0, 0, :]

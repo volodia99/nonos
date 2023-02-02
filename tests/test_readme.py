@@ -11,7 +11,6 @@ from cogapp import Cog
     reason="argparse --help messages were slightly modified in Python 3.10",
 )
 def test_if_cog_needs_to_be_run():
-
     _stdout = sys.stdout
     sys.stdout = StringIO()
     readme = pathlib.Path(__file__).parents[1] / "README.md"
