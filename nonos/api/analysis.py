@@ -377,6 +377,7 @@ class GasField:
         code: str = "",
         directory="",
         rotate_grid: bool = False,
+        cell_selected=None,
     ):
         self.field = field
         self.operation = operation
@@ -389,6 +390,10 @@ class GasField:
         self.code = code
         self.directory = directory
         self.rotate_grid = rotate_grid
+        if cell_selected is None:
+            self.cell_selected = np.ma.array(self.data, mask=True)
+        else:
+            self.cell_selected = cell_selected
 
     @property
     def shape(self) -> Tuple[Any, ...]:
@@ -590,6 +595,7 @@ class GasField:
     def latitudinal_projection(self, theta=None):
         operation = self.operation + "_latitudinal_projection"
         imid = self.find_imid()
+        cell_selected = np.ma.array(self.data, mask=False)
         if self.native_geometry == "polar":
             ret_coords = Coordinates(
                 self.native_geometry,
@@ -615,6 +621,8 @@ class GasField:
                     axis=1,
                     dtype="float64",
                 )
+                for iphi in range(self.shape[1]):
+                    cell_selected[i, iphi, km : kp + 1] = np.ma.masked
                 # integral[i,km] = -1
                 # integral[i,kp] = 1
             ret_data = integral.reshape(self.shape[0], self.shape[1], 1)
@@ -629,8 +637,8 @@ class GasField:
             km = find_nearest(self.coords.theta, self.coords.theta.min())
             kp = find_nearest(self.coords.theta, self.coords.theta.max())
             if theta is not None:
-                km = find_nearest(self.coords.theta, np.pi / 2 + theta)
-                kp = find_nearest(self.coords.theta, np.pi / 2 - theta)
+                km = find_nearest(self.coords.theta, np.pi / 2 - theta)
+                kp = find_nearest(self.coords.theta, np.pi / 2 + theta)
             ret_data = (
                 np.sum(
                     (
@@ -643,6 +651,10 @@ class GasField:
                     dtype="float64",
                 )
             ).reshape(self.shape[0], 1, self.shape[2])
+            for ir in range(self.shape[0]):
+                for iphi in range(self.shape[2]):
+                    cell_selected[ir, km : kp + 1, iphi] = np.ma.masked
+        cell_selected.mask = ~cell_selected.mask
         return GasField(
             self.field,
             np.float32(ret_data),
@@ -654,6 +666,7 @@ class GasField:
             code=self.code,
             directory=self.directory,
             rotate_grid=self.rotate_grid,
+            cell_selected=cell_selected,
         )
 
     # def latitudinal_projection(self, theta=None):
