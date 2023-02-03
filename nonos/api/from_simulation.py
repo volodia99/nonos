@@ -3,6 +3,7 @@ import os
 import re
 from pathlib import Path
 
+import gpgi
 import inifix
 import numpy as np
 
@@ -190,13 +191,11 @@ class Parameters:
             fargo3d.load()
             return fargo3d
         elif self.code == "fargo-adsg":
-            fargoadsg = FargoAdsg(
+            return _load_fargo_adsg(
                 on,
                 directory=self.directory,
                 pattern=pattern,
             )
-            fargoadsg.load()
-            return fargoadsg
         elif self.code in ("idefix", "pluto"):
             idefix = Idefix(
                 on,
@@ -779,57 +778,64 @@ class Fargo3d:
             raise ValueError(f"{self.geometry} not implemented yet for fargo3d.")
 
 
-class FargoAdsg:
-    def __init__(self, on: int, *, directory="", pattern=None):
-        """
-        pattern can be gas (default) or dust
-        """
-        self.directory = directory
-        if pattern is None:
-            self.densfile = os.path.join(self.directory, f"gasdens{on}.dat")
-            self.vyfile = os.path.join(self.directory, f"gasvrad{on}.dat")
-            self.vxfile = os.path.join(self.directory, f"gasvtheta{on}.dat")
-        else:
-            self.filename = pattern(on)
-            raise NotImplementedError(
-                "pattern not implemented yet (reading dust files)"
-            )
+def _load_fargo_adsg(on: int, *, directory="", pattern=None) -> gpgi.types.Dataset:
+    """
+    pattern can be gas (default) or dust
+    """
+    directory = Path(directory)
+    assert directory.is_dir()
 
-    def load(self):
-        self.geometry = "polar"
-        self.data = {}
+    if pattern is None:
+        densfile = directory / f"gasdens{on}.dat"
+        vyfile = directory / f"gasvrad{on}.dat"
+        vxfile = directory / f"gasvtheta{on}.dat"
+    else:
+        pattern(on)
+        raise NotImplementedError("pattern not implemented yet (reading dust files)")
 
-        phi = np.loadtxt(os.path.join(self.directory, "used_azi.dat"))[:, 0]
-        domain_x = np.zeros(len(phi) + 1)
-        domain_x[:-1] = phi
-        domain_x[-1] = 2 * np.pi
-        domain_x -= np.pi
-        # We avoid ghost cells
-        domain_y = np.loadtxt(os.path.join(self.directory, "used_rad.dat"))
-        domain_z = np.zeros(2)
+    data = {}
 
-        self.x1 = domain_y  # X-Edge
-        self.x2 = domain_x  # Y-Edge
-        self.x3 = domain_z  # Z-Edge #latitute
+    phi = np.loadtxt(directory / "used_azi.dat")[:, 0]
 
-        self.n1 = len(self.x1) - 1  # if len(self.x1)>2 else 2
-        self.n2 = len(self.x2) - 1  # if len(self.x2)>2 else 2
-        self.n3 = len(self.x3) - 1  # if len(self.x3)>2 else 2
-        if Path(self.densfile).is_file():
-            self.data["RHO"] = (
-                np.fromfile(self.densfile, dtype="float64")
-                .reshape(self.n3, self.n1, self.n2)
-                .transpose(1, 2, 0)
-            )  # rad, pĥi, z
-        if Path(self.vyfile).is_file():
-            self.data["VX1"] = (
-                np.fromfile(self.vyfile, dtype="float64")
-                .reshape(self.n3, self.n1, self.n2)
-                .transpose(1, 2, 0)
-            )  # rad, pĥi, z
-        if Path(self.vxfile).is_file():
-            self.data["VX2"] = (
-                np.fromfile(self.vxfile, dtype="float64")
-                .reshape(self.n3, self.n1, self.n2)
-                .transpose(1, 2, 0)
-            )  # rad, pĥi, z
+    DTYPE = phi.dtype
+
+    domain_x = np.zeros(len(phi) + 1, dtype=DTYPE)
+    domain_x[:-1] = phi
+    domain_x[-1] = 2 * np.pi
+    domain_x -= np.pi
+    # We avoid ghost cells
+    domain_y = np.loadtxt(directory / "used_rad.dat").astype(DTYPE)
+    domain_z = np.zeros(2, dtype=DTYPE)
+
+    x1 = domain_y  # X-Edge
+    x2 = domain_x  # Y-Edge
+    x3 = domain_z  # Z-Edge #latitute
+
+    n1 = len(x1) - 1  # if len(x1)>2 else 2
+    n2 = len(x2) - 1  # if len(x2)>2 else 2
+    n3 = len(x3) - 1  # if len(x3)>2 else 2
+    if densfile.is_file():
+        data["RHO"] = (
+            np.fromfile(densfile, dtype=DTYPE).reshape(n3, n1, n2).transpose(1, 2, 0)
+        )  # rad, pĥi, z
+    if vyfile.is_file():
+        data["VX1"] = (
+            np.fromfile(vyfile, dtype=DTYPE).reshape(n3, n1, n2).transpose(1, 2, 0)
+        )  # rad, pĥi, z
+    if vxfile.is_file():
+        data["VX2"] = (
+            np.fromfile(vxfile, dtype=DTYPE).reshape(n3, n1, n2).transpose(1, 2, 0)
+        )  # rad, pĥi, z
+
+    return gpgi.load(
+        geometry="cylindrical",
+        grid={
+            "fields": data,
+            "cell_edges": {
+                "radius": x1,
+                "azimuth": x2 + np.pi,
+                "z": x3,
+            },
+        },
+        metadata={"code": "fargo-adsg"},
+    )
