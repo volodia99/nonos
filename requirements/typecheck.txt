@@ -1,0 +1,2 @@
+mypy==0.991
+types-setuptools~=57.4.8 # this is needed to typecheck pkg_resources usages. It should be removed when Python 3.8 is dropped
