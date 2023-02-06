@@ -6,7 +6,6 @@ Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
 
 import argparse
 import functools
-import importlib.resources
 import os
 import re
 import sys
@@ -39,6 +38,11 @@ from nonos.parsing import (
     range_converter,
 )
 from nonos.styling import set_mpl_style
+
+if sys.version_info >= (3, 9):
+    import importlib.resources as importlib_resources
+else:
+    import importlib_resources
 
 
 # process function for parallisation purpose with progress bar
@@ -387,13 +391,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # special cases: destructively consume CLI-only arguments with dict.pop
 
     if clargs.pop("logo"):
-        if sys.version_info >= (3, 9):
-            logo = importlib.resources.files("nonos").joinpath("logo.txt").read_text()
-        else:
-            import pkg_resources
-
-            with pkg_resources.resource_stream("nonos", "logo.txt") as fh:
-                logo = fh.read().decode()
+        logo = importlib_resources.files("nonos").joinpath("logo.txt").read_text()
         print(f"{logo}{__doc__}Version {__version__}")
         return 0
 
