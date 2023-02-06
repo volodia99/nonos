@@ -1,7 +1,11 @@
-import importlib.resources
 import sys
 
 import matplotlib as mpl
+
+if sys.version_info >= (3, 9):
+    import importlib.resources as importlib_resources
+else:
+    import importlib_resources
 
 
 def scale_mpl(scaling: float) -> None:
@@ -50,12 +54,6 @@ def scale_mpl(scaling: float) -> None:
 
 
 def set_mpl_style(scaling: float) -> None:
-    if sys.version_info >= (3, 9):
-        stylesheet = importlib.resources.files("nonos") / "nonos.mplstyle"
-    else:
-        import pkg_resources
-
-        stylesheet = pkg_resources.resource_filename("nonos", "nonos.mplstyle")
-
+    stylesheet = importlib_resources.files("nonos") / "nonos.mplstyle"
     mpl.rc_file(stylesheet)
     scale_mpl(scaling)
