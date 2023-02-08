@@ -1,9 +1,9 @@
-import matplotlib
-import numpy as np
-from matplotlib.colors import SymLogNorm
-from packaging.version import Version
+from typing import TYPE_CHECKING
 
-MPL_VERSION = Version(matplotlib.__version__)
+import numpy as np
+
+if TYPE_CHECKING:
+    from matplotlib.colors import SymLogNorm
 
 
 def get_log_minorticks(vmin, vmax):
@@ -70,12 +70,8 @@ def get_symlog_minorticks(linthresh, vmin, vmax):
         )
 
 
-def set_symlog_minor_ticks(norm: SymLogNorm, cax) -> None:
+def set_symlog_minor_ticks(norm: "SymLogNorm", cax) -> None:
     # heavily inspired from yt 4.0.2
-    if MPL_VERSION < Version("3.5.0b"):
-        # no known working method to draw symlog minor ticks
-        # see https://github.com/yt-project/yt/issues/3535
-        return
     flinthresh = 10 ** np.floor(np.log10(norm.linthresh))
     absmax = np.abs((norm.vmin, norm.vmax)).max()
     if (absmax - flinthresh) / absmax < 0.1:
