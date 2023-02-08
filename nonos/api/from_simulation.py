@@ -182,14 +182,12 @@ class Parameters:
         pattern=None,
     ):
         if self.code == "fargo3d":
-            fargo3d = Fargo3d(
+            return _load_fargo3d(
                 on,
                 directory=self.directory,
                 inifile=self.paramfile,
                 pattern=pattern,
             )
-            fargo3d.load()
-            return fargo3d
         elif self.code == "fargo-adsg":
             return _load_fargo_adsg(
                 on,
@@ -197,585 +195,626 @@ class Parameters:
                 pattern=pattern,
             )
         elif self.code in ("idefix", "pluto"):
-            idefix = Idefix(
+            return _load_idefix(
                 on,
                 directory=self.directory,
-                geometry=geometry,
-                cell=cell,
+                geometry="unknown",
+                cell="edges",
+                computedata=True,
                 pattern=pattern,
             )
-            idefix.load()
-            return idefix
         else:
             raise ValueError(f"For now, can't read files from {self.code} simulations.")
 
 
-class Idefix:
-    def __init__(
-        self,
-        on: int,
-        *,
-        directory="",
-        geometry="unknown",
-        cell="edges",
-        computedata=True,
-        pattern=None,
-    ):
-        """
-        Adapted from Geoffroy Lesur
-        Function that reads a vtk file
-        pattern can be a lambda function like
-        lambda on:f"data.{on:04d}.vtk"
-        """
-        self.directory = directory
-        if pattern is None:
-            self.filename = os.path.join(self.directory, f"data.{on:04d}.vtk")
-        else:
-            self.filename = pattern(on)
-        self.geometry = geometry
-        self.cell = cell
-        self.computedata = computedata
+def _load_idefix(
+    on: int,
+    *,
+    directory="",
+    geometry="unknown",
+    cell="edges",
+    computedata=True,
+    pattern=None,
+) -> gpgi.types.Dataset:
+    """
+    Adapted from Geoffroy Lesur
+    Function that reads a vtk file
+    pattern can be a lambda function like
+    lambda on:f"data.{on:04d}.vtk"
+    """
+    directory = Path(directory)
+    assert directory.is_dir()
 
-    def load(self):
-        nfound = len(glob.glob(self.filename))
-        if nfound != 1:
-            raise FileNotFoundError("Idefix: %s not found." % self.filename)
+    if pattern is None:
+        filename = directory / f"data.{on:04d}.vtk"
+    else:
+        filename = pattern(on)
+    # self.geometry = geometry
+    # self.cell = cell
+    # self.computedata = computedata
 
-        fid = open(self.filename, "rb")
+    if not filename.is_file():
+        raise FileNotFoundError("Idefix: %s not found." % filename)
 
-        # raw data which will be read from the file
-        self.data = {}
+    fid = open(filename, "rb")
 
-        # initialize geometry
-        if self.geometry not in ("unknown", "cartesian", "polar", "spherical"):
-            raise ValueError(f"Unknown geometry value: {self.geometry  !r}")
+    # raw data which will be read from the file
+    data = {}
 
-        # datatype we read
-        dt = np.dtype(">f")  # Big endian single precision floats
-        dint = np.dtype(">i4")  # Big endian integer
+    # initialize geometry
+    if geometry not in ("unknown", "cartesian", "polar", "spherical", "cylindrical"):
+        raise ValueError(f"Unknown geometry value: {geometry  !r}")
 
-        s = fid.readline()  # VTK DataFile Version x.x
-        s = fid.readline()  # Comments
+    # datatype we read
+    dt = np.dtype(">f")  # Big endian single precision floats
+    dint = np.dtype(">i4")  # Big endian integer
 
-        s = fid.readline()  # BINARY
-        s = fid.readline()  # DATASET RECTILINEAR_GRID or STRUCTURED_GRID
-        slist = s.split()
+    s = fid.readline()  # VTK DataFile Version x.x
+    s = fid.readline()  # Comments
 
-        s = fid.readline()  # DIMENSIONS NX NY NZ
-        slist = s.split()
-        entry = str(slist[0], "utf-8")
-        if entry == "FIELD":
-            nfield = int(slist[2])
-            for _field in range(nfield):
-                s = fid.readline()
-                slist = s.split()
-                entry = str(slist[0], "utf-8")
-                if entry == "TIME":
-                    self.t = np.fromfile(fid, dt, 1)
-                elif entry == "GEOMETRY":
-                    g = np.fromfile(fid, dint, 1)
-                    if g == 0:
-                        thisgeometry = "cartesian"
-                    elif g == 1:
-                        thisgeometry = "polar"
-                    elif g == 2:
-                        thisgeometry = "spherical"
-                    elif g == 3:
-                        thisgeometry = "cylindrical"
-                    else:
+    s = fid.readline()  # BINARY
+    s = fid.readline()  # DATASET RECTILINEAR_GRID or STRUCTURED_GRID
+    slist = s.split()
+
+    s = fid.readline()  # DIMENSIONS NX NY NZ
+    slist = s.split()
+    entry = str(slist[0], "utf-8")
+    if entry == "FIELD":
+        nfield = int(slist[2])
+        for _field in range(nfield):
+            s = fid.readline()
+            slist = s.split()
+            entry = str(slist[0], "utf-8")
+            if entry == "TIME":
+                np.fromfile(fid, dt, 1)
+            elif entry == "GEOMETRY":
+                g = np.fromfile(fid, dint, 1)
+                if g == 0:
+                    thisgeometry = "cartesian"
+                elif g == 1:
+                    thisgeometry = "polar"
+                elif g == 2:
+                    thisgeometry = "spherical"
+                elif g == 3:
+                    thisgeometry = "cylindrical"
+                else:
+                    raise ValueError(
+                        f"Unknown value for GEOMETRY flag ('{g}') was found in the VTK file."
+                    )
+
+                if geometry != "unknown":
+                    # We already have a proposed geometry, check that what is read from the file matches
+                    if thisgeometry != geometry:
                         raise ValueError(
-                            f"Unknown value for GEOMETRY flag ('{g}') was found in the VTK file."
+                            f"geometry argument ('{geometry}') is inconsistent with GEOMETRY flag from the VTK file ('{thisgeometry}')"
                         )
-
-                    if self.geometry != "unknown":
-                        # We already have a proposed geometry, check that what is read from the file matches
-                        if thisgeometry != self.geometry:
-                            raise ValueError(
-                                f"geometry argument ('{self.geometry}') is inconsistent with GEOMETRY flag from the VTK file ('{thisgeometry}')"
-                            )
-                    self.geometry = thisgeometry
-                elif entry == "PERIODICITY":
-                    periodicity = np.fromfile(fid, dint, 3).astype(bool)
-                    self.periodicity = tuple(periodicity)
-                else:
-                    raise ValueError(f"Received unknown field: '{entry}'.")
-
-                s = fid.readline()  # extra linefeed
-
-            # finished reading the field entry
-            # read next line
-            s = fid.readline()  # DIMENSIONS...
-
-        if self.geometry == "unknown":
-            raise RuntimeError(
-                "Geometry couldn't be determined from data. "
-                "Try to set the geometry keyword argument explicitely."
-            )
-
-        slist = s.split()  # DIMENSIONS....
-        self.n1 = int(slist[1])
-        self.n2 = int(slist[2])
-        self.n3 = int(slist[3])
-
-        if self.geometry == "cartesian":
-            # CARTESIAN geometry
-            s = fid.readline()  # X_COORDINATES NX float
-            inipos = (
-                fid.tell()
-            )  # we store the file pointer position before computing points
-            logger.debug("loading the X-grid cells: {}", self.n1)
-            x = np.memmap(
-                fid, mode="r", dtype=dt, offset=inipos, shape=self.n1
-            )  # some smart memory efficient way to store the array
-            newpos = (
-                np.float32().nbytes * 1 * self.n1 + inipos
-            )  # we calculate the offset that we would expect normally with a np.fromfile
-            fid.seek(
-                newpos, os.SEEK_SET
-            )  # we set the file pointer position to this offset
-            s = fid.readline()  # Extra line feed added by idefix
-
-            s = fid.readline()  # Y_COORDINATES NY float
-            inipos = (
-                fid.tell()
-            )  # we store the file pointer position before computing points
-            logger.debug("loading the Y-grid cells: {}", self.n2)
-            y = np.memmap(
-                fid, mode="r", dtype=dt, offset=inipos, shape=self.n2
-            )  # some smart memory efficient way to store the array
-            newpos = (
-                np.float32().nbytes * 1 * self.n2 + inipos
-            )  # we calculate the offset that we would expect normally with a np.fromfile
-            fid.seek(
-                newpos, os.SEEK_SET
-            )  # we set the file pointer position to this offset
-            s = fid.readline()  # Extra line feed added by idefix
-
-            s = fid.readline()  # Z_COORDINATES NZ float
-            inipos = (
-                fid.tell()
-            )  # we store the file pointer position before computing points
-            logger.debug("loading the Z-grid cells: {}", self.n3)
-            z = np.memmap(
-                fid, mode="r", dtype=dt, offset=inipos, shape=self.n3
-            )  # some smart memory efficient way to store the array
-            newpos = (
-                np.float32().nbytes * 1 * self.n3 + inipos
-            )  # we calculate the offset that we would expect normally with a np.fromfile
-            fid.seek(
-                newpos, os.SEEK_SET
-            )  # we set the file pointer position to this offset
-            s = fid.readline()  # Extra line feed added by idefix
-
-            s = fid.readline()  # POINT_DATA NXNYNZ
-
-            slist = s.split()
-            point_type = str(slist[0], "utf-8")
-            npoints = int(slist[1])
-            s = fid.readline()  # EXTRA LINE FEED
-
-            if point_type == "CELL_DATA" or self.cell == "centers":
-                # The file contains face coordinates, so we extrapolate to get the cell center coordinates.
-                if self.n1 > 1:
-                    self.n1 = self.n1 - 1
-                    if self.cell == "centers":
-                        self.x1 = 0.5 * (x[1:] + x[:-1])
-                    elif self.cell == "edges":
-                        self.x1 = x
-                else:
-                    self.x1 = x
-                if self.n2 > 1:
-                    self.n2 = self.n2 - 1
-                    if self.cell == "centers":
-                        self.x2 = 0.5 * (y[1:] + y[:-1])
-                    elif self.cell == "edges":
-                        self.x2 = y
-                else:
-                    self.x2 = y
-                if self.n3 > 1:
-                    self.n3 = self.n3 - 1
-                    if self.cell == "centers":
-                        self.x3 = 0.5 * (z[1:] + z[:-1])
-                    elif self.cell == "edges":
-                        self.x3 = z
-                else:
-                    self.x3 = z
-            elif point_type == "POINT_DATA":
-                self.x1 = x
-                self.x2 = y
-                self.x3 = z
-
-            if self.n1 * self.n2 * self.n3 != npoints:
-                raise ValueError(
-                    "Idefix: Grid size (%d) incompatible with number of points (%d) in the data set"
-                    % (self.n1 * self.n2 * self.n3, npoints)
-                )
-
-        else:
-            # POLAR or SPHERICAL coordinates
-            if self.n3 == 1:
-                is2d = 1
+                geometry = thisgeometry
+            elif entry == "PERIODICITY":
+                periodicity = np.fromfile(fid, dint, 3).astype(bool)
+                periodicity = tuple(periodicity)
             else:
-                is2d = 0
+                raise ValueError(f"Received unknown field: '{entry}'.")
 
-            s = fid.readline()  # POINTS NXNYNZ float
-            slist = s.split()
-            npoints = int(slist[1])
+            s = fid.readline()  # extra linefeed
 
-            inipos = (
-                fid.tell()
-            )  # we store the file pointer position before computing points
-            # print(inipos)
-            # points = np.fromfile(fid, dt, 3 * npoints)
-            logger.debug("loading grid (shape = ({},{},{}))", self.n1, self.n2, self.n3)
-            points = np.memmap(
-                fid, mode="r", dtype=dt, offset=inipos, shape=3 * npoints
-            )  # some smart memory efficient way to store the array
-            # print(fid.tell())
-            newpos = (
-                np.float32().nbytes * 3 * npoints + inipos
-            )  # we calculate the offset that we would expect normally with a np.fromfile
-            fid.seek(
-                newpos, os.SEEK_SET
-            )  # we set the file pointer position to this offset
-            # print(fid.tell())
-            s = fid.readline()  # EXTRA LINE FEED
+        # finished reading the field entry
+        # read next line
+        s = fid.readline()  # DIMENSIONS...
 
-            # self.points=points
-            if self.n1 * self.n2 * self.n3 != npoints:
-                raise ValueError(
-                    "Idefix: Grid size (%d) incompatible with number of points (%d) in the data set"
-                    % (self.n1 * self.n2 * self.n3, npoints)
-                )
+    if geometry == "unknown":
+        raise RuntimeError(
+            "Geometry couldn't be determined from data. "
+            "Try to set the geometry keyword argument explicitely."
+        )
 
-            # Reconstruct the polar coordinate system
-            x1d = points[::3]
-            y1d = points[1::3]
-            z1d = points[2::3]
+    slist = s.split()  # DIMENSIONS....
+    n1 = int(slist[1])
+    n2 = int(slist[2])
+    n3 = int(slist[3])
 
-            xcart = np.transpose(x1d.reshape(self.n3, self.n2, self.n1))
-            ycart = np.transpose(y1d.reshape(self.n3, self.n2, self.n1))
-            zcart = np.transpose(z1d.reshape(self.n3, self.n2, self.n1))
+    if geometry in ("cartesian", "cylindrical"):
+        # CARTESIAN geometry
+        # NOTE: cylindrical geometry is meant to be only used in 2D
+        #       so the expected coordinates (R, z) are never curvilinear,
+        #       which means we can treat them as cartesian
+        s = fid.readline()  # X_COORDINATES NX float
+        inipos = (
+            fid.tell()
+        )  # we store the file pointer position before computing points
+        logger.debug("loading the X-grid cells: {}", n1)
+        x = np.memmap(
+            fid, mode="r", dtype=dt, offset=inipos, shape=n1
+        )  # some smart memory efficient way to store the array
+        newpos = (
+            np.float32().nbytes * 1 * n1 + inipos
+        )  # we calculate the offset that we would expect normally with a np.fromfile
+        fid.seek(newpos, os.SEEK_SET)  # we set the file pointer position to this offset
+        s = fid.readline()  # Extra line feed added by idefix
 
-            # Reconstruct the polar coordinate system
-            if self.geometry == "polar":
-                r = np.sqrt(xcart[:, 0, 0] ** 2 + ycart[:, 0, 0] ** 2)
-                theta = np.unwrap(np.arctan2(ycart[0, :, 0], xcart[0, :, 0]))
-                z = zcart[0, 0, :]
+        s = fid.readline()  # Y_COORDINATES NY float
+        inipos = (
+            fid.tell()
+        )  # we store the file pointer position before computing points
+        logger.debug("loading the Y-grid cells: {}", n2)
+        y = np.memmap(
+            fid, mode="r", dtype=dt, offset=inipos, shape=n2
+        )  # some smart memory efficient way to store the array
+        newpos = (
+            np.float32().nbytes * 1 * n2 + inipos
+        )  # we calculate the offset that we would expect normally with a np.fromfile
+        fid.seek(newpos, os.SEEK_SET)  # we set the file pointer position to this offset
+        s = fid.readline()  # Extra line feed added by idefix
 
-                s = fid.readline()  # CELL_DATA (NX-1)(NY-1)(NZ-1)
-                slist = s.split()
-                data_type = str(slist[0], "utf-8")
-                if data_type != "CELL_DATA":
-                    fid.close()
-                    raise ValueError(
-                        "Idefix: this routine expect 'CELL DATA' as produced by PLUTO, not '%s'."
-                        % data_type
-                    )
-                s = fid.readline()  # Line feed
+        s = fid.readline()  # Z_COORDINATES NZ float
+        inipos = (
+            fid.tell()
+        )  # we store the file pointer position before computing points
+        logger.debug("loading the Z-grid cells: {}", n3)
+        z = np.memmap(
+            fid, mode="r", dtype=dt, offset=inipos, shape=n3
+        )  # some smart memory efficient way to store the array
+        newpos = (
+            np.float32().nbytes * 1 * n3 + inipos
+        )  # we calculate the offset that we would expect normally with a np.fromfile
+        fid.seek(newpos, os.SEEK_SET)  # we set the file pointer position to this offset
+        s = fid.readline()  # Extra line feed added by idefix
 
-                if self.cell == "edges":
-                    if self.n1 > 1:
-                        self.n1 = self.n1 - 1
-                        self.x1 = r
-                    else:
-                        self.x1 = r
-                    if self.n2 > 1:
-                        self.n2 = self.n2 - 1
-                        self.x2 = theta
-                    else:
-                        self.x2 = theta
-                    if self.n3 > 1:
-                        self.n3 = self.n3 - 1
-                        self.x3 = z
-                    else:
-                        self.x3 = z
+        s = fid.readline()  # POINT_DATA NXNYNZ
 
-                # Perform averaging on coordinate system to get cell centers
-                # The file contains face coordinates, so we extrapolate to get the cell center coordinates.
-                elif self.cell == "centers":
-                    if self.n1 > 1:
-                        self.n1 = self.n1 - 1
-                        self.x1 = 0.5 * (r[1:] + r[:-1])
-                    else:
-                        self.x1 = r
-                    if self.n2 > 1:
-                        self.n2 = self.n2 - 1
-                        self.x2 = (0.5 * (theta[1:] + theta[:-1]) + np.pi) % (
-                            2.0 * np.pi
-                        ) - np.pi
-                    else:
-                        self.x2 = theta
-                    if self.n3 > 1:
-                        self.n3 = self.n3 - 1
-                        self.x3 = 0.5 * (z[1:] + z[:-1])
-                    else:
-                        self.x3 = z
+        slist = s.split()
+        point_type = str(slist[0], "utf-8")
+        npoints = int(slist[1])
+        s = fid.readline()  # EXTRA LINE FEED
 
-            # Reconstruct the spherical coordinate system
-            if self.geometry == "spherical":
-                if is2d:
-                    r = np.sqrt(xcart[:, 0, 0] ** 2 + ycart[:, 0, 0] ** 2)
-                    phi = np.unwrap(
-                        np.arctan2(zcart[0, self.n2 // 2, :], xcart[0, self.n2 // 2, :])
-                    )
-                    theta = np.arccos(
-                        ycart[0, :, 0]
-                        / np.sqrt(xcart[0, :, 0] ** 2 + ycart[0, :, 0] ** 2)
-                    )
-                else:
-                    r = np.sqrt(
-                        xcart[:, 0, 0] ** 2 + ycart[:, 0, 0] ** 2 + zcart[:, 0, 0] ** 2
-                    )
-                    phi = np.unwrap(
-                        np.arctan2(
-                            ycart[self.n1 // 2, self.n2 // 2, :],
-                            xcart[self.n1 // 2, self.n2 // 2, :],
-                        )
-                    )
-                    theta = np.arccos(
-                        zcart[0, :, 0]
-                        / np.sqrt(
-                            xcart[0, :, 0] ** 2
-                            + ycart[0, :, 0] ** 2
-                            + zcart[0, :, 0] ** 2
-                        )
-                    )
+        if point_type == "CELL_DATA" or cell == "centers":
+            # The file contains face coordinates, so we extrapolate to get the cell center coordinates.
+            if n1 > 1:
+                n1 = n1 - 1
+                if cell == "centers":
+                    x1 = 0.5 * (x[1:] + x[:-1])
+                elif cell == "edges":
+                    x1 = x
+            else:
+                x1 = x
+            if n2 > 1:
+                n2 = n2 - 1
+                if cell == "centers":
+                    x2 = 0.5 * (y[1:] + y[:-1])
+                elif cell == "edges":
+                    x2 = y
+            else:
+                x2 = y
+            if n3 > 1:
+                n3 = n3 - 1
+                if cell == "centers":
+                    x3 = 0.5 * (z[1:] + z[:-1])
+                elif cell == "edges":
+                    x3 = z
+            else:
+                x3 = z
+        elif point_type == "POINT_DATA":
+            x1 = x
+            x2 = y
+            x3 = z
 
-                s = fid.readline()  # CELL_DATA (NX-1)(NY-1)(NZ-1)
-                slist = s.split()
-                data_type = str(slist[0], "utf-8")
-                if data_type != "CELL_DATA":
-                    fid.close()
-                    raise ValueError(
-                        "Idefix: this routine expect 'CELL DATA' as produced by PLUTO, not '%s'."
-                        % data_type
-                    )
-                s = fid.readline()  # Line feed
-
-                if self.cell == "edges":
-                    if self.n1 > 1:
-                        self.n1 = self.n1 - 1
-                        self.x1 = r
-                    else:
-                        self.x1 = r
-                    if self.n2 > 1:
-                        self.n2 = self.n2 - 1
-                        self.x2 = theta
-                    else:
-                        self.x2 = theta
-                    if self.n3 > 1:
-                        self.n3 = self.n3 - 1
-                        self.x3 = phi
-                    else:
-                        self.x3 = phi
-
-                # Perform averaging on coordinate system to get cell centers
-                # The file contains face coordinates, so we extrapolate to get the cell center coordinates.
-                elif self.cell == "centers":
-                    if self.n1 > 1:
-                        self.n1 = self.n1 - 1
-                        self.x1 = 0.5 * (r[1:] + r[:-1])
-                    else:
-                        self.x1 = r
-                    if self.n2 > 1:
-                        self.n2 = self.n2 - 1
-                        self.x2 = 0.5 * (theta[1:] + theta[:-1])
-                    else:
-                        self.x2 = theta
-                    if self.n3 > 1:
-                        self.n3 = self.n3 - 1
-                        self.x3 = 0.5 * (phi[1:] + phi[:-1])
-                    else:
-                        self.x3 = phi
-
-        if self.computedata:
-            logger.debug("loading data arrays")
-            while 1:
-                s = (
-                    fid.readline()
-                )  # SCALARS/VECTORS name data_type (ex: SCALARS imagedata unsigned_char)
-                # print repr(s)
-                if len(s) < 2:  # leave if end of file
-                    break
-                slist = s.split()
-                datatype = str(slist[0], "utf-8")
-                varname = str(slist[1], "utf-8").upper()
-                if datatype == "SCALARS":
-                    fid.readline()  # LOOKUP TABLE
-
-                    inipos = (
-                        fid.tell()
-                    )  # we store the file pointer position before computing points
-                    # array = np.fromfile(fid, dt, self.n1 * self.n2 * self.n3).reshape(self.n3, self.n2, self.n1)
-                    array = np.memmap(
-                        fid,
-                        mode="r",
-                        dtype=dt,
-                        offset=inipos,
-                        shape=self.n1 * self.n2 * self.n3,
-                    ).reshape(
-                        self.n3, self.n2, self.n1
-                    )  # some smart memory efficient way to store the array
-                    newpos = (
-                        np.float32().nbytes * self.n1 * self.n2 * self.n3 + inipos
-                    )  # we calculate the offset that we would expect normally with a np.fromfile
-                    fid.seek(
-                        newpos, os.SEEK_SET
-                    )  # we set the file pointer position to this offset
-
-                    self.data[varname] = np.transpose(array)
-                elif datatype == "VECTORS":
-                    inipos = (
-                        fid.tell()
-                    )  # we store the file pointer position before computing points
-                    Q = np.memmap(
-                        fid,
-                        mode="r",
-                        dtype=dt,
-                        offset=inipos,
-                        shape=self.n1 * self.n2 * self.n3,
-                    )  # some smart memory efficient way to store the array
-                    # Q = np.fromfile(fid, dt, 3 * self.n1 * self.n2 * self.n3)
-                    newpos = (
-                        np.float32().nbytes * self.n1 * self.n2 * self.n3 + inipos
-                    )  # we calculate the offset that we would expect normally with a np.fromfile
-                    fid.seek(
-                        newpos, os.SEEK_SET
-                    )  # we set the file pointer position to this offset
-
-                    self.data[varname + "_X"] = np.transpose(
-                        Q[::3].reshape(self.n3, self.n2, self.n1)
-                    )
-                    self.data[varname + "_Y"] = np.transpose(
-                        Q[1::3].reshape(self.n3, self.n2, self.n1)
-                    )
-                    self.data[varname + "_Z"] = np.transpose(
-                        Q[2::3].reshape(self.n3, self.n2, self.n1)
-                    )
-
-                else:
-                    raise ValueError(
-                        "Idefix: Unknown datatype '%s', should be 'SCALARS' or 'VECTORS'"
-                        % datatype
-                    )
-
-                logger.debug("read field: {}", varname)
-
-                fid.readline()  # extra line feed
-        fid.close()
-
-
-class Fargo3d:
-    def __init__(self, on: int, *, directory="", inifile="", pattern=None):
-        """
-        pattern can be the type of dust fluid given in the file name
-        """
-        self.directory = directory
-        if pattern is None:
-            self.densfile = os.path.join(self.directory, f"gasdens{on}.dat")
-            self.vyfile = os.path.join(self.directory, f"gasvy{on}.dat")
-            self.vxfile = os.path.join(self.directory, f"gasvx{on}.dat")
-            self.vzfile = os.path.join(self.directory, f"gasvz{on}.dat")
-        else:
-            self.densfile = os.path.join(self.directory, f"{pattern}dens{on}.dat")
-            self.vyfile = os.path.join(self.directory, f"{pattern}vy{on}.dat")
-            self.vxfile = os.path.join(self.directory, f"{pattern}vx{on}.dat")
-            self.vzfile = os.path.join(self.directory, f"{pattern}vz{on}.dat")
-
-        self.inifile = inifile
-
-    def load(self):
-        if self.inifile == "":
-            params = Parameters(directory=self.directory, inifile=self.inifile, code="")
-        else:
-            params = Parameters(
-                directory=self.directory, inifile=self.inifile, code="fargo3d"
+        if n1 * n2 * n3 != npoints:
+            raise ValueError(
+                "Idefix: Grid size (%d) incompatible with number of points (%d) in the data set"
+                % (n1 * n2 * n3, npoints)
             )
 
-        params.loadIniFile()
-
-        self.geometry = params.inifile["COORDINATES"]
-        self.data = {}
-
-        domain_x = np.loadtxt(os.path.join(self.directory, "domain_x.dat"))
-        # We avoid ghost cells
-        domain_y = np.loadtxt(os.path.join(self.directory, "domain_y.dat"))[3:-3]
-        domain_z = np.loadtxt(os.path.join(self.directory, "domain_z.dat"))
-        if domain_z.shape[0] > 6:
-            domain_z = domain_z[3:-3]
-
-        if self.geometry == "cylindrical":
-            self.geometry = "polar"
-            self.x1 = domain_y  # X-Edge
-            self.x2 = domain_x  # Y-Edge
-            self.x3 = domain_z  # Z-Edge #latitute
-
-            self.n1 = len(self.x1) - 1  # if len(self.x1)>2 else 2
-            self.n2 = len(self.x2) - 1  # if len(self.x2)>2 else 2
-            self.n3 = len(self.x3) - 1  # if len(self.x3)>2 else 2
-            if Path(self.densfile).is_file():
-                self.data["RHO"] = (
-                    np.fromfile(self.densfile, dtype="float64")
-                    .reshape(self.n3, self.n1, self.n2)
-                    .transpose(1, 2, 0)
-                )  # rad, pĥi, z
-            if Path(self.vyfile).is_file():
-                self.data["VX1"] = (
-                    np.fromfile(self.vyfile, dtype="float64")
-                    .reshape(self.n3, self.n1, self.n2)
-                    .transpose(1, 2, 0)
-                )  # rad, pĥi, z
-            if Path(self.vxfile).is_file():
-                self.data["VX2"] = (
-                    np.fromfile(self.vxfile, dtype="float64")
-                    .reshape(self.n3, self.n1, self.n2)
-                    .transpose(1, 2, 0)
-                )  # rad, pĥi, z
-            if Path(self.vzfile).is_file():
-                self.data["VX3"] = (
-                    np.fromfile(self.vzfile, dtype="float64")
-                    .reshape(self.n3, self.n1, self.n2)
-                    .transpose(1, 2, 0)
-                )  # rad, pĥi, z
-            for key in list(self.data.keys()):
-                self.data[key] = np.roll(self.data[key], self.n2 // 2, axis=1)
-        elif self.geometry == "spherical":
-            self.x1 = domain_y  # X-Edge
-            self.x2 = domain_z  # Z-Edge #latitute
-            self.x3 = domain_x  # Y-Edge
-
-            self.n1 = len(self.x1) - 1  # if len(self.x1)>2 else 2
-            self.n2 = len(self.x2) - 1  # if len(self.x2)>2 else 2
-            self.n3 = len(self.x3) - 1  # if len(self.x3)>2 else 2
-            if Path(self.densfile).is_file():
-                self.data["RHO"] = (
-                    np.fromfile(self.densfile, dtype="float64")
-                    .reshape(self.n2, self.n1, self.n3)
-                    .transpose(1, 0, 2)
-                )  # rad, pĥi, z
-            if Path(self.vyfile).is_file():
-                self.data["VX1"] = (
-                    np.fromfile(self.vyfile, dtype="float64")
-                    .reshape(self.n2, self.n1, self.n3)
-                    .transpose(1, 0, 2)
-                )  # rad, pĥi, z
-            if Path(self.vzfile).is_file():
-                self.data["VX2"] = (
-                    np.fromfile(self.vzfile, dtype="float64")
-                    .reshape(self.n2, self.n1, self.n3)
-                    .transpose(1, 0, 2)
-                )  # rad, pĥi, z
-            if Path(self.vxfile).is_file():
-                self.data["VX3"] = (
-                    np.fromfile(self.vxfile, dtype="float64")
-                    .reshape(self.n2, self.n1, self.n3)
-                    .transpose(1, 0, 2)
-                )  # rad, pĥi, z
-            for key in list(self.data.keys()):
-                self.data[key] = np.roll(self.data[key], self.n2 // 2, axis=2)
+    else:
+        # POLAR or SPHERICAL coordinates
+        if n3 == 1:
+            is2d = 1
         else:
-            raise ValueError(f"{self.geometry} not implemented yet for fargo3d.")
+            is2d = 0
+
+        s = fid.readline()  # POINTS NXNYNZ float
+        slist = s.split()
+        npoints = int(slist[1])
+
+        inipos = (
+            fid.tell()
+        )  # we store the file pointer position before computing points
+        # print(inipos)
+        # points = np.fromfile(fid, dt, 3 * npoints)
+        logger.debug("loading grid (shape = ({},{},{}))", n1, n2, n3)
+        points = np.memmap(
+            fid, mode="r", dtype=dt, offset=inipos, shape=3 * npoints
+        )  # some smart memory efficient way to store the array
+        # print(fid.tell())
+        newpos = (
+            np.float32().nbytes * 3 * npoints + inipos
+        )  # we calculate the offset that we would expect normally with a np.fromfile
+        fid.seek(newpos, os.SEEK_SET)  # we set the file pointer position to this offset
+        # print(fid.tell())
+        s = fid.readline()  # EXTRA LINE FEED
+
+        # points=points
+        if n1 * n2 * n3 != npoints:
+            raise ValueError(
+                "Idefix: Grid size (%d) incompatible with number of points (%d) in the data set"
+                % (n1 * n2 * n3, npoints)
+            )
+
+        # Reconstruct the polar coordinate system
+        x1d = points[::3]
+        y1d = points[1::3]
+        z1d = points[2::3]
+
+        xcart = np.transpose(x1d.reshape(n3, n2, n1))
+        ycart = np.transpose(y1d.reshape(n3, n2, n1))
+        zcart = np.transpose(z1d.reshape(n3, n2, n1))
+
+        # Reconstruct the polar coordinate system
+        if geometry == "polar":
+            r = np.sqrt(xcart[:, 0, 0] ** 2 + ycart[:, 0, 0] ** 2)
+            theta = np.unwrap(np.arctan2(ycart[0, :, 0], xcart[0, :, 0]))
+            z = zcart[0, 0, :]
+
+            s = fid.readline()  # CELL_DATA (NX-1)(NY-1)(NZ-1)
+            slist = s.split()
+            data_type = str(slist[0], "utf-8")
+            if data_type != "CELL_DATA":
+                fid.close()
+                raise ValueError(
+                    "Idefix: this routine expect 'CELL DATA' as produced by PLUTO, not '%s'."
+                    % data_type
+                )
+            s = fid.readline()  # Line feed
+
+            if cell == "edges":
+                if n1 > 1:
+                    n1 = n1 - 1
+                    x1 = r
+                else:
+                    x1 = r
+                if n2 > 1:
+                    n2 = n2 - 1
+                    x2 = theta
+                else:
+                    x2 = theta
+                if n3 > 1:
+                    n3 = n3 - 1
+                    x3 = z
+                else:
+                    x3 = z
+
+            # Perform averaging on coordinate system to get cell centers
+            # The file contains face coordinates, so we extrapolate to get the cell center coordinates.
+            elif cell == "centers":
+                if n1 > 1:
+                    n1 = n1 - 1
+                    x1 = 0.5 * (r[1:] + r[:-1])
+                else:
+                    x1 = r
+                if n2 > 1:
+                    n2 = n2 - 1
+                    x2 = (0.5 * (theta[1:] + theta[:-1]) + np.pi) % (
+                        2.0 * np.pi
+                    ) - np.pi
+                else:
+                    x2 = theta
+                if n3 > 1:
+                    n3 = n3 - 1
+                    x3 = 0.5 * (z[1:] + z[:-1])
+                else:
+                    x3 = z
+
+        # Reconstruct the spherical coordinate system
+        if geometry == "spherical":
+            if is2d:
+                r = np.sqrt(xcart[:, 0, 0] ** 2 + ycart[:, 0, 0] ** 2)
+                phi = np.unwrap(np.arctan2(zcart[0, n2 // 2, :], xcart[0, n2 // 2, :]))
+                theta = np.arccos(
+                    ycart[0, :, 0] / np.sqrt(xcart[0, :, 0] ** 2 + ycart[0, :, 0] ** 2)
+                )
+            else:
+                r = np.sqrt(
+                    xcart[:, 0, 0] ** 2 + ycart[:, 0, 0] ** 2 + zcart[:, 0, 0] ** 2
+                )
+                phi = np.unwrap(
+                    np.arctan2(
+                        ycart[n1 // 2, n2 // 2, :],
+                        xcart[n1 // 2, n2 // 2, :],
+                    )
+                )
+                theta = np.arccos(
+                    zcart[0, :, 0]
+                    / np.sqrt(
+                        xcart[0, :, 0] ** 2 + ycart[0, :, 0] ** 2 + zcart[0, :, 0] ** 2
+                    )
+                )
+
+            s = fid.readline()  # CELL_DATA (NX-1)(NY-1)(NZ-1)
+            slist = s.split()
+            data_type = str(slist[0], "utf-8")
+            if data_type != "CELL_DATA":
+                fid.close()
+                raise ValueError(
+                    "Idefix: this routine expect 'CELL DATA' as produced by PLUTO, not '%s'."
+                    % data_type
+                )
+            s = fid.readline()  # Line feed
+
+            if cell == "edges":
+                if n1 > 1:
+                    n1 = n1 - 1
+                    x1 = r
+                else:
+                    x1 = r
+                if n2 > 1:
+                    n2 = n2 - 1
+                    x2 = theta
+                else:
+                    x2 = theta
+                if n3 > 1:
+                    n3 = n3 - 1
+                    x3 = phi
+                else:
+                    x3 = phi
+
+            # Perform averaging on coordinate system to get cell centers
+            # The file contains face coordinates, so we extrapolate to get the cell center coordinates.
+            elif cell == "centers":
+                if n1 > 1:
+                    n1 = n1 - 1
+                    x1 = 0.5 * (r[1:] + r[:-1])
+                else:
+                    x1 = r
+                if n2 > 1:
+                    n2 = n2 - 1
+                    x2 = 0.5 * (theta[1:] + theta[:-1])
+                else:
+                    x2 = theta
+                if n3 > 1:
+                    n3 = n3 - 1
+                    x3 = 0.5 * (phi[1:] + phi[:-1])
+                else:
+                    x3 = phi
+
+    if computedata:
+        logger.debug("loading data arrays")
+        while 1:
+            s = (
+                fid.readline()
+            )  # SCALARS/VECTORS name data_type (ex: SCALARS imagedata unsigned_char)
+            # print repr(s)
+            if len(s) < 2:  # leave if end of file
+                break
+            slist = s.split()
+            datatype = str(slist[0], "utf-8")
+            varname = str(slist[1], "utf-8").upper()
+            if datatype == "SCALARS":
+                fid.readline()  # LOOKUP TABLE
+
+                inipos = (
+                    fid.tell()
+                )  # we store the file pointer position before computing points
+                # array = np.fromfile(fid, dt, n1 * n2 * n3).reshape(n3, n2, n1)
+                array = np.memmap(
+                    fid,
+                    mode="r",
+                    dtype=dt,
+                    offset=inipos,
+                    shape=n1 * n2 * n3,
+                ).reshape(
+                    n3, n2, n1
+                )  # some smart memory efficient way to store the array
+                newpos = (
+                    np.float32().nbytes * n1 * n2 * n3 + inipos
+                )  # we calculate the offset that we would expect normally with a np.fromfile
+                fid.seek(
+                    newpos, os.SEEK_SET
+                )  # we set the file pointer position to this offset
+
+                data[varname] = np.transpose(array)
+            elif datatype == "VECTORS":
+                inipos = (
+                    fid.tell()
+                )  # we store the file pointer position before computing points
+                Q = np.memmap(
+                    fid,
+                    mode="r",
+                    dtype=dt,
+                    offset=inipos,
+                    shape=n1 * n2 * n3,
+                )  # some smart memory efficient way to store the array
+                # Q = np.fromfile(fid, dt, 3 * n1 * n2 * n3)
+                newpos = (
+                    np.float32().nbytes * n1 * n2 * n3 + inipos
+                )  # we calculate the offset that we would expect normally with a np.fromfile
+                fid.seek(
+                    newpos, os.SEEK_SET
+                )  # we set the file pointer position to this offset
+
+                data[varname + "_X"] = np.transpose(Q[::3].reshape(n3, n2, n1))
+                data[varname + "_Y"] = np.transpose(Q[1::3].reshape(n3, n2, n1))
+                data[varname + "_Z"] = np.transpose(Q[2::3].reshape(n3, n2, n1))
+
+            else:
+                raise ValueError(
+                    "Idefix: Unknown datatype '%s', should be 'SCALARS' or 'VECTORS'"
+                    % datatype
+                )
+
+            logger.debug("read field: {}", varname)
+
+            fid.readline()  # extra line feed
+    fid.close()
+    if geometry == "cartesian":
+        return gpgi.load(
+            geometry=geometry,
+            grid={
+                "fields": data,
+                "cell_edges": {
+                    "x": x1,
+                    "y": x2,
+                    "z": x3,
+                },
+            },
+            metadata={"code": "idefix"},
+        )
+    elif geometry == "polar":
+        return gpgi.load(
+            geometry=geometry,
+            grid={
+                "fields": data,
+                "cell_edges": {
+                    "radius": x1,
+                    "azimuth": x2,
+                    "z": x3,
+                },
+            },
+            metadata={"code": "idefix"},
+        )
+    elif geometry == "cylindrical":
+        return gpgi.load(
+            geometry=geometry,
+            grid={
+                "fields": data,
+                "cell_edges": {
+                    "radius": x1,
+                    "z": x2,
+                    "azimuth": x3,
+                },
+            },
+            metadata={"code": "idefix"},
+        )
+    elif geometry == "spherical":
+        return gpgi.load(
+            geometry=geometry,
+            grid={
+                "fields": data,
+                "cell_edges": {
+                    "radius": x1,
+                    "colatitude": x2,
+                    "azimuth": x3,
+                },
+            },
+            metadata={"code": "idefix"},
+        )
+
+
+def _load_fargo3d(
+    on: int, *, directory="", inifile="", pattern=None
+) -> gpgi.types.Dataset:
+    """
+    pattern can be the type of dust fluid given in the file name
+    """
+    directory = Path(directory)
+    assert directory.is_dir()
+
+    if pattern is None:
+        densfile = directory / f"gasdens{on}.dat"
+        vyfile = directory / f"gasvy{on}.dat"
+        vxfile = directory / f"gasvx{on}.dat"
+        vzfile = directory / f"gasvz{on}.dat"
+    else:
+        densfile = directory / f"{pattern}dens{on}.dat"
+        vyfile = directory / f"{pattern}vy{on}.dat"
+        vxfile = directory / f"{pattern}vx{on}.dat"
+        vzfile = directory / f"{pattern}vz{on}.dat"
+
+    params = Parameters(
+        directory=directory, inifile=inifile, code="" if inifile == "" else "fargo3d"
+    )
+    params.loadIniFile()
+
+    geometry = params.inifile["COORDINATES"]
+    data = {}
+
+    domain_x = np.loadtxt(directory / "domain_x.dat")
+    DTYPE = domain_x.dtype
+    # We avoid ghost cells
+    domain_y = np.loadtxt(directory / "domain_y.dat").astype(DTYPE)[3:-3]
+    domain_z = np.loadtxt(directory / "domain_z.dat").astype(DTYPE)
+    if domain_z.shape[0] > 6:
+        domain_z = domain_z[3:-3]
+
+    if geometry == "cylindrical":
+        x1 = domain_y  # X-Edge
+        x2 = domain_x  # Y-Edge
+        x3 = domain_z  # Z-Edge #latitute
+
+        n1 = len(x1) - 1  # if len(x1)>2 else 2
+        n2 = len(x2) - 1  # if len(x2)>2 else 2
+        n3 = len(x3) - 1  # if len(x3)>2 else 2
+        if densfile.is_file():
+            data["RHO"] = (
+                np.fromfile(densfile, dtype=DTYPE)
+                .reshape(n3, n1, n2)
+                .transpose(1, 2, 0)
+            )  # rad, pĥi, z
+        if vyfile.is_file():
+            data["VX1"] = (
+                np.fromfile(vyfile, dtype=DTYPE).reshape(n3, n1, n2).transpose(1, 2, 0)
+            )  # rad, pĥi, z
+        if vxfile.is_file():
+            data["VX2"] = (
+                np.fromfile(vxfile, dtype=DTYPE).reshape(n3, n1, n2).transpose(1, 2, 0)
+            )  # rad, pĥi, z
+        if vzfile.is_file():
+            data["VX3"] = (
+                np.fromfile(vzfile, dtype=DTYPE).reshape(n3, n1, n2).transpose(1, 2, 0)
+            )  # rad, pĥi, z
+        for key in list(data.keys()):
+            data[key] = np.roll(data[key], n2 // 2, axis=1)
+        return gpgi.load(
+            geometry="polar",
+            grid={
+                "fields": data,
+                "cell_edges": {
+                    "radius": x1,
+                    "azimuth": x2 + np.pi,
+                    "z": x3,
+                },
+            },
+            metadata={"code": "fargo3d"},
+        )
+    elif geometry == "spherical":
+        x1 = domain_y  # X-Edge
+        x2 = domain_z  # Z-Edge #latitute
+        x3 = domain_x  # Y-Edge
+
+        n1 = len(x1) - 1  # if len(x1)>2 else 2
+        n2 = len(x2) - 1  # if len(x2)>2 else 2
+        n3 = len(x3) - 1  # if len(x3)>2 else 2
+        if densfile.is_file():
+            data["RHO"] = (
+                np.fromfile(densfile, dtype=DTYPE)
+                .reshape(n2, n1, n3)
+                .transpose(1, 0, 2)
+            )  # rad, pĥi, z
+        if vyfile.is_file():
+            data["VX1"] = (
+                np.fromfile(vyfile, dtype=DTYPE).reshape(n2, n1, n3).transpose(1, 0, 2)
+            )  # rad, pĥi, z
+        if vzfile.is_file():
+            data["VX2"] = (
+                np.fromfile(vzfile, dtype=DTYPE).reshape(n2, n1, n3).transpose(1, 0, 2)
+            )  # rad, pĥi, z
+        if vxfile.is_file():
+            data["VX3"] = (
+                np.fromfile(vxfile, dtype=DTYPE).reshape(n2, n1, n3).transpose(1, 0, 2)
+            )  # rad, pĥi, z
+        for key in list(data.keys()):
+            data[key] = np.roll(data[key], n2 // 2, axis=2)
+        return gpgi.load(
+            geometry=geometry,
+            grid={
+                "fields": data,
+                "cell_edges": {
+                    "radius": x1,
+                    "colatitude": x2,
+                    "azimuth": x3 + np.pi,
+                },
+            },
+            metadata={"code": "fargo3d"},
+        )
+    else:
+        raise ValueError(f"{geometry} not implemented yet for fargo3d.")
 
 
 def _load_fargo_adsg(on: int, *, directory="", pattern=None) -> gpgi.types.Dataset:
@@ -828,7 +867,7 @@ def _load_fargo_adsg(on: int, *, directory="", pattern=None) -> gpgi.types.Datas
         )  # rad, pĥi, z
 
     return gpgi.load(
-        geometry="cylindrical",
+        geometry="polar",
         grid={
             "fields": data,
             "cell_edges": {

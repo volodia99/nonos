@@ -1398,10 +1398,14 @@ class GasDataSet:
             self.on, geometry=geometry, cell="edges", pattern=pattern
         )
         self.native_geometry = self._read.geometry
-        self.dict = self._read.data
+        self.dict = self._read.grid.fields
         self.coords = Coordinates(
-            self.native_geometry, self._read.x1, self._read.x2, self._read.x3
+            self.native_geometry, *self._read.grid.coordinates.values()
         )
+        # self.dict = self._read.data
+        # self.coords = Coordinates(
+        #     self.native_geometry, self._read.x1, self._read.x2, self._read.x3
+        # )
         for key in self.dict:
             self.dict[key] = GasField(
                 key,
