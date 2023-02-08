@@ -234,7 +234,7 @@ def test_load_idefix(test_data_dir, capsys):
     assert err == ""
 
     assert load_idefix.geometry == "spherical"
-    # assert load_idefix.grid.fields.shape == ()
+    assert load_idefix.grid.fields.shape == (72, 32, 196)
 
 
 def test_load_fargo3d(test_data_dir, capsys):
@@ -250,7 +250,7 @@ def test_load_fargo3d(test_data_dir, capsys):
     assert err == ""
 
     assert load_fargo3d.geometry == "polar"
-    # assert load_fargo3d.grid.fields.shape == ()
+    assert load_fargo3d.grid.fields.shape == (256, 256, 1)
 
 
 def test_load_fargo_adsg(test_data_dir, capsys):
