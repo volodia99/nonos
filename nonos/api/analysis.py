@@ -110,12 +110,12 @@ class Coordinates:
     """Coordinates class from x1, x2, x3"""
 
     def __init__(self, geometry: str, x1: np.ndarray, x2: np.ndarray, x3: np.ndarray):
-        if x1.shape[0] == 1:
-            x1 = np.array([x1[0], x1[0]])
-        if x2.shape[0] == 1:
-            x2 = np.array([x2[0], x2[0]])
-        if x3.shape[0] == 1:
-            x3 = np.array([x3[0], x3[0]])
+        # if x1.shape[0] == 1:
+        #     x1 = np.array([x1[0], x1[0]])
+        # if x2.shape[0] == 1:
+        #     x2 = np.array([x2[0], x2[0]])
+        # if x3.shape[0] == 1:
+        #     x3 = np.array([x3[0], x3[0]])
         self.geometry = geometry
         if self.geometry == "cartesian":
             self.x = x1

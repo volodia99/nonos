@@ -222,18 +222,14 @@ def _load_idefix(
     pattern can be a lambda function like
     lambda on:f"data.{on:04d}.vtk"
     """
-    directory = Path(directory)
-    assert directory.is_dir()
 
+    directory = os.fspath(directory)
     if pattern is None:
-        filename = directory / f"data.{on:04d}.vtk"
+        filename = os.path.join(directory, f"data.{on:04d}.vtk")
     else:
         filename = pattern(on)
-    # self.geometry = geometry
-    # self.cell = cell
-    # self.computedata = computedata
 
-    if not filename.is_file():
+    if not os.path.isfile(filename):
         raise FileNotFoundError("Idefix: %s not found." % filename)
 
     fid = open(filename, "rb")
@@ -643,6 +639,13 @@ def _load_idefix(
 
             fid.readline()  # extra line feed
     fid.close()
+    if x1.shape[0] == 1:
+        x1 = np.array([x1[0], x1[0]])
+    if x2.shape[0] == 1:
+        x2 = np.array([x2[0], x2[0]])
+    if x3.shape[0] == 1:
+        x3 = np.array([x3[0], x3[0]])
+    # breakpoint()
     if geometry == "cartesian":
         return gpgi.load(
             geometry=geometry,
@@ -704,7 +707,6 @@ def _load_fargo3d(
     pattern can be the type of dust fluid given in the file name
     """
     directory = Path(directory)
-    assert directory.is_dir()
 
     if pattern is None:
         densfile = directory / f"gasdens{on}.dat"
@@ -761,6 +763,12 @@ def _load_fargo3d(
             )  # rad, pĥi, z
         for key in list(data.keys()):
             data[key] = np.roll(data[key], n2 // 2, axis=1)
+        if x1.shape[0] == 1:
+            x1 = np.array([x1[0], x1[0]])
+        if x2.shape[0] == 1:
+            x2 = np.array([x2[0], x2[0]])
+        if x3.shape[0] == 1:
+            x3 = np.array([x3[0], x3[0]])
         return gpgi.load(
             geometry="polar",
             grid={
@@ -801,6 +809,12 @@ def _load_fargo3d(
             )  # rad, pĥi, z
         for key in list(data.keys()):
             data[key] = np.roll(data[key], n2 // 2, axis=2)
+        if x1.shape[0] == 1:
+            x1 = np.array([x1[0], x1[0]])
+        if x2.shape[0] == 1:
+            x2 = np.array([x2[0], x2[0]])
+        if x3.shape[0] == 1:
+            x3 = np.array([x3[0], x3[0]])
         return gpgi.load(
             geometry=geometry,
             grid={
@@ -822,7 +836,6 @@ def _load_fargo_adsg(on: int, *, directory="", pattern=None) -> gpgi.types.Datas
     pattern can be gas (default) or dust
     """
     directory = Path(directory)
-    assert directory.is_dir()
 
     if pattern is None:
         densfile = directory / f"gasdens{on}.dat"
@@ -865,7 +878,12 @@ def _load_fargo_adsg(on: int, *, directory="", pattern=None) -> gpgi.types.Datas
         data["VX2"] = (
             np.fromfile(vxfile, dtype=DTYPE).reshape(n3, n1, n2).transpose(1, 2, 0)
         )  # rad, pĥi, z
-
+    if x1.shape[0] == 1:
+        x1 = np.array([x1[0], x1[0]])
+    if x2.shape[0] == 1:
+        x2 = np.array([x2[0], x2[0]])
+    if x3.shape[0] == 1:
+        x3 = np.array([x3[0], x3[0]])
     return gpgi.load(
         geometry="polar",
         grid={
