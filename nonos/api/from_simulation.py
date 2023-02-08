@@ -198,8 +198,8 @@ class Parameters:
             return _load_idefix(
                 on,
                 directory=self.directory,
-                geometry="unknown",
-                cell="edges",
+                geometry=geometry,
+                cell=cell,
                 computedata=True,
                 pattern=pattern,
             )
