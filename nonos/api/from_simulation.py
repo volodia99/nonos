@@ -245,7 +245,7 @@ def _load_idefix(
         raise ValueError(f"Unknown geometry value: {geometry  !r}")
 
     # datatype we read
-    dt = np.dtype(">f")  # Big endian single precision floats
+    dt = np.dtype(">f4")  # Big endian single precision floats
     dint = np.dtype(">i4")  # Big endian integer
 
     s = fid.readline()  # VTK DataFile Version x.x
@@ -454,7 +454,6 @@ def _load_idefix(
             r = np.sqrt(xcart[:, 0, 0] ** 2 + ycart[:, 0, 0] ** 2)
             theta = np.unwrap(np.arctan2(ycart[0, :, 0], xcart[0, :, 0]))
             z = zcart[0, 0, :]
-
             s = fid.readline()  # CELL_DATA (NX-1)(NY-1)(NZ-1)
             slist = s.split()
             data_type = str(slist[0], "utf-8")
@@ -651,59 +650,23 @@ def _load_idefix(
         x2 = np.array([x2[0], x2[0]])
     if x3.shape[0] == 1:
         x3 = np.array([x3[0], x3[0]])
-    # breakpoint()
-    if geometry == "cartesian":
-        return gpgi.load(
-            geometry=geometry,
-            grid={
-                "fields": data,
-                "cell_edges": {
-                    "x": x1,
-                    "y": x2,
-                    "z": x3,
-                },
-            },
-            metadata={"code": "idefix"},
-        )
-    elif geometry == "polar":
-        return gpgi.load(
-            geometry=geometry,
-            grid={
-                "fields": data,
-                "cell_edges": {
-                    "radius": x1,
-                    "azimuth": x2,
-                    "z": x3,
-                },
-            },
-            metadata={"code": "idefix"},
-        )
-    elif geometry == "cylindrical":
-        return gpgi.load(
-            geometry=geometry,
-            grid={
-                "fields": data,
-                "cell_edges": {
-                    "radius": x1,
-                    "z": x2,
-                    "azimuth": x3,
-                },
-            },
-            metadata={"code": "idefix"},
-        )
-    elif geometry == "spherical":
-        return gpgi.load(
-            geometry=geometry,
-            grid={
-                "fields": data,
-                "cell_edges": {
-                    "radius": x1,
-                    "colatitude": x2,
-                    "azimuth": x3,
-                },
-            },
-            metadata={"code": "idefix"},
-        )
+
+    axes = {
+        "cartesian": ("x", "y", "z"),
+        "polar": ("radius", "azimuth", "z"),
+        "cylindrical": ("azimuth", "radius", "z"),
+        "spherical": ("radius", "colatitude", "azimuth"),
+    }[geometry]
+    cell_edges = {axis: arr.astype(dt) for axis, arr in zip(axes, (x1, x2, x3))}
+
+    return gpgi.load(
+        geometry=geometry,
+        grid={
+            "fields": data,
+            "cell_edges": cell_edges,
+        },
+        metadata={"code": "idefix"},
+    )
 
 
 def _load_fargo3d(
