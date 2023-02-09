@@ -2,12 +2,15 @@ import glob
 import os
 import re
 from pathlib import Path
+from typing import Union
 
 import gpgi
 import inifix
 import numpy as np
 
 from nonos.logging import logger
+
+_AnyArray = Union[np.ndarray, np.memmap]
 
 _INIFILES_LOOKUP_TABLE = {
     "idefix.ini": "idefix",
@@ -286,8 +289,7 @@ def _load_idefix(
                         )
                 geometry = thisgeometry
             elif entry == "PERIODICITY":
-                periodicity = np.fromfile(fid, dint, 3).astype(bool)
-                periodicity = tuple(periodicity)
+                tuple(np.fromfile(fid, dint, 3).astype(bool))
             else:
                 raise ValueError(f"Received unknown field: '{entry}'.")
 
@@ -307,6 +309,10 @@ def _load_idefix(
     n1 = int(slist[1])
     n2 = int(slist[2])
     n3 = int(slist[3])
+
+    x: _AnyArray
+    y: _AnyArray
+    z: _AnyArray
 
     if geometry in ("cartesian", "cylindrical"):
         # CARTESIAN geometry
