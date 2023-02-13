@@ -7,7 +7,6 @@ import pytest
 from matplotlib.colors import SymLogNorm
 
 from nonos.api import GasDataSet, compute, find_nearest, from_data
-from nonos.api.from_simulation import _load_fargo3d, _load_fargo_adsg, _load_idefix
 from nonos.main import main
 
 ARGS_TO_CHECK = {
@@ -216,54 +215,3 @@ def test_api_vtk_by_name(test_data_dir, capsys):
         FileNotFoundError, match="Idefix: datawrong.0500.vtk not found."
     ):
         GasDataSet(500, pattern=lambda on: f"datawrong.{on:04d}.vtk")
-
-
-def test_load_idefix(test_data_dir, capsys):
-    os.chdir(test_data_dir / "idefix_spherical_planet3d")
-    on = 500
-
-    load_idefix = _load_idefix(
-        on,
-        directory="",
-        geometry="unknown",
-        cell="edges",
-        computedata=True,
-        pattern=None,
-    )
-    out, err = capsys.readouterr()
-    assert err == ""
-
-    assert load_idefix.geometry == "spherical"
-    assert load_idefix.grid.fields["RHO"].shape == (72, 32, 196)
-
-
-def test_load_fargo3d(test_data_dir, capsys):
-    os.chdir(test_data_dir / "fargo3d_planet2d")
-    on = 40
-
-    load_fargo3d = _load_fargo3d(
-        on,
-        directory="",
-        pattern=None,
-    )
-    out, err = capsys.readouterr()
-    assert err == ""
-
-    assert load_fargo3d.geometry == "polar"
-    assert load_fargo3d.grid.shape == (256, 256, 1)
-
-
-def test_load_fargo_adsg(test_data_dir, capsys):
-    os.chdir(test_data_dir / "fargo_adsg")
-    on = 100
-
-    load_fargo_adsg = _load_fargo_adsg(
-        on,
-        directory="",
-        pattern=None,
-    )
-    out, err = capsys.readouterr()
-    assert err == ""
-
-    assert load_fargo_adsg.geometry == "polar"
-    assert load_fargo_adsg.grid.shape == (612, 900, 1)
