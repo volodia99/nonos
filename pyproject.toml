@@ -20,7 +20,7 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 
-# keep in sync with requirements/minimal_dependencies.txt
+# keep in sync with constraints/minimal_dependencies.txt
 dependencies = [
     "cblind>=2.2.2",
     "inifix>=3.0.0",
