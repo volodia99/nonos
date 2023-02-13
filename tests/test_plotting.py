@@ -202,16 +202,3 @@ def test_pbar(simulation_dir, capsys):
     assert err == ""
     assert "Processing snapshots" in out
     assert ret == 0
-
-
-def test_api_vtk_by_name(test_data_dir, capsys):
-    os.chdir(test_data_dir / "idefix_spherical_planet3d")
-
-    GasDataSet(500, pattern=lambda on: f"data.{on:04d}.vtk")
-    out, err = capsys.readouterr()
-    assert err == ""
-
-    with pytest.raises(
-        FileNotFoundError, match="Idefix: datawrong.0500.vtk not found."
-    ):
-        GasDataSet(500, pattern=lambda on: f"datawrong.{on:04d}.vtk")

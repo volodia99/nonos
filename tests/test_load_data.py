@@ -1,5 +1,8 @@
+import os
+
 import pytest
 
+from nonos.api import GasDataSet
 from nonos.api.from_simulation import _load_fargo3d, _load_fargo_adsg, _load_idefix
 
 
@@ -29,3 +32,14 @@ def test_load(
 
     assert ds.geometry == expected_geometry
     assert ds.grid.shape == expected_shape
+
+
+def test_api_vtk_by_name(test_data_dir):
+    os.chdir(test_data_dir / "idefix_spherical_planet3d")
+
+    GasDataSet(500, pattern=lambda on: f"data.{on:04d}.vtk")
+
+    with pytest.raises(
+        FileNotFoundError, match="Idefix: datawrong.0500.vtk not found."
+    ):
+        GasDataSet(500, pattern=lambda on: f"datawrong.{on:04d}.vtk")
