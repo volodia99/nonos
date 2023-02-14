@@ -54,6 +54,6 @@ def scale_mpl(scaling: float) -> None:
 
 
 def set_mpl_style(scaling: float) -> None:
-    stylesheet = importlib_resources.files("nonos") / "nonos.mplstyle"
+    stylesheet = importlib_resources.files("nonos") / "default.mplstyle"
     mpl.rc_file(stylesheet)
     scale_mpl(scaling)

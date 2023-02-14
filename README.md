@@ -225,3 +225,20 @@ fig, ax = plt.subplots()
 dsop.plot(fig, ax, c="k", title=r"$\Sigma$")
 plt.show()
 ```
+
+
+### Re-using `nonos`' style
+*requires matplotlib >= 3.7*
+
+`nonos` CLI uses a custom style that can be reused programmatically, without
+importing the package, using matplotlib API
+```python
+import matplotlib as mpl
+mpl.style.use("nonos.default")
+
+# alternatively
+import matplotlib.pyplot as plt
+plt.style.use("nonos.default")
+```
+
+See [`matplotlib.style`'s documentation](https://matplotlib.org/stable/api/style_api.html) for more.
