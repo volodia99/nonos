@@ -56,7 +56,7 @@ include-package-data = false
 nonos = [
     "py.typed",
     "logo.txt",
-    "nonos.mplstyle",
+    "default.mplstyle",
 ]
 
 [tool.setuptools.packages.find]
