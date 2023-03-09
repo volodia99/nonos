@@ -113,8 +113,8 @@ def load_fields(
 class NonosLick:
     def __init__(
         self,
-        x: np.array,
-        y: np.array,
+        x: np.ndarray,
+        y: np.ndarray,
         lx: GasField,
         ly: GasField,
         field: GasField,
