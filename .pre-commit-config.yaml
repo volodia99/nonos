@@ -14,7 +14,7 @@ repos:
   - id: check-toml
 
 - repo: https://github.com/neutrinoceros/inifix.git
-  rev: v4.0.0
+  rev: v4.3.2
   hooks:
   - id: inifix-format
 
@@ -24,13 +24,13 @@ repos:
   - id: black
 
 - repo: https://github.com/charliermarsh/ruff-pre-commit
-  rev: v0.0.239
+  rev: v0.0.255
   hooks:
   - id: ruff
     args: [--fix]
 
 - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-  rev: v2.6.0
+  rev: v2.7.0
   hooks:
   - id: pretty-format-yaml
     args: [--autofix, --indent, '2']
