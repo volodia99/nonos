@@ -14,7 +14,7 @@ def file_analysis(filename, *, inifile="", code="", directory="", norb=None):
     fullpath = os.path.join(directory, filename)
     with open(fullpath) as f1:
         data = f1.readlines()
-    y = [[v for v in re.split(r"[\t ]+", r)] for r in data]
+    y = [list(re.split(r"[\t ]+", r)) for r in data]
     columns = np.array(y, dtype="float64").T
     if norb is not None:
         init = Parameters(inifile=inifile, code=code, directory=directory)
