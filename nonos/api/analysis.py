@@ -55,7 +55,7 @@ class Plotable:
             else:
                 vmin = kwargs.pop("vmin") if "vmin" in kwargs else np.nanmin(data)
                 vmax = kwargs.pop("vmax") if "vmax" in kwargs else np.nanmax(data)
-                kw.update(dict(vmin=vmin, vmax=vmax))
+                kw.update({"vmin": vmin, "vmax": vmax})
 
             im = ax.pcolormesh(
                 self.avalue,
