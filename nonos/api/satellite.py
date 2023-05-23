@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from lick.lick import lick_box
-from scipy.ndimage.filters import uniform_filter1d
+from scipy.ndimage import uniform_filter1d
 
 from nonos.api.analysis import GasField, Plotable, temporal
 from nonos.api.from_simulation import Parameters
