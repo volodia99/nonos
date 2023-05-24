@@ -5,10 +5,9 @@ from typing import Any, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import SymLogNorm
+from matplotlib.ticker import SymmetricalLogLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from nonos._mpl_utils import set_symlog_minor_ticks
 from nonos.api.from_simulation import Parameters
 from nonos.api.tools import find_around, find_nearest
 from nonos.logging import logger
@@ -79,9 +78,16 @@ class Plotable:
                     im, cax=cax, orientation="vertical"
                 )  # , format='%.0e')
                 cbar.set_label(title)
-                if isinstance(norm, SymLogNorm):
-                    # special cases logic layer, heavily inspired from yt
-                    set_symlog_minor_ticks(norm, cax)
+
+                cb_axis = cbar.ax.yaxis
+                if cb_axis.get_scale() == "symlog":
+                    trf = cb_axis.get_transform()
+                    cb_axis.set_major_locator(SymmetricalLogLocator(trf))
+                    if float(trf.base).is_integer():
+                        locator = SymmetricalLogLocator(
+                            trf, subs=np.arange(1, trf.base)
+                        )
+                        cb_axis.set_minor_locator(locator)
             else:
                 return im
         if self.dimension == 1:
