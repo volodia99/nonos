@@ -81,6 +81,9 @@ class Plotable:
 
                 cb_axis = cbar.ax.yaxis
                 if cb_axis.get_scale() == "symlog":
+                    # no minor tick is drawn in symlog norms by default
+                    # as of matplotlib 3.7.1, see
+                    # https://github.com/matplotlib/matplotlib/issues/25994
                     trf = cb_axis.get_transform()
                     cb_axis.set_major_locator(SymmetricalLogLocator(trf))
                     if float(trf.base).is_integer():
