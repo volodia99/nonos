@@ -14,7 +14,7 @@ from collections import ChainMap
 from multiprocessing import Pool
 from typing import Any, Dict, List, Optional
 
-import cblind as cb
+import cblind  # noqa
 import inifix
 import numpy as np
 from inifix.format import iniformat
@@ -141,7 +141,7 @@ def process_field(
             log=log,
             vmin=vmin,
             vmax=vmax,
-            cmap=cb.cbmap(cmap, nbin=None),
+            cmap=cmap,
             title="$%s$" % title,
             unit_conversion=unit_conversion,
         )
