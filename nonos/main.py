@@ -16,7 +16,6 @@ from typing import Any, Dict, List, Optional
 
 import cblind as cb
 import inifix
-import matplotlib.pyplot as plt
 import numpy as np
 from inifix.format import iniformat
 
@@ -76,6 +75,8 @@ def process_field(
     *,
     log_level,
 ):
+    import matplotlib.pyplot as plt
+
     configure_logger(level=log_level)
     set_mpl_style(scaling=scaling)
 
