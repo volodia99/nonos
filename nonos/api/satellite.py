@@ -4,13 +4,14 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from lick.lick import lick_box
-from scipy.ndimage import uniform_filter1d
 
 from nonos.api.analysis import GasField, Plotable, temporal
 from nonos.api.from_simulation import Parameters
 
 
 def file_analysis(filename, *, inifile="", code="", directory="", norb=None):
+    from scipy.ndimage import uniform_filter1d
+
     fullpath = os.path.join(directory, filename)
     with open(fullpath) as f1:
         data = f1.readlines()

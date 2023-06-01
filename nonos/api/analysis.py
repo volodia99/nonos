@@ -3,10 +3,8 @@ import os
 from pathlib import Path
 from typing import Any, Optional, Tuple
 
-import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import SymmetricalLogLocator
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from nonos.api.from_simulation import Parameters
 from nonos.api.tools import find_around, find_nearest
@@ -72,6 +70,8 @@ class Plotable:
             ax.set_xlabel(self.akey)
             ax.set_ylabel(self.okey)
             if title is not None:
+                from mpl_toolkits.axes_grid1 import make_axes_locatable
+
                 divider = make_axes_locatable(ax)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
                 cbar = fig.colorbar(
@@ -112,7 +112,7 @@ class Plotable:
             if title is not None:
                 ax.set_ylabel(title)
         if filename is not None:
-            plt.savefig(f"{filename}.{fmt}", bbox_inches="tight", dpi=dpi)
+            fig.savefig(f"{filename}.{fmt}", bbox_inches="tight", dpi=dpi)
 
 
 class Coordinates:
