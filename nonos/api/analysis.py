@@ -1380,14 +1380,14 @@ class GasField:
 class GasDataSet:
     """Idefix dataset class that contains everything in the .vtk file
 
-    Attributes
-    ==========
-    on : int corresponding to the output number.
-    dict: dictionary[str, array] that contains all the fields
-    coords : Coordinates of the data.
-        Edge of the cells.
-    coordsmed : Coordinates of the data.
-        Center of the cells.
+    Args:
+        on (int): output number
+        directory (str): directory of the .vtk
+        geometry (str): for retrocompatibility if old vtk format
+        inifile (str): name of the simulation's parameter file if no default files (combined with code)
+        code (str): name of the code ("idefix", "pluto", "fargo3d", "fargo-adsg")
+    Returns:
+        dataset
     """
 
     # def __init__(self, on:int, *, code:Optional[str]=None, directory:str=""):
