@@ -7,6 +7,8 @@
 
 nonos is a 2D visualization command line application for planet-disk numerical simulations, as well as a Python library. It works with vtk-formatted data from Pluto and Idefix, and dat-formatted data for Fargo-adsg and Fargo3D.
 
+For more, read [the documentation !](https://nonos.readthedocs.io/en/latest/?badge=latest)
+
 ##### Data Formats
 We list here the accepted formats for the data:
 Pluto and Idefix: data.\*\*\*\*.vtk
