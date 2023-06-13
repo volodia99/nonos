@@ -4,21 +4,30 @@ The core class of nonos is `GasDataSet` that you need to import from `nonos.api`
 
 ```python
 ds = GasDataset(
-    on:int,
-    *,
-    directory:str,
-    geometry:str,
-    code:str,
-    inifile:str,
+    on,
+    directory,
+    geometry,
+    code,
+    inifile,
 )
 ```
 
-* `on`: positional argument that corresponds to the output number associated with the VTK file `f"data.{on:04d}.vtk"`
-* `directory`: keyword-only argument that corresponds to the working directory where the output file is (default: `""`).
-* `geometry`: keyword-only argument if the geometry is not recognized.
-* `code` and `inifile`: keyword-only arguments to give if the parameter file is not recognized (i.e. different from idefix.ini for idefix, variables.par for fargo3d and pluto.ini for pluto). `code` can be `"idefix"`, `"fargo3d"`, `"fargo-adsg"` or `"pluto"`.
+Mandatory argument:
+
+* `on`: output number (ex: for idefix, the VTK file `f"data.{on:04d}.vtk"`)
+
+Optional arguments:
+
+* `directory`: working directory where the output file is (default: current working directory).
+* `geometry`: if the geometry is not recognized.
+* `code` and `inifile`: if the parameter file is not recognized (i.e. different from idefix.ini for idefix, variables.par for fargo3d and pluto.ini for pluto). `code` can be `"idefix"`, `"fargo3d"`, `"fargo-adsg"` or `"pluto"`.
 
 !!! example "Examples"
+
+    * General case for the output number 0:
+    ```python
+    ds = GasDataset(0)
+    ```
 
     * For a simulation with fargo-adsg and a parameter file "template.par" and for the output number 0, you need to do:
     ```python
@@ -41,7 +50,7 @@ ds = GasDataset(
 
 ## Full examples
 
-!!! example "Example 1"
+!!! example "Example 1 (idefix, 2D, polar $R$-$\phi$)"
 
     After going to the nonos directory, and opening ipython, we import GasDataSet.
     ```python
@@ -51,7 +60,7 @@ ds = GasDataset(
 
     We use the class GasDataSet which takes as argument the output number of the output file given by idefix/pluto/fargo.
     ```python
-    ds = GasDataSet(43, geometry="polar", directory="tests/data/idefix_planet3d")
+    ds = GasDataSet(23, directory="tests/data/idefix_newvtk_planet2d")
     ```
 
     `ds` contains in particular a dictionary with the different fields. You can check what fields are included in `ds` by running `ds.keys()`. Let's say you want to perform a vertical slice of the density in the midplane, plot the result in the `xy` plane and rotate the grid given the planet number 0 (which orbit is described in the planet0.dat file):
@@ -61,9 +70,8 @@ ds = GasDataset(
 
     dsop is now a Plotable object. We can e.g. represent its log10, with a given colormap, and display the colorbar by adding the argument `title`.
     ```python
-    plt.close("all")
     fig, ax = plt.subplots()
-    dsvm.plot(fig, ax, log=True, cmap="inferno", title=r"$\rho_{\rm mid}$")
+    dsvm.plot(fig, ax, cmap="inferno", title=r"$\rho_{\rm mid}$")
     ax.set_aspect("equal")
     plt.show()
     ```
@@ -74,7 +82,7 @@ ds = GasDataset(
     </figure>
 
 
-!!! example "Example 2"
+!!! example "Example 2 (idefix, 3D, polar $R$-$\phi$-$z$)"
 
     ```python
     import matplotlib.pyplot as plt
@@ -100,7 +108,7 @@ ds = GasDataset(
     </figure>
 
 
-!!! example "Example 3"
+!!! example "Example 3 (idefix, 2D, polar $R$-$\phi$)"
 
     As a summary, we show here a simple 2D example.
 
@@ -147,8 +155,8 @@ If `ds` is a dataset, the coordinates `ds.coords` at the cell edges and cell cen
 
 | geometry | cartesian              | polar                    | spherical                    |
 |----------|------------------------|--------------------------|------------------------------|
-| edges    | (`x`,`y`,`z`)          | (`R`,`phi`,`z`)          | (`r`,`theta`,`phi`)          |
-| centers  | (`xmed`,`ymed`,`zmed`) | (`Rmed`,`phimed`,`zmed`) | (`rmed`,`thetamed`,`phimed`) |
+| edges    | (`x`, `y`, `z`)          | (`R`, `phi`, `z`)          | (`r`, `theta`, `phi`)          |
+| centers  | (`xmed`, `ymed`, `zmed`) | (`Rmed`, `phimed`, `zmed`) | (`rmed`, `thetamed`, `phimed`) |
 
 ## Attributes of fields
 
@@ -162,6 +170,8 @@ If `ds` is a dataset containing the three-dimensional density field `ds["RHO"]`,
 
 If `ds` is a dataset containing the three-dimensional density field `ds["RHO"]`, several operations on the field are possible.
 
+### 1. General operations
+
 | API function                         | operation                                | geometry                        |
 |--------------------------------------|------------------------------------------|---------------------------------|
 | `latitudinal_projection(theta)`      | Integral between $-\theta$ and $\theta$  | `polar`,`spherical`             |
@@ -170,15 +180,9 @@ If `ds` is a dataset containing the three-dimensional density field `ds["RHO"]`,
 | `latitudinal_at_theta(theta)`        | Slice at latitude $\theta$               | `polar`,`spherical`             |
 | `vertical_at_z(z)`                   | Slice at altitude $z$                    | `cartesian`,`polar`,`spherical` |
 | `azimuthal_at_phi(phi)`              | Slice at azimuth $\phi$                  | `polar`,`spherical`             |
-| `azimuthal_at_planet(planet_number)` | Slice at planet azimuth $\phi_p$         | `polar`,`spherical`             |
 | `azimuthal_average()`                | Azimuthal average                        | `polar`,`spherical`             |
 | `radial_at_r(distance)`              | Slice at `distance`                      | `polar`,`spherical`             |
 | `radial_average_interval(vmin,vmax)` | Radial average (`vmin` to `vmax`)        | `polar`,`spherical`             |
-| `remove_planet_hill(planet_number)`  | Remove the Hill sphere                   | `polar`,`spherical`             |
-
-!!! info "Remove the Hill sphere"
-
-    `remove_planet_hill(planet_number)` removes in the azimuthal direction the contribution between $\phi_p - 2 R_{\rm hill}/R_p$ and $\phi_p + 2 R_{\rm hill}/R_p$ around the planet azimuth $\phi_p$, with $R_{\rm hill}$ the Hill radius and $R_p$ the planet's radial location.
 
 !!! info "Chain the operations"
 
@@ -191,12 +195,65 @@ It is also possible to access some other quantities in the arrays:
 | `find_ir(distance)`          | index in the radial direction at `distance`        | `polar`,`spherical`             |
 | `find_imid(altitude)`        | index in the $z$/$\theta$ direction at `altitude`  | `cartesian`,`polar`,`spherical` |
 | `find_iphi(phi)`             | index in the azimuthal direction at `phi`          | `polar`,`spherical`             |
-| `find_rp(planet_number)`     | radial location of the planet                      | -                               |
-| `find_rhill(planet_number)`  | Hill radius of the planet                          | -                               |
-| `find_phip(planet_number)`   | azimuthal location of the planet                   | -                               |
 
-!!! info "Additional operations"
+### 2. Other important operations
 
-    * `map("XDIR","YDIR")`: before plotting the field, we map it in the `("XDIR","YDIR")` plane + optional `planet_corotation` (int) argument to rotate the grid with respect to the corresponding planet number. `("XDIR","YDIR")` can be for example `("R","phi")`, `("x","y")`, `("x","z")`, `("r","theta")`,... depending on the target geometry you want.
-    * `diff(on)`: compute the relative difference of the same field for a different VTK file.
-    * `save(directory)`: create a .npy file which saves in `directory` the array you just computed.
+* `map("XDIR","YDIR")`: before plotting the field, **we have to map it** in the `("XDIR","YDIR")` plane + optional `planet_corotation` (int) argument to rotate the grid with respect to the corresponding planet number. `("XDIR","YDIR")` can be for example `("R","phi")`, `("x","y")`, `("x","z")`, `("r","theta")`,... depending on the target geometry you want.
+* `diff(on)`: compute the relative difference of the same field for a different VTK file.
+* `save(directory)`: create a .npy file which saves in `directory` the array you just computed.
+
+### 3. Additional operations if planet
+
+| API function                         | operation                                | geometry                        |
+|--------------------------------------|------------------------------------------|---------------------------------|
+| `azimuthal_at_planet(planet_number)` | Slice at planet azimuth $\phi_p$         | `polar`,`spherical`             |
+| `remove_planet_hill(planet_number)`  | Remove the Hill sphere                   | `polar`,`spherical`             |
+| `find_rp(planet_number)`             | radial location of the planet            | -                               |
+| `find_rhill(planet_number)`          | Hill radius of the planet                | -                               |
+| `find_phip(planet_number)`           | azimuthal location of the planet         | -                               |
+
+!!! info "Remove the Hill sphere"
+
+    `remove_planet_hill(planet_number)` removes in the azimuthal direction the contribution between $\phi_p - 2 R_{\rm hill}/R_p$ and $\phi_p + 2 R_{\rm hill}/R_p$ around the planet azimuth $\phi_p$, with $R_{\rm hill}$ the Hill radius and $R_p$ the planet's radial location.
+
+## Plotting the fields
+
+Once the field has been mapped in a plane of visualization (ex: `dsmap = ds["RHO"].radial_at_r(1).map("phi","z")`), we can plot it using the `plot` method.
+
+Mandatory arguments:
+
+* `fig` and `ax`: matplotlib figure and subplot (ex: `fig, ax = plt.subplots()`)
+
+Optional arguments:
+
+* `log`: plot the log10 of the field
+* `cmap`: choice of colormap
+* `title`: name of the field in the colorbar
+* `filename`, `fmt` and `dpi`: in order to directly save the plot, corresponds respectively the name of the file, the extension and the resolution of the saved figure. It is equivalent to
+```python
+plt.savefig(f"{filename}.{fmt}", bbox_inches="tight", dpi=dpi)
+```
+
+!!! example "Plotting a file (idefix, 3D, polar $R$-$\phi$-$z$)"
+
+    ```python
+    import matplotlib.pyplot as plt
+    from nonos.api import GasDataSet
+
+    ds = GasDataSet(23)
+    dsmap = ds["RHO"].radial_at_r(1).map("phi","z")
+    fig, ax = plt.subplots()
+    dsmap.plot(
+        fig,
+        ax,
+        log=True,
+        title=r"$\rho(R=1)$",
+        filename="rho_R1",
+        fmt="png",
+        dpi=200,
+    )
+    ```
+    <figure markdown>
+      ![rhor_phiz](../imgs/rhor_phiz.png){ width="400" }
+      <figcaption>Density in the plane $\phi$-$z$</figcaption>
+    </figure>

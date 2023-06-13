@@ -10,7 +10,7 @@ We list here the accepted formats for the data:
 * Fargo-adsg: `gasdens*.dat`, `gasvy*.dat`, `gasvx*.dat`
 * Fargo3D: same as Fargo-adsg + `gasvz*.dat`
 
-!!! warning "Requirement"
+!!! info "Parameter file"
 
     In addition to the output files, nonos requires access to the parameter file in the same working directory. By default, these are idefix.ini for idefix, variables.par for fargo3d and pluto.ini for pluto.
 
