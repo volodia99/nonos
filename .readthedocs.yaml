@@ -1,8 +1,8 @@
-# adapted from idefix_cli (cmt robert)
-# https://github.com/neutrinoceros/idefix_cli
 # .readthedocs.yaml
 # Read the Docs configuration file
 # See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+# adapted from idefix_cli (cmt robert)
+# https://github.com/neutrinoceros/idefix_cli
 
 # Required
 version: 2

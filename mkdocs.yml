@@ -1,5 +1,4 @@
 site_name: nonos
-site_url: https://nonos.com/
 
 nav:
 - Introduction: index.md
