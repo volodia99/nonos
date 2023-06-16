@@ -1,5 +1,4 @@
 import os
-import re
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -12,11 +11,7 @@ from nonos.api.from_simulation import Parameters
 def file_analysis(filename, *, inifile="", code="", directory="", norb=None):
     from scipy.ndimage import uniform_filter1d
 
-    fullpath = os.path.join(directory, filename)
-    with open(fullpath) as f1:
-        data = f1.readlines()
-    y = [list(re.split(r"[\t ]+", r)) for r in data]
-    columns = np.array(y, dtype="float64").T
+    columns = np.loadtxt(os.path.join(directory, filename), dtype="float64").T
     if norb is not None:
         init = Parameters(inifile=inifile, code=code, directory=directory)
         init.loadIniFile()
