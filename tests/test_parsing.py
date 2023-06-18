@@ -52,25 +52,20 @@ def test_invalid_nargs():
 
 
 @pytest.mark.parametrize(
-    "abscissa, ordinate, dim, received",
+    "dim, extent",
     [
-        (
-            np.linspace(0.2, 10, 100),
-            np.linspace(-0.4, 0.4, 100),
-            2,
-            ("0.4", "8", "0", "-0.2", "0.2"),
-        ),
-        (np.linspace(0.2, 10, 100), np.linspace(-0.4, 0.4, 100), 1, (0.4, 8, 0.2)),
+        (2, ("0.4", "8", "0", "-0.2", "0.2")),
+        (1, (0.4, 8, 0.2)),
     ],
 )
-def test_invalid_nargs_parse_range(abscissa, ordinate, dim, received):
+def test_invalid_nargs_parse_range(dim, extent):
     with pytest.raises(
         ValueError,
         match=re.escape(
-            f"Received sequence `extent` with incorrect size {len(received)}. Expected exactly {2*dim=} values."
+            f"Received sequence `extent` with incorrect size {len(extent)}. Expected exactly {2*dim=} values."
         ),
     ):
-        parse_range(received, dim=dim)
+        parse_range(extent, dim)
 
 
 @pytest.mark.parametrize(

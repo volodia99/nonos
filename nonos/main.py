@@ -66,8 +66,6 @@ def process_field(
     show: bool,
     dpi: int,
     fmt: str,
-    pbar,
-    parallel,
     theta,
     z,
     phi,
@@ -554,7 +552,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     else:
         # replace rich.progress.track with a no-op dummy
-        def mytrack(iterable, *args, **kwargs):
+        def mytrack(iterable, *args, **kwargs):  # noqa: ARG001
             return iterable
 
     # call of the process_field function, whether it be in parallel or not
@@ -579,8 +577,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         show=show,
         dpi=args["dpi"],
         fmt=args["format"],
-        pbar=args["progressBar"],
-        parallel=args["ncpu"] > 1,
         theta=theta,
         z=z,
         phi=phi,

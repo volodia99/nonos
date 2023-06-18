@@ -1,4 +1,5 @@
 import os
+import warnings
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -29,6 +30,11 @@ def file_analysis(filename, *, inifile="", code="", directory="", norb=None):
 
 
 def planet_analysis(planet_number, *, inifile="", code="", directory="", norb=None):
+    if norb is not None:
+        warnings.warn(
+            "The norb argument has no effect and is deprecated",
+            stacklevel=2,
+        )
     init = Parameters(inifile=inifile, code=code, directory=directory)
     init.loadIniFile()
     init.loadPlanetFile(planet_number=planet_number)
@@ -160,7 +166,6 @@ class NonosLick:
         cmap=None,
         title: Optional[str] = None,
         density_streamlines: Optional[float] = None,
-        **kwargs,
     ):
         dict_background = {}
         dict_background["field"] = "background"
