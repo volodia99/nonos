@@ -20,7 +20,7 @@ def file_analysis(filename, *, inifile="", code="", directory="", norb=None):
     if norb is not None:
         init = Parameters(inifile=inifile, code=code, directory=directory)
         init.loadIniFile()
-        if init.code == "idefix" and "analysis" in init.inifile["Output"].keys():
+        if init.code == "idefix" and "analysis" in init.inifile["Output"]:
             analysis = init.inifile["Output"]["analysis"]
             rpini = init.inifile["Planet"]["dpl"]
             Ntmean = round(norb * 2 * np.pi * pow(rpini, 1.5) / analysis)
