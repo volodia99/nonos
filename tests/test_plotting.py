@@ -180,7 +180,7 @@ def test_compute_from_data(test_data_dir):
         on=rhovpfield.on,
         operation=rhovpfield.operation,
         directory=directory,
-        rotate_grid=rhovpfield.rotate_grid,
+        rotate_grid=rhovpfield._rotate_grid,
     )
 
     datane = ne.evaluate("rhovp*vx2vp")
@@ -189,7 +189,6 @@ def test_compute_from_data(test_data_dir):
         data=datane,
         ref=rhovpfield,
         directory=directory,
-        rotate_grid=rhovpfield.rotate_grid,
     )
 
     npt.assert_array_equal(rhovx2_from_data.data, rhovx2_compute.data)
