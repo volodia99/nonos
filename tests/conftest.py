@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pytest
 
 
-def pytest_configure(config):
+def pytest_configure(config):  # noqa: ARG001
     matplotlib.use("Agg")
 
 

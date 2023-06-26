@@ -1,5 +1,6 @@
 import glob
 import os
+import warnings
 from pathlib import Path
 from typing import Any, Optional, Tuple
 
@@ -24,14 +25,19 @@ class Plotable:
         *,
         log=False,
         cmap="inferno",
-        nbin=None,
         filename=None,
         fmt="png",
         dpi=500,
         title=None,
         unit_conversion=None,
+        nbin=None,  # deprecated
         **kwargs,
     ):
+        if nbin is not None:
+            warnings.warn(
+                "The nbin parameter has no effect and is deprecated",
+                stacklevel=2,
+            )
         data = self.data
         if unit_conversion is not None:
             data = data * unit_conversion

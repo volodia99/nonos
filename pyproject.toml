@@ -72,6 +72,7 @@ select = [
     "E",
     "F",
     "W",
+    "ARG", # flake8-unused-arguments
     "C4",  # flake8-comprehensions
     "B",   # flake8-bugbear
     "YTT", # flake8-2020
