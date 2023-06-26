@@ -1343,14 +1343,14 @@ class GasField:
                 ipi = find_nearest(phicoord, 2 * np.pi)
             if self.native_geometry == "polar":
                 ret_data = np.roll(
-                    self.data, -ipi - self.coords.phi.shape[0] // 2, axis=1
+                    self.data, -ipi - self.coords.phi.shape[0] // 2 + 1, axis=1
                 )
                 ret_coords = Coordinates(
                     self.native_geometry, self.coords.R, self.coords.phi, self.coords.z
                 )
             elif self.native_geometry == "spherical":
                 ret_data = np.roll(
-                    self.data, -ipi - self.coords.phi.shape[0] // 2, axis=2
+                    self.data, -ipi - self.coords.phi.shape[0] // 2 + 1, axis=2
                 )
                 ret_coords = Coordinates(
                     self.native_geometry,
