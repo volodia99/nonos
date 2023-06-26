@@ -427,7 +427,11 @@ class GasField:
             # abscissa = meshgrid_conversion[wanted[0]]
             abscissa_value = list(meshgrid_conversion.values())[0]
             abscissa_key = list(meshgrid_conversion.keys())[0]
-            if planet_corotation is not None and "phi" in wanted:
+            if (
+                planet_corotation is not None
+                and "phi" in wanted
+                and self._rotate_grid != planet_corotation
+            ):
                 phip = self.find_phip(planet_number=planet_corotation)
                 phicoord = self.coords.phi - phip  # - np.pi
                 ipi = find_nearest(phicoord, 0)
@@ -597,8 +601,8 @@ class GasField:
         return pow(init.qpl[ind_on] / 3.0, 1.0 / 3.0) * init.apl[ind_on]
 
     def find_phip(self, planet_number: int = 0):
-        # if self._rotate_grid!=-1:
-        #     return 0.0
+        if self._rotate_grid == planet_number:
+            return 0.0
         init = Parameters(
             inifile=self.inifile, code=self.code, directory=self.directory
         )
