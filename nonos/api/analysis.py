@@ -1326,7 +1326,7 @@ class GasField:
 
     def rotate(self, planet_corotation: Optional[int] = None):
         operation = self.operation
-        if self.shape.count(1) != 1:
+        if self.shape.count(1) != -1:
             raise ValueError("data has to be 2D in order to rotate the data.")
         if (
             planet_corotation is not None and self._rotate_grid != planet_corotation
