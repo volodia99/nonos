@@ -427,7 +427,11 @@ class GasField:
             # abscissa = meshgrid_conversion[wanted[0]]
             abscissa_value = list(meshgrid_conversion.values())[0]
             abscissa_key = list(meshgrid_conversion.keys())[0]
-            if planet_corotation is not None and "phi" in wanted:
+            if (
+                planet_corotation is not None
+                and "phi" in wanted
+                and self._rotate_grid != planet_corotation
+            ):
                 phip = self.find_phip(planet_number=planet_corotation)
                 phicoord = self.coords.phi - phip  # - np.pi
                 ipi = find_nearest(phicoord, 0)
@@ -1326,7 +1330,7 @@ class GasField:
 
     def rotate(self, planet_corotation: Optional[int] = None):
         operation = self.operation
-        if self.shape.count(1) != -1:
+        if self.shape.count(1) != 1:
             raise ValueError("data has to be 2D in order to rotate the data.")
         if (
             planet_corotation is not None and self._rotate_grid != planet_corotation
