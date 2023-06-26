@@ -1,6 +1,6 @@
 # Programmatic usage (API)
 
-The core class of nonos is `GasDataSet` that you need to import from `nonos.api`, which takes the form:
+The core class of nonos is `GasDataSet` that you need to import from `nonos.api`. `GasDataSet` takes the form:
 
 ```python
 ds = GasDataset(
@@ -21,6 +21,8 @@ Optional arguments:
 * `directory`: working directory where the output file is (default: current working directory).
 * `geometry`: if the geometry is not recognized.
 * `code` and `inifile`: if the parameter file is not recognized (i.e. different from idefix.ini for idefix, variables.par for fargo3d and pluto.ini for pluto). `code` can be `"idefix"`, `"fargo3d"`, `"fargo-adsg"` or `"pluto"`.
+
+`GasDataSet` is a field container, and you can access the fields in the form of a dictionary. You can check what fields are included in `ds` by running `ds.keys()`. For example, the density field could be accessed with `ds["RHO"]`.
 
 !!! example "Examples"
 
@@ -63,7 +65,7 @@ Optional arguments:
     ds = GasDataSet(23, directory="tests/data/idefix_newvtk_planet2d")
     ```
 
-    `ds` contains in particular a dictionary with the different fields. You can check what fields are included in `ds` by running `ds.keys()`. Let's say you want to perform a vertical slice of the density in the midplane, plot the result in the `xy` plane and rotate the grid given the planet number 0 (which orbit is described in the planet0.dat file):
+    As mentioned earlier, `ds` contains in particular a dictionary with the different fields. Let's say you want to perform a vertical slice of the density in the midplane, plot the result in the `xy` plane and rotate the grid given the planet number 0 (which orbit is described in the planet0.dat file):
     ```python
     dsvm = ds["RHO"].vertical_at_midplane().map("x", "y", planet_corotation=0)
     ```
@@ -198,11 +200,11 @@ It is also possible to access some other quantities in the arrays:
 
 ### 2. Other important operations
 
-* `map("XDIR","YDIR")`: before plotting the field, **we have to map it** in the `("XDIR","YDIR")` plane + optional `planet_corotation` (int) argument to rotate the grid with respect to the corresponding planet number. `("XDIR","YDIR")` can be for example `("R","phi")`, `("x","y")`, `("x","z")`, `("r","theta")`,... depending on the target geometry you want.
+* `map("XDIR","YDIR")`: before plotting the field, **we have to map it** in the `("XDIR","YDIR")` plane + optional `planet_corotation` (int) argument to rotate the grid with respect to the corresponding planet number. Mapping the field means here that we start with a native geometry for the outputs, e.g., a 2D polar geometry ($R$, $\phi$), and we want to visualize it in a cartesian plane ($x$, $y$). `("XDIR","YDIR")` can be for example `("R","phi")`, `("x","y")`, `("x","z")`, `("r","theta")`,... depending on the native geometry you have and the target geometry you want.
 * `diff(on)`: compute the relative difference of the same field for a different VTK file.
 * `save(directory)`: create a .npy file which saves in `directory` the array you just computed.
 
-### 3. Additional operations if planet
+### 3. Additional operations for planet / disk simulations
 
 | API function                         | operation                                | geometry                        |
 |--------------------------------------|------------------------------------------|---------------------------------|
@@ -214,11 +216,11 @@ It is also possible to access some other quantities in the arrays:
 
 !!! info "Remove the Hill sphere"
 
-    `remove_planet_hill(planet_number)` removes in the azimuthal direction the contribution between $\phi_p - 2 R_{\rm hill}/R_p$ and $\phi_p + 2 R_{\rm hill}/R_p$ around the planet azimuth $\phi_p$, with $R_{\rm hill}$ the Hill radius and $R_p$ the planet's radial location.
+    `remove_planet_hill(planet_number)` masks the region $\phi_p \in \left[\phi_p - 2 R_{\rm hill}/R_p , \phi_p + 2 R_{\rm hill}/R_p \right]$ with $(R_p, \phi_p)$ the planet's coordinates and $R_{\rm hill}$ its Hill radius.
 
 ## Plotting the fields
 
-Once the field has been mapped in a plane of visualization (ex: `dsmap = ds["RHO"].radial_at_r(1).map("phi","z")`), we can plot it using the `plot` method.
+Once the field has been mapped in a plane of visualization (ex: `dsmap = ds["RHO"].radial_at_r(1).map("phi","z")`), we can plot it using the `plot` method. Note that you first need to create your figure and subplots, and you can afterwards add some complexity by using the power of matplotlib.
 
 Mandatory arguments:
 
@@ -226,13 +228,14 @@ Mandatory arguments:
 
 Optional arguments:
 
-* `log`: plot the log10 of the field
-* `cmap`: choice of colormap
-* `title`: name of the field in the colorbar
-* `filename`, `fmt` and `dpi`: in order to directly save the plot, corresponds respectively the name of the file, the extension and the resolution of the saved figure. It is equivalent to
+* `log`: plot the log10 of the field (default: `False`)
+* `cmap`: choice of colormap (default: `inferno`)
+* `title`: name of the field in the colorbar (default: `None`, i.e. no colorbar)
+* `filename`, `fmt` and `dpi`: in order to directly save the plot, corresponds respectively the name of the file, the extension (default: `png`) and the resolution (default: `500`) of the saved figure. It is equivalent to
 ```python
 plt.savefig(f"{filename}.{fmt}", bbox_inches="tight", dpi=dpi)
 ```
+By default, the figure is not saved in case you want to personalize the final plot with other matplotlib operations.
 
 !!! example "Plotting a file (idefix, 3D, polar $R$-$\phi$-$z$)"
 
