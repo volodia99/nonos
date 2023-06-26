@@ -1369,6 +1369,8 @@ class GasField:
                     self.coords.phi,
                 )
 
+        self.rotate_grid = True
+
         return GasField(
             self.field,
             ret_data,
@@ -1379,7 +1381,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
-            rotate_grid=True,
+            rotate_grid=self.rotate_grid,
         )
 
 
