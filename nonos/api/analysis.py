@@ -427,11 +427,7 @@ class GasField:
             # abscissa = meshgrid_conversion[wanted[0]]
             abscissa_value = list(meshgrid_conversion.values())[0]
             abscissa_key = list(meshgrid_conversion.keys())[0]
-            if (
-                planet_corotation is not None
-                and "phi" in wanted
-                and self._rotate_grid != planet_corotation
-            ):
+            if planet_corotation is not None and "phi" in wanted:
                 phip = self.find_phip(planet_number=planet_corotation)
                 phicoord = self.coords.phi - phip  # - np.pi
                 ipi = find_nearest(phicoord, 0)
@@ -472,7 +468,11 @@ class GasField:
             )
             abscissa_key, ordinate_key = (wanted[0], wanted[1])
             native_from_wanted = self.coords.native_from_wanted(*wanted)[0]
-            if planet_corotation is not None and "phi" in native_from_wanted:
+            if (
+                planet_corotation is not None
+                and "phi" in native_from_wanted
+                and self._rotate_grid != planet_corotation
+            ):
                 phip = self.find_phip(planet_number=planet_corotation)
                 phicoord = self.coords.phi - phip  # - np.pi
                 # ipi = find_nearest(phicoord, np.pi)
@@ -495,6 +495,7 @@ class GasField:
                     raise NotImplementedError(
                         f"geometry flag '{self.native_geometry}' not implemented yet if planet_corotation"
                     )
+                self._rotate_grid = planet_corotation
             ordered = meshgrid_conversion["ordered"]
             # move the axis of reduction in the front in order to
             # perform the operation 3D(i,j,1) -> 2D(i,j) in a general way,
