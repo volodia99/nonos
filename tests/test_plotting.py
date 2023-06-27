@@ -188,7 +188,6 @@ def test_compute_from_data(test_data_dir):
         field="RHOVX2",
         data=datane,
         ref=rhovpfield,
-        directory=directory,
     )
 
     npt.assert_array_equal(rhovx2_from_data.data, rhovx2_compute.data)
