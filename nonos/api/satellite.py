@@ -230,11 +230,6 @@ def compute(
     field: str,
     data: np.ndarray,
     ref: GasField,
-    *,
-    inifile: str = "",
-    code: str = "",
-    directory: str = "",
-    rotate_grid: bool = False,
 ):
     ret_data = data
     ret_coords = ref.coords
@@ -246,8 +241,8 @@ def compute(
         geometry,
         ref.on,
         operation=ref.operation,
-        inifile=inifile,
-        code=code,
-        directory=directory,
-        rotate_grid=rotate_grid,
+        inifile=ref.inifile,
+        code=ref.code,
+        directory=ref.directory,
+        rotate_grid=ref._rotate_grid,
     )
