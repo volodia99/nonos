@@ -229,6 +229,7 @@ Mandatory arguments:
 Optional arguments:
 
 * `log`: plot the log10 of the field (default: `False`)
+* `vmin` and `vmax`: set respectively the minimum value and maximum value of the data
 * `cmap`: choice of colormap (default: `inferno`)
 * `title`: name of the field in the colorbar (default: `None`, i.e. no colorbar)
 * `filename`, `fmt` and `dpi`: in order to directly save the plot, corresponds respectively the name of the file, the extension (default: `png`) and the resolution (default: `500`) of the saved figure. It is equivalent to
