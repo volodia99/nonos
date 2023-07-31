@@ -177,6 +177,35 @@ def compute(
     )
 
 
+def from_data(
+    *,
+    field: str,
+    data: np.ndarray,
+    coords: Coordinates,
+    on: int,
+    operation: str,
+    inifile: str = "",
+    code: str = "",
+    directory: str = "",
+    rotate_grid: int = -1,
+):
+    ret_data = data
+    ret_coords = coords
+    geometry = coords.geometry
+    return GasField(
+        field,
+        ret_data,
+        ret_coords,
+        geometry,
+        on,
+        operation=operation,
+        inifile=inifile,
+        code=code,
+        directory=directory,
+        rotate_grid=rotate_grid,
+    )
+
+
 def from_file(*, field: str, operation: str, on: int, directory=""):
     repout = field.lower()
     headername = os.path.join(directory, "header", f"header_{operation}.npy")
