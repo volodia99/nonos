@@ -1,11 +1,11 @@
 import os
 import warnings
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Optional
 
 import numpy as np
 from lick.lick import lick_box
 
-from nonos.api.analysis import GasField, Plotable, temporal
+from nonos.api.analysis import Coordinates, GasField, Plotable
 from nonos.api.from_simulation import Parameters
 
 
@@ -39,77 +39,6 @@ def planet_analysis(planet_number, *, inifile="", code="", directory="", norb=No
     init.loadIniFile()
     init.loadPlanetFile(planet_number=planet_number)
     return init
-
-
-def save_temporal(
-    field: str,
-    onbeg: int,
-    onend: int,
-    operation: str,
-    *,
-    directory: str = "",
-    planet_corotation=0,
-):
-    temporal_evolution = temporal(
-        field,
-        operation,
-        onbeg,
-        onend=onend,
-        directory=directory,
-        planet_corotation=planet_corotation,
-    ).save(directory=directory)
-    return temporal_evolution
-
-
-def load_fields(
-    field_operation: Dict[str, Any],
-    fields: List[str],
-    operations: List[Tuple[str, str]],
-    onbeg: int,
-    onend: int,
-    *,
-    directory: str = "",
-    temporal_bool: bool = True,
-    snapshot_bool: bool = True,
-    planet_corotation=0,
-):
-    for field in fields:
-        for operation, operation_shortcut in operations:
-            if snapshot_bool:
-                field_operation[f"{field}{operation_shortcut}"] = temporal(
-                    field,
-                    operation,
-                    onend,
-                    onend=None,
-                    directory=directory,
-                    planet_corotation=planet_corotation,
-                )
-            if temporal_bool:
-                try:
-                    field_operation[f"{field}T{operation_shortcut}"] = temporal(
-                        f"{field}T_{onbeg}_{onend}",
-                        operation,
-                        onend,
-                        onend=None,
-                        directory=directory,
-                    )
-                except FileNotFoundError:
-                    save_temporal(
-                        field,
-                        onbeg,
-                        onend,
-                        operation,
-                        directory=directory,
-                        planet_corotation=planet_corotation,
-                    )
-                    field_operation[f"{field}T{operation_shortcut}"] = temporal(
-                        f"{field}T_{onbeg}_{onend}",
-                        operation,
-                        onend,
-                        onend=None,
-                        directory=directory,
-                    )
-    return field_operation
 
 
 class NonosLick:
@@ -245,4 +174,28 @@ def compute(
         code=ref.code,
         directory=ref.directory,
         rotate_grid=ref._rotate_grid,
+    )
+
+
+def from_file(*, field: str, filename: str, on: int, directory=""):
+    repout = field.lower()
+    headername = os.path.join(directory, "header", f"header_{filename}.npy")
+    with open(headername, "rb") as file:
+        dict_coords = np.load(file, allow_pickle=True).item()
+
+    geometry, coord0, coord1, coord2 = dict_coords.values()
+    ret_coords = Coordinates(geometry, coord0, coord1, coord2)
+
+    fileout = os.path.join(directory, repout, f"_{filename}_{field}.{on:04d}.npy")
+    with open(fileout, "rb") as file:
+        ret_data = np.load(file, allow_pickle=True)
+
+    return GasField(
+        field,
+        ret_data,
+        ret_coords,
+        geometry,
+        on,
+        operation=filename,
+        directory=directory,
     )
