@@ -177,16 +177,16 @@ def compute(
     )
 
 
-def from_file(*, field: str, filename: str, on: int, directory=""):
+def from_file(*, field: str, operation: str, on: int, directory=""):
     repout = field.lower()
-    headername = os.path.join(directory, "header", f"header_{filename}.npy")
+    headername = os.path.join(directory, "header", f"header_{operation}.npy")
     with open(headername, "rb") as file:
         dict_coords = np.load(file, allow_pickle=True).item()
 
     geometry, coord0, coord1, coord2 = dict_coords.values()
     ret_coords = Coordinates(geometry, coord0, coord1, coord2)
 
-    fileout = os.path.join(directory, repout, f"_{filename}_{field}.{on:04d}.npy")
+    fileout = os.path.join(directory, repout, f"_{operation}_{field}.{on:04d}.npy")
     with open(fileout, "rb") as file:
         ret_data = np.load(file, allow_pickle=True)
 
@@ -196,6 +196,6 @@ def from_file(*, field: str, filename: str, on: int, directory=""):
         ret_coords,
         geometry,
         on,
-        operation=filename,
+        operation=operation,
         directory=directory,
     )
