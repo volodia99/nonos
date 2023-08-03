@@ -25,6 +25,11 @@ class Plotable:
         self.dict_plotable = dict_plotable
         self.data = self.dict_plotable[self.dict_plotable["field"]]
         self.dimension = len(self.data.shape)
+        if self.dimension > 2:
+            raise TypeError(
+                "Plotable doesn't support data with dimensionality>2, "
+                f"got {self.dimension}"
+            )
 
     def plot(
         self,
@@ -107,7 +112,7 @@ class Plotable:
                         cb_axis.set_minor_locator(locator)
             else:
                 return im
-        if self.dimension == 1:
+        elif self.dimension == 1:
             vmin = kwargs.pop("vmin") if "vmin" in kwargs else np.nanmin(data)
             vmax = kwargs.pop("vmax") if "vmax" in kwargs else np.nanmax(data)
             self.akey = self.dict_plotable["abscissa"]
@@ -125,6 +130,11 @@ class Plotable:
             ax.set_xlabel(self.akey)
             if title is not None:
                 ax.set_ylabel(title)
+        else:
+            raise TypeError(
+                "Plotable doesn't support data with dimensionality>2, "
+                f"got {self.dimension}"
+            )
         if filename is not None:
             fig.savefig(f"{filename}.{fmt}", bbox_inches="tight", dpi=dpi)
 
@@ -509,7 +519,7 @@ class GasField:
                 abscissa_key: abscissa_value,
                 data_key: datamoved[0],
             }
-        if dimension == 2:
+        elif dimension == 2:
             # meshgrid in polar coordinates P, R (if "R", "phi") or R, P (if "phi", "R")
             # idem for all combinations of R,phi,z
             meshgrid_conversion = self.coords._meshgrid_conversion(*wanted)
@@ -571,6 +581,11 @@ class GasField:
                 ordinate_key: ordinate_value,
                 data_key: data_value,
             }
+        else:
+            raise RuntimeError
+
+        assert dict_plotable[data_key].ndim == dimension
+
         return Plotable(dict_plotable)
 
     def save(self, directory="", header_only=False) -> None:
