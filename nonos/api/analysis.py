@@ -569,10 +569,10 @@ class GasField:
                 with open(headername, "w") as file:
                     json.dump(dictsaved, file, indent=2)
 
-        copyfile(
-            os.path.join(self.directory, self.inifile),
-            os.path.join(directory, os.path.basename(self.inifile)),
-        )
+        src = os.path.join(self.directory, self.inifile)
+        dest = os.path.join(directory, os.path.basename(self.inifile))
+        if dest != src:
+            copyfile(src, dest)
 
     def find_ir(self, distance=1.0):
         r1 = distance
