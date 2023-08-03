@@ -1,8 +1,8 @@
 import glob
 import json
 import os
+import sys
 import warnings
-from collections.abc import ItemsView, KeysView, ValuesView
 from pathlib import Path
 from shutil import copyfile
 from typing import Any, Dict, Optional, Tuple, overload
@@ -13,6 +13,11 @@ from matplotlib.ticker import SymmetricalLogLocator
 from nonos.api.from_simulation import Parameters
 from nonos.api.tools import find_around, find_nearest
 from nonos.logging import logger
+
+if sys.version_info >= (3, 9):
+    from collections.abc import ItemsView, KeysView, ValuesView
+else:
+    from typing import ItemsView, KeysView, ValuesView
 
 
 class Plotable:
@@ -1549,13 +1554,13 @@ class GasDataSet:
             )
         return self
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> "GasField":
         if key in self.dict:
             return self.dict[key]
         else:
             raise KeyError
 
-    def keys(self) -> KeysView:
+    def keys(self) -> KeysView[str]:
         """
         Returns
         =======
@@ -1563,7 +1568,7 @@ class GasDataSet:
         """
         return self.dict.keys()
 
-    def values(self) -> ValuesView:
+    def values(self) -> ValuesView["GasField"]:
         """
         Returns
         =======
@@ -1571,7 +1576,7 @@ class GasDataSet:
         """
         return self.dict.values()
 
-    def items(self) -> ItemsView:
+    def items(self) -> ItemsView[str, "GasField"]:
         """
         Returns
         =======
