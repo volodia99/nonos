@@ -1,4 +1,5 @@
 import glob
+import json
 import os
 import warnings
 from pathlib import Path
@@ -548,20 +549,25 @@ class GasField:
             )
         )
         header_file = list(
-            glob.glob1(os.path.join(directory, "header"), f"header{self.operation}.npy")
+            glob.glob1(
+                os.path.join(directory, "header"), f"header{self.operation}.json"
+            )
         )
         if (len(group_of_files) > 0 and len(header_file) == 0) or header_only:
             if not os.path.exists(os.path.join(directory, "header")):
                 os.makedirs(os.path.join(directory, "header"))
             headername = os.path.join(
-                directory, "header", f"header{self.operation}.npy"
+                directory, "header", f"header{self.operation}.json"
             )
             if Path(headername).is_file():
                 logger.info("{} already exists", headername)
             else:
                 dictsaved = self.coords.get_attributes
-                with open(headername, "wb") as file:
-                    np.save(file, dictsaved)
+                for key in dictsaved:
+                    if key != "geometry":
+                        dictsaved[key] = [float(_) for _ in dictsaved[key]]
+                with open(headername, "w") as file:
+                    json.dump(dictsaved, file, indent=2)
 
         copyfile(
             os.path.join(self.directory, self.inifile),
@@ -1467,17 +1473,21 @@ class GasDataSet:
                 if dirname != os.path.join(directory, field) or npyname not in files:
                     continue
                 headername = os.path.join(
-                    directory, "header", f"header_{operation}.npy"
+                    directory, "header", f"header_{operation}.json"
                 )
-                with open(headername, "rb") as file:
-                    dict_coords = np.load(file, allow_pickle=True).item()
+                with open(headername) as file:
+                    dict_coords = json.load(file)
+
+                for key in dict_coords:
+                    if key != "geometry":
+                        dict_coords[key] = np.array(dict_coords[key], dtype="float32")
 
                 self.coords = Coordinates(*dict_coords.values())
                 self.native_geometry = dict_coords["geometry"]
 
                 fileout = os.path.join(dirname, npyname)
                 with open(fileout, "rb") as file:
-                    ret_data = np.load(file, allow_pickle=True)
+                    ret_data = np.load(file)
 
                 self.dict[field.upper()] = GasField(
                     field.upper(),
