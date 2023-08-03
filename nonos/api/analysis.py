@@ -2,9 +2,10 @@ import glob
 import json
 import os
 import warnings
+from collections.abc import ItemsView, KeysView, ValuesView
 from pathlib import Path
 from shutil import copyfile
-from typing import Any, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 from matplotlib.ticker import SymmetricalLogLocator
@@ -15,7 +16,7 @@ from nonos.logging import logger
 
 
 class Plotable:
-    def __init__(self, dict_plotable: dict):
+    def __init__(self, dict_plotable: dict) -> None:
         self.dict_plotable = dict_plotable
         self.data = self.dict_plotable[self.dict_plotable["field"]]
         self.dimension = len(self.data.shape)
@@ -126,7 +127,9 @@ class Plotable:
 class Coordinates:
     """Coordinates class from x1, x2, x3"""
 
-    def __init__(self, geometry: str, x1: np.ndarray, x2: np.ndarray, x3: np.ndarray):
+    def __init__(
+        self, geometry: str, x1: np.ndarray, x2: np.ndarray, x3: np.ndarray
+    ) -> None:
         if x1.shape[0] == 1:
             x1 = np.array([x1[0], x1[0]])
         if x2.shape[0] == 1:
@@ -164,7 +167,7 @@ class Coordinates:
             self.zmed = 0.5 * (self.z[1:] + self.z[:-1])
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, int, int]:
         """
         Returns
         =======
@@ -178,7 +181,7 @@ class Coordinates:
             return len(self.R), len(self.phi), len(self.z)
 
     @property
-    def get_attributes(self):
+    def get_attributes(self) -> Dict[str, Any]:
         if self.geometry == "cartesian":
             return {"geometry": self.geometry, "x": self.x, "y": self.y, "z": self.z}
         if self.geometry == "spherical":
@@ -197,7 +200,7 @@ class Coordinates:
             }
 
     @property
-    def get_coords(self):
+    def get_coords(self) -> Dict[str, Any]:
         if self.geometry == "cartesian":
             return {
                 "x": self.x,
@@ -226,7 +229,7 @@ class Coordinates:
                 "zmed": self.zmed,
             }
 
-    def _meshgrid_reduction(self, *reducted):
+    def _meshgrid_reduction(self, *reducted) -> Dict:
         for i in reducted:
             if i not in self.cube:
                 raise KeyError(f"{i} not in {self.cube}")
@@ -259,7 +262,7 @@ class Coordinates:
     # on demande 'x','y' et la geometry est cartesian -> 'x','y'
     # on demande 'x','y' et la geometry est polaire -> 'R','phi'
     # on demande 'x','y' et la geometry est spherique -> 'r','phi'
-    def native_from_wanted(self, *wanted):
+    def native_from_wanted(self, *wanted) -> Tuple[str, str]:
         if self.geometry == "cartesian":
             conversion = {
                 "x": "x",
@@ -301,7 +304,7 @@ class Coordinates:
         return native, target_geometry
 
     # for 2D arrays
-    def target_from_native(self, target_geometry, coords):
+    def target_from_native(self, target_geometry, coords) -> Dict[str, np.ndarray]:
         if self.geometry == "polar":
             R, phi, z = (coords["R"], coords["phi"], coords["z"])
             if target_geometry == "cartesian":
@@ -353,7 +356,7 @@ class Coordinates:
         target_coords["ordered"] = coords["ordered"]
         return target_coords
 
-    def _meshgrid_conversion(self, *wanted):
+    def _meshgrid_conversion(self, *wanted) -> Dict:
         native_from_wanted = self.native_from_wanted(*wanted)
         native = native_from_wanted[0]
         target_geometry = native_from_wanted[1]
@@ -394,7 +397,7 @@ class GasField:
         code: str = "",
         directory="",
         rotate_grid: int = -1,
-    ):
+    ) -> None:
         self.field = field
         self.operation = operation
         self.native_geometry = ngeom
@@ -408,7 +411,7 @@ class GasField:
         self._rotate_grid = rotate_grid
 
     @property
-    def shape(self) -> Tuple[Any, ...]:
+    def shape(self) -> Tuple[int, int, int]:
         """
         Returns
         =======
@@ -528,7 +531,7 @@ class GasField:
             }
         return Plotable(dict_plotable)
 
-    def save(self, directory="", header_only=False):
+    def save(self, directory="", header_only=False) -> None:
         if not header_only:
             if not os.path.exists(os.path.join(directory, self.field.lower())):
                 os.makedirs(os.path.join(directory, self.field.lower()))
@@ -788,7 +791,7 @@ class GasField:
     #         rotate_grid=self._rotate_grid,
     #     )
 
-    def vertical_projection(self, z=None):
+    def vertical_projection(self, z=None) -> "GasField":
         operation = self.operation + "_vertical_projection"
         imid = self.find_imid()
         if self.native_geometry == "cartesian":
@@ -849,7 +852,7 @@ class GasField:
             rotate_grid=self._rotate_grid,
         )
 
-    def vertical_at_midplane(self):
+    def vertical_at_midplane(self) -> "GasField":
         # self.field = r"%s$_{\rm mid}$" % self.field
         operation = self.operation + "_vertical_at_midplane"
         imid = self.find_imid()
@@ -895,7 +898,7 @@ class GasField:
             rotate_grid=self._rotate_grid,
         )
 
-    def latitudinal_at_theta(self, theta=None, name_operation=None):
+    def latitudinal_at_theta(self, theta=None, name_operation=None) -> "GasField":
         logger.info("latitudinal_at_theta TO BE TESTED")
         if theta is None:
             if self.native_geometry in ("cartesian", "polar", "spherical"):
@@ -976,7 +979,7 @@ class GasField:
             rotate_grid=self._rotate_grid,
         )
 
-    def vertical_at_z(self, z=None, name_operation=None):
+    def vertical_at_z(self, z=None, name_operation=None) -> "GasField":
         logger.info("vertical_at_z TO BE TESTED")
         # self.field = r"%s$_{\rm mid}$" % self.field
         if z is None:
@@ -1067,7 +1070,7 @@ class GasField:
             rotate_grid=self._rotate_grid,
         )
 
-    def azimuthal_at_phi(self, phi=None):
+    def azimuthal_at_phi(self, phi=None) -> "GasField":
         if phi is None:
             phi = 0.0
         # self.field = r"%s ($\phi_P$)" % self.field
@@ -1107,7 +1110,7 @@ class GasField:
             rotate_grid=self._rotate_grid,
         )
 
-    def azimuthal_at_planet(self, planet_number: int = 0):
+    def azimuthal_at_planet(self, planet_number: int = 0) -> "GasField":
         operation = self.operation + "_azimuthal_at_planet"
         phip = self.find_phip(planet_number=planet_number)
         aziphip = self.azimuthal_at_phi(phi=phip)
@@ -1124,7 +1127,7 @@ class GasField:
             rotate_grid=self._rotate_grid,
         )
 
-    def azimuthal_average(self):
+    def azimuthal_average(self) -> "GasField":
         # self.field = r"$\langle$%s$\rangle$" % self.field
         operation = self.operation + "_azimuthal_average"
         iphi = self.find_iphi(phi=0)
@@ -1165,7 +1168,7 @@ class GasField:
             rotate_grid=self._rotate_grid,
         )
 
-    def remove_planet_hill(self, planet_number: int = 0):
+    def remove_planet_hill(self, planet_number: int = 0) -> "GasField":
         # self.field = r"$\langle$%s$\rangle$" % self.field
         operation = self.operation + "_remove_planet_hill"
         phip = self.find_phip(planet_number=planet_number)
@@ -1269,7 +1272,7 @@ class GasField:
             rotate_grid=self._rotate_grid,
         )
 
-    def radial_average_interval(self, vmin=None, vmax=None):
+    def radial_average_interval(self, vmin=None, vmax=None) -> "GasField":
         operation = self.operation + f"_radial_average_interval_{vmin}_{vmax}"
         irmin = self.find_ir(distance=vmin)
         irmax = self.find_ir(distance=vmax)
@@ -1316,7 +1319,7 @@ class GasField:
             rotate_grid=self._rotate_grid,
         )
 
-    def diff(self, on_2):
+    def diff(self, on_2) -> "GasField":
         ds_2 = GasDataSet(
             on_2,
             geometry=self.native_geometry,
@@ -1345,7 +1348,7 @@ class GasField:
             rotate_grid=self._rotate_grid,
         )
 
-    def rotate(self, planet_corotation: Optional[int] = None):
+    def rotate(self, planet_corotation: Optional[int] = None) -> "GasField":
         operation = self.operation
         if self.shape.count(1) != 1:
             raise ValueError("data has to be 2D in order to rotate the data.")
@@ -1428,7 +1431,7 @@ class GasDataSet:
         code: str = "",
         geometry: str = "unknown",
         directory: str = "",
-    ):
+    ) -> None:
         self.on = on
         self.params = Parameters(inifile=inifile, code=code, directory=directory)
         self._read = self.params.loadSimuFile(self.on, geometry=geometry, cell="edges")
@@ -1459,7 +1462,7 @@ class GasDataSet:
         directory=".",
         inifile: str = "",
         code: str = "",
-    ):
+    ) -> "GasDataSet":
         self = super().__new__(cls)
         self.on = on
         self.params = Parameters(inifile=inifile, code=code, directory=directory)
@@ -1513,7 +1516,7 @@ class GasDataSet:
         else:
             raise KeyError
 
-    def keys(self):
+    def keys(self) -> KeysView:
         """
         Returns
         =======
@@ -1521,7 +1524,7 @@ class GasDataSet:
         """
         return self.dict.keys()
 
-    def values(self):
+    def values(self) -> ValuesView:
         """
         Returns
         =======
@@ -1529,7 +1532,7 @@ class GasDataSet:
         """
         return self.dict.values()
 
-    def items(self):
+    def items(self) -> ItemsView:
         """
         Returns
         =======

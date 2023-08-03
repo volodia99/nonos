@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -40,7 +40,7 @@ def parse_output_number_range(
     return ret
 
 
-def parse_range(extent, dim: int):
+def parse_range(extent, dim: int) -> Tuple[Optional[float], ...]:
     if not is_set(extent):
         if dim == 2:
             return (None, None, None, None)
@@ -56,9 +56,17 @@ def parse_range(extent, dim: int):
     return tuple(float(i) if i != "x" else None for i in extent)
 
 
-def range_converter(extent, abscissa: np.ndarray, ordinate: np.ndarray):
-    trueextent = [abscissa.min(), abscissa.max(), ordinate.min(), ordinate.max()]
-    return tuple(i if i is not None else j for (i, j) in zip(extent, trueextent))
+def range_converter(
+    extent: Tuple[Optional[float], Optional[float], Optional[float], Optional[float]],
+    abscissa: np.ndarray,
+    ordinate: np.ndarray,
+) -> Tuple[float, float, float, float]:
+    return (
+        extent[0] or abscissa.min(),
+        extent[1] or abscissa.max(),
+        extent[2] or ordinate.min(),
+        extent[3] or ordinate.max(),
+    )
 
 
 def parse_image_format(s: Optional[str]) -> str:
