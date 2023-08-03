@@ -5,7 +5,7 @@ import warnings
 from collections.abc import ItemsView, KeysView, ValuesView
 from pathlib import Path
 from shutil import copyfile
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, overload
 
 import numpy as np
 from matplotlib.ticker import SymmetricalLogLocator
@@ -175,29 +175,33 @@ class Coordinates:
         """
         if self.geometry == "cartesian":
             return len(self.x), len(self.y), len(self.z)
-        if self.geometry == "spherical":
+        elif self.geometry == "spherical":
             return len(self.r), len(self.theta), len(self.phi)
-        if self.geometry == "polar":
+        elif self.geometry == "polar":
             return len(self.R), len(self.phi), len(self.z)
+        else:
+            raise RuntimeError(f"Unknown geometry {self.geometry!r}")
 
     @property
     def get_attributes(self) -> Dict[str, Any]:
         if self.geometry == "cartesian":
             return {"geometry": self.geometry, "x": self.x, "y": self.y, "z": self.z}
-        if self.geometry == "spherical":
+        elif self.geometry == "spherical":
             return {
                 "geometry": self.geometry,
                 "r": self.r,
                 "theta": self.theta,
                 "phi": self.phi,
             }
-        if self.geometry == "polar":
+        elif self.geometry == "polar":
             return {
                 "geometry": self.geometry,
                 "R": self.R,
                 "phi": self.phi,
                 "z": self.z,
             }
+        else:
+            raise RuntimeError(f"Unknown geometry {self.geometry!r}")
 
     @property
     def get_coords(self) -> Dict[str, Any]:
@@ -210,7 +214,7 @@ class Coordinates:
                 "ymed": self.ymed,
                 "zmed": self.zmed,
             }
-        if self.geometry == "spherical":
+        elif self.geometry == "spherical":
             return {
                 "r": self.r,
                 "theta": self.theta,
@@ -219,7 +223,7 @@ class Coordinates:
                 "thetamed": self.thetamed,
                 "phimed": self.phimed,
             }
-        if self.geometry == "polar":
+        elif self.geometry == "polar":
             return {
                 "R": self.R,
                 "phi": self.phi,
@@ -228,6 +232,8 @@ class Coordinates:
                 "phimed": self.phimed,
                 "zmed": self.zmed,
             }
+        else:
+            raise RuntimeError(f"Unknown geometry {self.geometry!r}")
 
     def _meshgrid_reduction(self, *reducted) -> Dict:
         for i in reducted:
@@ -238,7 +244,7 @@ class Coordinates:
             for coords in reducted:
                 dictcoords[coords] = vars(self)[coords]
             axis = list(set(reducted) ^ set(self.cube))
-            dictmesh = {}
+            dictmesh: Dict[str, Any] = {}
             # 2D map
             if len(axis) == 1:
                 dictmesh[reducted[0]], dictmesh[reducted[1]] = np.meshgrid(
@@ -262,14 +268,26 @@ class Coordinates:
     # on demande 'x','y' et la geometry est cartesian -> 'x','y'
     # on demande 'x','y' et la geometry est polaire -> 'R','phi'
     # on demande 'x','y' et la geometry est spherique -> 'r','phi'
-    def native_from_wanted(self, *wanted) -> Tuple[str, str]:
+    @overload
+    def native_from_wanted(
+        self, _wanted_x1: str, _wanted_x2: str, /
+    ) -> Tuple[Tuple[str, str], str]:
+        ...
+
+    @overload
+    def native_from_wanted(
+        self, _wanted_x1: str, _wanted_x2: None, /
+    ) -> Tuple[Tuple[str], str]:
+        ...
+
+    def native_from_wanted(self, _wanted_x1: str, _wanted_x2: Optional[str] = None, /):
         if self.geometry == "cartesian":
             conversion = {
                 "x": "x",
                 "y": "y",
                 "z": "z",
             }
-        if self.geometry == "polar":
+        elif self.geometry == "polar":
             conversion = {
                 "R": "R",
                 "phi": "phi",
@@ -279,7 +297,7 @@ class Coordinates:
                 "r": "R",
                 "theta": "z",
             }
-        if self.geometry == "spherical":
+        elif self.geometry == "spherical":
             conversion = {
                 "r": "r",
                 "theta": "theta",
@@ -289,8 +307,16 @@ class Coordinates:
                 "z": "theta",
                 "R": "r",
             }
+        else:
+            raise RuntimeError(f"Unknown geometry {self.geometry!r}")
+
+        wanted: Tuple[str, ...]
+        if _wanted_x2 is None:
+            wanted = (_wanted_x1,)
+        else:
+            wanted = (_wanted_x1, _wanted_x2)
         for i in wanted:
-            if i not in tuple(conversion.keys()):
+            if i not in conversion:
                 raise KeyError(f"{i} not in {tuple(conversion.keys())}")
         if set(wanted) & {"x", "y", "z"} == set(wanted):
             target_geometry = "cartesian"
@@ -300,7 +326,13 @@ class Coordinates:
             target_geometry = "spherical"
         else:
             raise ValueError(f"Unknown wanted plane: {wanted}.")
-        native = tuple(conversion[i] for i in wanted)
+
+        native: Tuple[str, ...]
+        if _wanted_x2 is None:
+            native = (conversion[_wanted_x1],)
+        else:
+            native = (conversion[_wanted_x1], conversion[_wanted_x2])
+
         return native, target_geometry
 
     # for 2D arrays
@@ -417,7 +449,12 @@ class GasField:
         =======
         shape : tuple
         """
-        return tuple(i - 1 if i > 1 else i for i in self.coords.shape)
+        i, j, k = self.coords.shape
+        return (
+            i - 1 if i > 1 else i,
+            j - 1 if j > 1 else j,
+            k - 1 if k > 1 else k,
+        )
 
     def map(self, *wanted, planet_corotation: Optional[int] = None):
         data_key = self.field
@@ -841,7 +878,7 @@ class GasField:
             )
         return GasField(
             self.field,
-            np.float32(ret_data),
+            ret_data.astype("float32", copy=False),
             ret_coords,
             self.native_geometry,
             self.on,
@@ -1014,6 +1051,7 @@ class GasField:
             raise NotImplementedError(
                 "vertical at z in spherical coordinates not implemented yet."
             )
+        """
             data_at_z = np.zeros((self.shape[0], self.shape[2]), dtype=">f4")
             for i in range(self.shape[0]):
                 if np.sign(z) >= 0:
@@ -1057,6 +1095,7 @@ class GasField:
                 find_around(self.coords.theta, self.coords.thetamed[imid]),
                 self.coords.phi,
             )
+        """
         return GasField(
             self.field,
             ret_data,
@@ -1079,7 +1118,7 @@ class GasField:
         iphi = self.find_iphi(phi=phi)
         if self.native_geometry == "cartesian":
             raise NotImplementedError(
-                f"geometry flag '{self._native_geometry}' not implemented yet for azimuthal_at_phi"
+                f"geometry flag '{self.native_geometry}' not implemented yet for azimuthal_at_phi"
             )
         if self.native_geometry == "polar":
             ret_coords = Coordinates(
@@ -1133,7 +1172,7 @@ class GasField:
         iphi = self.find_iphi(phi=0)
         if self.native_geometry == "cartesian":
             raise NotImplementedError(
-                f"geometry flag '{self._native_geometry}' not implemented yet for azimuthal_average"
+                f"geometry flag '{self.native_geometry}' not implemented yet for azimuthal_average"
             )
         if self.native_geometry == "polar":
             ret_coords = Coordinates(
@@ -1157,7 +1196,7 @@ class GasField:
             )
         return GasField(
             self.field,
-            np.float32(ret_data),
+            ret_data.astype("float32", copy=False),
             ret_coords,
             self.native_geometry,
             self.on,
@@ -1279,7 +1318,7 @@ class GasField:
         ir = self.find_ir(distance=(vmax - vmin) / 2)
         if self.native_geometry == "cartesian":
             raise NotImplementedError(
-                f"geometry flag '{self._native_geometry}' not implemented yet for radial_at_r"
+                f"geometry flag '{self.native_geometry}' not implemented yet for radial_at_r"
             )
         if self.native_geometry == "polar":
             if vmin is None:

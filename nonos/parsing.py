@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union, overload
 
 import numpy as np
 
@@ -56,17 +56,39 @@ def parse_range(extent, dim: int) -> Tuple[Optional[float], ...]:
     return tuple(float(i) if i != "x" else None for i in extent)
 
 
+@overload
+def range_converter(
+    extent: Tuple[Optional[float], Optional[float]],
+    abscissa: np.ndarray,
+    ordinate: np.ndarray,
+) -> Tuple[float, float]:
+    ...
+
+
+@overload
 def range_converter(
     extent: Tuple[Optional[float], Optional[float], Optional[float], Optional[float]],
     abscissa: np.ndarray,
     ordinate: np.ndarray,
 ) -> Tuple[float, float, float, float]:
-    return (
-        extent[0] or abscissa.min(),
-        extent[1] or abscissa.max(),
-        extent[2] or ordinate.min(),
-        extent[3] or ordinate.max(),
-    )
+    ...
+
+
+def range_converter(extent, abscissa, ordinate):
+    if len(extent) == 4:
+        return (
+            _ if (_ := extent[0]) is not None else abscissa.min(),
+            _ if (_ := extent[1]) is not None else abscissa.max(),
+            _ if (_ := extent[2]) is not None else ordinate.min(),
+            _ if (_ := extent[3]) is not None else ordinate.max(),
+        )
+    elif len(extent) == 2:
+        return (
+            _ if (_ := extent[0]) is not None else abscissa.min(),
+            _ if (_ := extent[1]) is not None else abscissa.max(),
+        )
+    else:
+        raise TypeError(f"Expected extent to be of lenght 2 or 4, got {len(extent)=}")
 
 
 def parse_image_format(s: Optional[str]) -> str:
