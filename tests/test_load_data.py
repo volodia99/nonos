@@ -1,4 +1,5 @@
 import os
+from shutil import copytree
 
 import pytest
 
@@ -14,8 +15,10 @@ def test_from_npy_error(test_data_dir):
         GasDataSet.from_npy(500, operation="azimuthal_averag")
 
 
-def test_roundtrip_simple(test_data_dir):
-    os.chdir(test_data_dir / "idefix_spherical_planet3d")
+def test_roundtrip_simple(test_data_dir, tmp_path):
+    copytree(test_data_dir / "idefix_spherical_planet3d", tmp_path / "mydir")
+
+    os.chdir(tmp_path / "mydir")
     ds = GasDataSet(500)
     assert len(list(ds.keys())) == 7
 
