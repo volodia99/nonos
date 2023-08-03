@@ -2,6 +2,7 @@ import glob
 import os
 import warnings
 from pathlib import Path
+from shutil import copyfile
 from typing import Any, Optional, Tuple
 
 import numpy as np
@@ -529,7 +530,7 @@ class GasField:
     def save(self, directory="", header_only=False):
         if not header_only:
             if not os.path.exists(os.path.join(directory, self.field.lower())):
-                os.mkdir(os.path.join(directory, self.field.lower()))
+                os.makedirs(os.path.join(directory, self.field.lower()))
             filename = os.path.join(
                 directory,
                 self.field.lower(),
@@ -551,7 +552,7 @@ class GasField:
         )
         if (len(group_of_files) > 0 and len(header_file) == 0) or header_only:
             if not os.path.exists(os.path.join(directory, "header")):
-                os.mkdir(os.path.join(directory, "header"))
+                os.makedirs(os.path.join(directory, "header"))
             headername = os.path.join(
                 directory, "header", f"header{self.operation}.npy"
             )
@@ -561,6 +562,11 @@ class GasField:
                 dictsaved = self.coords.get_attributes
                 with open(headername, "wb") as file:
                     np.save(file, dictsaved)
+
+        copyfile(
+            os.path.join(self.directory, self.inifile),
+            os.path.join(directory, os.path.basename(self.inifile)),
+        )
 
     def find_ir(self, distance=1.0):
         r1 = distance
@@ -1433,8 +1439,8 @@ class GasDataSet:
                 self.native_geometry,
                 self.on,
                 "",
-                inifile=inifile,
-                code=code,
+                inifile=self.params.paramfile,
+                code=self.params.code,
                 directory=directory,
             )
 
@@ -1453,7 +1459,7 @@ class GasDataSet:
         self.params = Parameters(inifile=inifile, code=code, directory=directory)
         self.dict = {}
         for dirname, dirs, files in os.walk(directory):
-            if dirname == directory:
+            if dirname == str(directory):
                 fields = dirs
                 continue
             for field in fields:
@@ -1481,6 +1487,8 @@ class GasDataSet:
                     self.on,
                     operation=operation,
                     directory=directory,
+                    inifile=self.params.paramfile,
+                    code=self.params.code,
                 )
         if not self.dict:
             raise FileNotFoundError(
