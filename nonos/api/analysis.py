@@ -1465,15 +1465,8 @@ class GasDataSet:
                         with open(headername, "rb") as file:
                             dict_coords = np.load(file, allow_pickle=True).item()
 
-                        (
-                            self.native_geometry,
-                            coord0,
-                            coord1,
-                            coord2,
-                        ) = dict_coords.values()
-                        self.coords = Coordinates(
-                            self.native_geometry, coord0, coord1, coord2
-                        )
+                        self.coords = Coordinates(*dict_coords.values())
+                        self.native_geometry = dict_coords["geometry"]
 
                         fileout = os.path.join(dirname, npyname)
                         with open(fileout, "rb") as file:
