@@ -464,12 +464,8 @@ class GasField:
         =======
         shape : tuple
         """
-        i, j, k = self.coords.shape
-        return (
-            i - 1 if i > 1 else i,
-            j - 1 if j > 1 else j,
-            k - 1 if k > 1 else k,
-        )
+        i, j, k = (max(1, n - 1) for n in self.coords.shape)
+        return i, j, k
 
     def map(self, *wanted, planet_corotation: Optional[int] = None) -> Plotable:
         data_key = self.field
