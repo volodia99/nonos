@@ -43,6 +43,19 @@ def test_3D_aa_xz(test_data_dir, temp_figure_and_axis):
 
 
 @pytest.mark.mpl_image_compare()
+def test_3D_vm_phiR(test_data_dir, temp_figure_and_axis):
+    os.chdir(test_data_dir / "idefix_spherical_planet3d")
+
+    ds = GasDataSet(500)
+    fig, ax = temp_figure_and_axis
+
+    ds["RHO"].vertical_at_midplane().map("phi", "R").plot(
+        fig, ax, log=True, title="rho"
+    )
+    return fig
+
+
+@pytest.mark.mpl_image_compare()
 def test_3D_vm_xy(test_data_dir, temp_figure_and_axis):
     os.chdir(test_data_dir / "idefix_spherical_planet3d")
 
