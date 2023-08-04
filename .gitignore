@@ -4,6 +4,8 @@
 dist
 __pycache__
 .pytest*
+.python-version
+.ipynb_checkpoints
 
 # temp files
 *\#
