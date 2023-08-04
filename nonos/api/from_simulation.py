@@ -2,6 +2,7 @@ import glob
 import os
 import re
 from pathlib import Path
+from typing import Tuple, Union
 
 import inifix
 import numpy as np
@@ -173,20 +174,46 @@ class Parameters:
             raise RuntimeError("Unknown file format")
 
     def loadSimuFile(self, on: int, *, geometry: str = "unknown", cell: str = "edges"):
+        output_number, filename = funnel_on_type(
+            on, self.code, directory=self.directory
+        )
+        self.on = output_number
         codeReadFormat = CodeReadFormat()
         if self.code == "fargo3d":
             return codeReadFormat.fargo3dReadDat(
-                on, directory=self.directory, inifile=self.paramfile
+                self.on, directory=self.directory, inifile=self.paramfile
             )
         elif self.code == "fargo-adsg":
             return codeReadFormat.fargoAdsgReadDat(
-                on, directory=self.directory
+                self.on, directory=self.directory
             )  # , inifile=self.paramfile)
         elif self.code in ("idefix", "pluto"):
-            dataVTK = os.path.join(self.directory, f"data.{on:04d}.vtk")
-            return codeReadFormat.idfxReadVTK(dataVTK, geometry=geometry, cell=cell)
+            return codeReadFormat.idfxReadVTK(filename, geometry=geometry, cell=cell)
         else:
             raise ValueError(f"For now, can't read files from {self.code} simulations.")
+
+
+def funnel_on_type(
+    input: Union[int, str], code: str, *, directory="."
+) -> Tuple[int, str]:
+    if code.startswith("fargo"):
+        if isinstance(input, str):
+            raise TypeError(f"on can only be an int for {code}")
+        on = input
+        return (on, "")
+    elif code in ("idefix", "pluto"):
+        if isinstance(input, str):
+            filename = os.path.join(directory, input)
+            if (m := re.search(r"\d+", filename)) is None:
+                raise ValueError("filename format is not correct")
+            else:
+                on = int(m.group())
+        elif isinstance(input, int):
+            on = input
+            filename = os.path.join(directory, f"data.{on:04d}.vtk")
+        return (on, filename)
+    else:
+        raise ValueError(f"For now, can't read files from {code} simulations.")
 
 
 class DataStructure:

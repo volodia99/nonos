@@ -617,8 +617,8 @@ class GasField:
                 for key in dictsaved:
                     if key != "geometry":
                         dictsaved[key] = [float(_) for _ in dictsaved[key]]
-                with open(headername, "w") as file:
-                    json.dump(dictsaved, file, indent=2)
+                with open(headername, "w") as hfile:
+                    json.dump(dictsaved, hfile, indent=2)
 
         src = os.path.join(self.directory, self.inifile)
         dest = os.path.join(directory, os.path.basename(self.inifile))
@@ -1482,9 +1482,9 @@ class GasDataSet:
         geometry: str = "unknown",
         directory: str = "",
     ) -> None:
-        self.on = on
         self.params = Parameters(inifile=inifile, code=code, directory=directory)
-        self._read = self.params.loadSimuFile(self.on, geometry=geometry, cell="edges")
+        self._read = self.params.loadSimuFile(on, geometry=geometry, cell="edges")
+        self.on = self.params.on
         self.native_geometry = self._read.geometry
         self.dict = self._read.data
         self.coords = Coordinates(
@@ -1528,8 +1528,8 @@ class GasDataSet:
                 headername = os.path.join(
                     directory, "header", f"header_{operation}.json"
                 )
-                with open(headername) as file:
-                    dict_coords = json.load(file)
+                with open(headername) as hfile:
+                    dict_coords = json.load(hfile)
 
                 for key in dict_coords:
                     if key != "geometry":

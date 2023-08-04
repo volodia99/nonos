@@ -35,3 +35,26 @@ def test_roundtrip_other_dir(test_data_dir, tmp_path):
     gf.save(tmp_path)
     dsnpy = GasDataSet.from_npy(500, operation="azimuthal_average", directory=tmp_path)
     assert len(list(dsnpy.keys())) == 1
+
+
+def test_api_vtk_by_name(test_data_dir):
+    os.chdir(test_data_dir / "idefix_spherical_planet3d")
+
+    on = 500
+
+    ds = GasDataSet(f"data.{on:04d}.vtk")
+    assert ds.on == on
+
+    with pytest.raises(
+        FileNotFoundError, match="In idfxReadVTK: datawrong.0500.vtk not found."
+    ):
+        GasDataSet(f"datawrong.{on:04d}.vtk")
+
+
+def test_api_vtk_by_name_fargo(test_data_dir):
+    os.chdir(test_data_dir / "fargo3d_planet2d")
+
+    on = 40
+
+    with pytest.raises(TypeError, match="on can only be an int for fargo3d"):
+        GasDataSet(f"gasdens{on:04d}.dat")
