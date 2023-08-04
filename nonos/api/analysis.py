@@ -471,7 +471,7 @@ class GasField:
             k - 1 if k > 1 else k,
         )
 
-    def map(self, *wanted, planet_corotation: Optional[int] = None):
+    def map(self, *wanted, planet_corotation: Optional[int] = None) -> Plotable:
         data_key = self.field
         # we count the number of 1 in the shape of the data, which gives the real dimension of the data,
         # i.e. the number of reductions already performed (0 -> 3D, 1 -> 2D, 2 -> 1D)
