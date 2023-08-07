@@ -727,9 +727,7 @@ class CodeReadFormat:
 
         return V
 
-    def fargo3dReadDat(
-        self, on, *, directory="", inifile="", fluid: Optional[str] = None
-    ):
+    def fargo3dReadDat(self, on, *, directory="", inifile="", fluid=None):
         if fluid is None:
             fluid = "gas"
         V = DataStructure()
