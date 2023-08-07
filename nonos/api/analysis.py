@@ -5,7 +5,7 @@ import sys
 import warnings
 from pathlib import Path
 from shutil import copyfile
-from typing import Any, Dict, Optional, Tuple, overload
+from typing import Any, Dict, Optional, Tuple, Union, overload
 
 import numpy as np
 from matplotlib.ticker import SymmetricalLogLocator
@@ -613,8 +613,8 @@ class GasField:
                 for key in dictsaved:
                     if key != "geometry":
                         dictsaved[key] = [float(_) for _ in dictsaved[key]]
-                with open(headername, "w") as file:
-                    json.dump(dictsaved, file, indent=2)
+                with open(headername, "w") as hfile:
+                    json.dump(dictsaved, hfile, indent=2)
 
         src = os.path.join(self.directory, self.inifile)
         dest = os.path.join(directory, os.path.basename(self.inifile))
@@ -1460,7 +1460,7 @@ class GasDataSet:
     """Idefix dataset class that contains everything in the .vtk file
 
     Args:
-        on (int): output number
+        input_dataset (int or str): output number or file name
         directory (str): directory of the .vtk
         geometry (str): for retrocompatibility if old vtk format
         inifile (str): name of the simulation's parameter file if no default files (combined with code)
@@ -1471,16 +1471,19 @@ class GasDataSet:
 
     def __init__(
         self,
-        on: int,
+        input_dataset: Union[int, str],
+        /,
         *,
         inifile: str = "",
         code: str = "",
         geometry: str = "unknown",
         directory: str = "",
     ) -> None:
-        self.on = on
         self.params = Parameters(inifile=inifile, code=code, directory=directory)
-        self._read = self.params.loadSimuFile(self.on, geometry=geometry, cell="edges")
+        self._read = self.params.loadSimuFile(
+            input_dataset, geometry=geometry, cell="edges"
+        )
+        self.on = self.params.on
         self.native_geometry = self._read.geometry
         self.dict = self._read.data
         self.coords = Coordinates(
@@ -1524,8 +1527,8 @@ class GasDataSet:
                 headername = os.path.join(
                     directory, "header", f"header_{operation}.json"
                 )
-                with open(headername) as file:
-                    dict_coords = json.load(file)
+                with open(headername) as hfile:
+                    dict_coords = json.load(hfile)
 
                 for key in dict_coords:
                     if key != "geometry":

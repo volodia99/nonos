@@ -2,6 +2,7 @@ import glob
 import os
 import re
 from pathlib import Path
+from typing import Tuple, Union
 
 import inifix
 import numpy as np
@@ -172,21 +173,53 @@ class Parameters:
         else:
             raise RuntimeError("Unknown file format")
 
-    def loadSimuFile(self, on: int, *, geometry: str = "unknown", cell: str = "edges"):
+    def loadSimuFile(
+        self,
+        input_dataset: Union[int, str],
+        /,
+        *,
+        geometry: str = "unknown",
+        cell: str = "edges",
+    ):
+        output_number, filename = funnel_on_type(
+            input_dataset, code=self.code, directory=self.directory
+        )
+        self.on = output_number
         codeReadFormat = CodeReadFormat()
         if self.code == "fargo3d":
             return codeReadFormat.fargo3dReadDat(
-                on, directory=self.directory, inifile=self.paramfile
+                self.on, directory=self.directory, inifile=self.paramfile
             )
         elif self.code == "fargo-adsg":
             return codeReadFormat.fargoAdsgReadDat(
-                on, directory=self.directory
+                self.on, directory=self.directory
             )  # , inifile=self.paramfile)
         elif self.code in ("idefix", "pluto"):
-            dataVTK = os.path.join(self.directory, f"data.{on:04d}.vtk")
-            return codeReadFormat.idfxReadVTK(dataVTK, geometry=geometry, cell=cell)
+            return codeReadFormat.idfxReadVTK(filename, geometry=geometry, cell=cell)
         else:
             raise ValueError(f"For now, can't read files from {self.code} simulations.")
+
+
+def funnel_on_type(
+    input_dataset: Union[int, str], /, *, code: str, directory="."
+) -> Tuple[int, str]:
+    if code.startswith("fargo"):
+        if isinstance(input_dataset, str):
+            raise TypeError(f"on can only be an int for {code}")
+        return input_dataset, ""
+    elif code in ("idefix", "pluto"):
+        if isinstance(input_dataset, str):
+            filename = os.path.join(directory, input_dataset)
+            if (m := re.search(r"\d+", filename)) is None:
+                raise ValueError("filename format is not correct")
+            else:
+                on = int(m.group())
+        elif isinstance(input_dataset, int):
+            on = input_dataset
+            filename = os.path.join(directory, f"data.{on:04d}.vtk")
+        return (on, filename)
+    else:
+        raise ValueError(f"For now, can't read files from {code} simulations.")
 
 
 class DataStructure:
