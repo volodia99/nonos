@@ -1476,7 +1476,7 @@ class GasDataSet:
     def __init__(
         self,
         input_dataset: Union[int, str],
-        /
+        /,
         *,
         inifile: str = "",
         code: str = "",
