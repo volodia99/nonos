@@ -5,7 +5,7 @@ import sys
 import warnings
 from pathlib import Path
 from shutil import copyfile
-from typing import Any, Dict, Optional, Tuple, overload
+from typing import Any, Dict, Optional, Tuple, Union, overload
 
 import numpy as np
 from matplotlib.ticker import SymmetricalLogLocator
@@ -1464,7 +1464,7 @@ class GasDataSet:
     """Idefix dataset class that contains everything in the .vtk file
 
     Args:
-        on (int): output number
+        input (Union[int, str]): output number or file name
         directory (str): directory of the .vtk
         geometry (str): for retrocompatibility if old vtk format
         inifile (str): name of the simulation's parameter file if no default files (combined with code)
@@ -1475,7 +1475,7 @@ class GasDataSet:
 
     def __init__(
         self,
-        on: int,
+        input: Union[int, str],
         *,
         inifile: str = "",
         code: str = "",
@@ -1483,7 +1483,7 @@ class GasDataSet:
         directory: str = "",
     ) -> None:
         self.params = Parameters(inifile=inifile, code=code, directory=directory)
-        self._read = self.params.loadSimuFile(on, geometry=geometry, cell="edges")
+        self._read = self.params.loadSimuFile(input, geometry=geometry, cell="edges")
         self.on = self.params.on
         self.native_geometry = self._read.geometry
         self.dict = self._read.data

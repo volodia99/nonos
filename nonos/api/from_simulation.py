@@ -173,9 +173,11 @@ class Parameters:
         else:
             raise RuntimeError("Unknown file format")
 
-    def loadSimuFile(self, on: int, *, geometry: str = "unknown", cell: str = "edges"):
+    def loadSimuFile(
+        self, input: Union[int, str], *, geometry: str = "unknown", cell: str = "edges"
+    ):
         output_number, filename = funnel_on_type(
-            on, self.code, directory=self.directory
+            input, code=self.code, directory=self.directory
         )
         self.on = output_number
         codeReadFormat = CodeReadFormat()
@@ -194,13 +196,12 @@ class Parameters:
 
 
 def funnel_on_type(
-    input: Union[int, str], code: str, *, directory="."
+    input: Union[int, str], /, *, code: str, directory="."
 ) -> Tuple[int, str]:
     if code.startswith("fargo"):
         if isinstance(input, str):
             raise TypeError(f"on can only be an int for {code}")
-        on = input
-        return (on, "")
+        return input, ""
     elif code in ("idefix", "pluto"):
         if isinstance(input, str):
             filename = os.path.join(directory, input)

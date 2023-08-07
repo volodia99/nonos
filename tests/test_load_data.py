@@ -54,7 +54,5 @@ def test_api_vtk_by_name(test_data_dir):
 def test_api_vtk_by_name_fargo(test_data_dir):
     os.chdir(test_data_dir / "fargo3d_planet2d")
 
-    on = 40
-
     with pytest.raises(TypeError, match="on can only be an int for fargo3d"):
-        GasDataSet(f"gasdens{on:04d}.dat")
+        GasDataSet(f"gasdens{40:04d}.dat")
