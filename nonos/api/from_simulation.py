@@ -826,8 +826,6 @@ class CodeReadFormat:
             raise ValueError(f"{V.geometry} not implemented yet for fargo3d.")
 
         if not V.data:
-            raise FileNotFoundError(
-                f"File '{fluid}*{on}.dat' does not exist or is not recognized."
-            )
+            raise FileNotFoundError(f"No file matches the pattern '{fluid}*{on}.dat'")
 
         return V

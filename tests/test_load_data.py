@@ -1,5 +1,4 @@
 import os
-import re
 from shutil import copytree
 
 import pytest
@@ -69,7 +68,7 @@ def test_api_fluid_fargo3d(test_data_dir):
 
     with pytest.raises(
         FileNotFoundError,
-        match=r"No file matches the pattern 'dust4\*5\.dat'),
+        match=r"No file matches the pattern 'dust4\*5\.dat'",
     ):
         GasDataSet(on, fluid="dust4")
 
