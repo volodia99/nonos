@@ -1478,10 +1478,11 @@ class GasDataSet:
         code: str = "",
         geometry: str = "unknown",
         directory: str = "",
+        fluid: Optional[str] = None,
     ) -> None:
         self.params = Parameters(inifile=inifile, code=code, directory=directory)
         self._read = self.params.loadSimuFile(
-            input_dataset, geometry=geometry, cell="edges"
+            input_dataset, geometry=geometry, cell="edges", fluid=fluid
         )
         self.on = self.params.on
         self.native_geometry = self._read.geometry

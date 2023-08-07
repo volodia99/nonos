@@ -1,4 +1,5 @@
 import os
+import re
 from shutil import copytree
 
 import pytest
@@ -56,3 +57,27 @@ def test_api_vtk_by_name_fargo(test_data_dir):
 
     with pytest.raises(TypeError, match="on can only be an int for fargo3d"):
         GasDataSet(f"gasdens{40:04d}.dat")
+
+
+def test_api_fluid_fargo3d(test_data_dir):
+    os.chdir(test_data_dir / "fargo3d_multifluid")
+
+    on = 5
+
+    ds = GasDataSet(on, fluid="dust2")
+    assert len(list(ds.keys())) == 1
+
+    with pytest.raises(
+        FileNotFoundError,
+        match=re.escape("File 'dust4*5.dat' does not exist or is not recognized."),
+    ):
+        GasDataSet(on, fluid="dust4")
+
+
+def test_api_fluid_idefix(test_data_dir):
+    os.chdir(test_data_dir / "idefix_spherical_planet3d")
+
+    on = 500
+
+    with pytest.raises(ValueError, match="fluid is defined only for fargo3d outputs"):
+        GasDataSet(on, fluid="dust1")
