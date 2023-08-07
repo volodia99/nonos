@@ -174,10 +174,14 @@ class Parameters:
             raise RuntimeError("Unknown file format")
 
     def loadSimuFile(
-        self, input: Union[int, str], *, geometry: str = "unknown", cell: str = "edges"
+        self,
+        input_dataset: Union[int, str],
+        *,
+        geometry: str = "unknown",
+        cell: str = "edges",
     ):
         output_number, filename = funnel_on_type(
-            input, code=self.code, directory=self.directory
+            input_dataset, code=self.code, directory=self.directory
         )
         self.on = output_number
         codeReadFormat = CodeReadFormat()
@@ -196,21 +200,21 @@ class Parameters:
 
 
 def funnel_on_type(
-    input: Union[int, str], /, *, code: str, directory="."
+    input_dataset: Union[int, str], /, *, code: str, directory="."
 ) -> Tuple[int, str]:
     if code.startswith("fargo"):
-        if isinstance(input, str):
+        if isinstance(input_dataset, str):
             raise TypeError(f"on can only be an int for {code}")
-        return input, ""
+        return input_dataset, ""
     elif code in ("idefix", "pluto"):
-        if isinstance(input, str):
-            filename = os.path.join(directory, input)
+        if isinstance(input_dataset, str):
+            filename = os.path.join(directory, input_dataset)
             if (m := re.search(r"\d+", filename)) is None:
                 raise ValueError("filename format is not correct")
             else:
                 on = int(m.group())
-        elif isinstance(input, int):
-            on = input
+        elif isinstance(input_dataset, int):
+            on = input_dataset
             filename = os.path.join(directory, f"data.{on:04d}.vtk")
         return (on, filename)
     else:
