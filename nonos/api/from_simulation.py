@@ -176,6 +176,7 @@ class Parameters:
     def loadSimuFile(
         self,
         input_dataset: Union[int, str],
+        /,
         *,
         geometry: str = "unknown",
         cell: str = "edges",

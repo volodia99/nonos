@@ -1464,7 +1464,7 @@ class GasDataSet:
     """Idefix dataset class that contains everything in the .vtk file
 
     Args:
-        input_dataset (Union[int, str]): output number or file name
+        input_dataset (int or str): output number or file name
         directory (str): directory of the .vtk
         geometry (str): for retrocompatibility if old vtk format
         inifile (str): name of the simulation's parameter file if no default files (combined with code)
@@ -1476,6 +1476,7 @@ class GasDataSet:
     def __init__(
         self,
         input_dataset: Union[int, str],
+        /
         *,
         inifile: str = "",
         code: str = "",
