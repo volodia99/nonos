@@ -2,7 +2,7 @@ import glob
 import os
 import re
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 import inifix
 import numpy as np
@@ -180,7 +180,10 @@ class Parameters:
         *,
         geometry: str = "unknown",
         cell: str = "edges",
+        fluid: Optional[str] = None,
     ):
+        if fluid is not None and self.code != "fargo3d":
+            raise ValueError("fluid is defined only for fargo3d outputs")
         output_number, filename = funnel_on_type(
             input_dataset, code=self.code, directory=self.directory
         )
@@ -188,7 +191,7 @@ class Parameters:
         codeReadFormat = CodeReadFormat()
         if self.code == "fargo3d":
             return codeReadFormat.fargo3dReadDat(
-                self.on, directory=self.directory, inifile=self.paramfile
+                self.on, directory=self.directory, inifile=self.paramfile, fluid=fluid
             )
         elif self.code == "fargo-adsg":
             return codeReadFormat.fargoAdsgReadDat(
@@ -679,10 +682,10 @@ class CodeReadFormat:
 
     def fargoAdsgReadDat(self, on, *, directory=""):
         V = DataStructure()
-        filebeg = "gas"
-        densfile = os.path.join(directory, f"{filebeg}dens{on}.dat")
-        vyfile = os.path.join(directory, f"{filebeg}vrad{on}.dat")
-        vxfile = os.path.join(directory, f"{filebeg}vtheta{on}.dat")
+        fluid = "gas"
+        densfile = os.path.join(directory, f"{fluid}dens{on}.dat")
+        vyfile = os.path.join(directory, f"{fluid}vrad{on}.dat")
+        vxfile = os.path.join(directory, f"{fluid}vtheta{on}.dat")
 
         V.geometry = "polar"
         V.data = {}
@@ -724,13 +727,14 @@ class CodeReadFormat:
 
         return V
 
-    def fargo3dReadDat(self, on, *, directory="", inifile=""):
+    def fargo3dReadDat(self, on, *, directory="", inifile="", fluid=None):
+        if fluid is None:
+            fluid = "gas"
         V = DataStructure()
-        filebeg = "gas"
-        densfile = os.path.join(directory, f"{filebeg}dens{on}.dat")
-        vyfile = os.path.join(directory, f"{filebeg}vy{on}.dat")
-        vxfile = os.path.join(directory, f"{filebeg}vx{on}.dat")
-        vzfile = os.path.join(directory, f"{filebeg}vz{on}.dat")
+        densfile = os.path.join(directory, f"{fluid}dens{on}.dat")
+        vyfile = os.path.join(directory, f"{fluid}vy{on}.dat")
+        vxfile = os.path.join(directory, f"{fluid}vx{on}.dat")
+        vzfile = os.path.join(directory, f"{fluid}vz{on}.dat")
 
         if inifile == "":
             params = Parameters(directory=directory, inifile=inifile, code="")
@@ -820,5 +824,8 @@ class CodeReadFormat:
                 V.data[key] = np.roll(V.data[key], V.n2 // 2, axis=2)
         else:
             raise ValueError(f"{V.geometry} not implemented yet for fargo3d.")
+
+        if not V.data:
+            raise FileNotFoundError(f"No file matches the pattern '{fluid}*{on}.dat'")
 
         return V
