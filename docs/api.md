@@ -218,6 +218,26 @@ It is also possible to access some other quantities in the arrays:
 
     `remove_planet_hill(planet_number)` masks the region $\phi_p \in \left[\phi_p - 2 R_{\rm hill}/R_p , \phi_p + 2 R_{\rm hill}/R_p \right]$ with $(R_p, \phi_p)$ the planet's coordinates and $R_{\rm hill}$ its Hill radius.
 
+### 4. Save fields and read dataset from reduced files
+
+It is possible to save reduced arrays in NPY files, which are standard binary file format for numpy arrays. It it then possible to get a dataset from these reduced files. It could be a good strategy to pre-process large VTK files on a cluster and transfer afterwards the reduced files locally for post-processing.
+
+!!! example "Save reduced fields (idefix, 3D, spherical $r$-$\theta$-$\phi$)"
+
+    ```python
+    from nonos.api import GasDataSet
+    ds = GasDataSet(500, directory="tests/data/idefix_spherical_planet3d")
+    for field in ("RHO", "VX1"):
+        ds[field].azimuthal_average().save("tests/data/idefix_spherical_planet3d")
+    ```
+
+!!! example "Access reduced fields in a dataset (idefix, 3D, spherical $r$-$\theta$-$\phi$)"
+
+    ```python
+    from nonos.api import GasDataSet
+    ds_aa = GasDataSet.from_npy(500, operation="azimuthal_average", directory="tests/data/idefix_spherical_planet3d")
+    ```
+
 ## Plotting the fields
 
 Once the field has been mapped in a plane of visualization (ex: `dsmap = ds["RHO"].radial_at_r(1).map("phi","z")`), we can plot it using the `plot` method. Note that you first need to create your figure and subplots, and you can afterwards add some complexity by using the power of matplotlib.
