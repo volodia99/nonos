@@ -228,7 +228,7 @@ It is possible to save reduced arrays in NPY files, which are standard binary fi
     from nonos.api import GasDataSet
     ds = GasDataSet(500, directory="tests/data/idefix_spherical_planet3d")
     for field in ("RHO", "VX1"):
-        ds[field].azimuthal_average().save()
+        ds[field].azimuthal_average().save("tests/data/idefix_spherical_planet3d")
     ```
 
 !!! example "Access reduced fields in a dataset (idefix, 3D, spherical $r$-$\theta$-$\phi$)"
