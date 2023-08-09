@@ -1,7 +1,6 @@
 import glob
 import os
 import re
-from numbers import Integral
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
@@ -218,12 +217,12 @@ def funnel_on_type(
                 raise ValueError("filename format is not correct")
             else:
                 on = int(m.group())
-        elif isinstance(input_dataset, Integral):
+        elif isinstance(input_dataset, (int, np.integer)):
             on = input_dataset
             filename = os.path.join(directory, f"data.{on:04d}.vtk")
         else:
             raise TypeError(
-                f"input_dataset type not recognized ({type(input_dataset)})"
+                f"input_dataset type ({type(input_dataset)}) not recognized (should be int or str)"
             )
         return (on, filename)
     else:
