@@ -217,9 +217,13 @@ def funnel_on_type(
                 raise ValueError("filename format is not correct")
             else:
                 on = int(m.group())
-        elif isinstance(input_dataset, int):
+        elif isinstance(input_dataset, (int, np.integer)):
             on = input_dataset
             filename = os.path.join(directory, f"data.{on:04d}.vtk")
+        else:
+            raise TypeError(
+                f"input_dataset type ({type(input_dataset)}) not recognized (should be int or str)"
+            )
         return (on, filename)
     else:
         raise ValueError(f"For now, can't read files from {code} simulations.")
