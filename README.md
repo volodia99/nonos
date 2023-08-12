@@ -236,10 +236,6 @@ plt.show()
 `nonos` CLI uses a custom style that can be reused programmatically, without
 importing the package, using matplotlib API
 ```python
-import matplotlib as mpl
-mpl.style.use("nonos.default")
-
-# alternatively
 import matplotlib.pyplot as plt
 plt.style.use("nonos.default")
 ```
