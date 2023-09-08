@@ -34,6 +34,12 @@ def file_analysis(filename, *, inifile="", code="", directory="", norb=None):
 
 
 def planet_analysis(planet_number, *, inifile="", code="", directory="", norb=None):
+    warnings.warn(
+        "nonos.api.satellite.planet_analysis is deprecated and will be removed in "
+        "a future version. Please use nonos.api.satellite.file_analysis instead.",
+        category=DeprecationWarning,
+        stacklevel=2,
+    )
     if norb is not None:
         warnings.warn(
             "The norb argument has no effect and is deprecated",
@@ -177,7 +183,7 @@ def compute(
         inifile=ref.inifile,
         code=ref.code,
         directory=ref.directory,
-        rotate_grid=ref._rotate_grid,
+        rotate_by=ref._rotate_by,
     )
 
 
@@ -193,6 +199,12 @@ def from_data(
     directory: str = "",
     rotate_grid: int = -1,
 ):
+    warnings.warn(
+        "nonos.api.satellite.from_data is deprecated and will be removed "
+        "in a future version. Please use nonos.api.satellite.compute instead",
+        category=DeprecationWarning,
+        stacklevel=2,
+    )
     ret_data = data
     ret_coords = coords
     geometry = coords.geometry

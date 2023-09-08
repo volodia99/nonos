@@ -11,6 +11,11 @@ import numpy as np
 from matplotlib.scale import SymmetricalLogTransform
 from matplotlib.ticker import SymmetricalLogLocator
 
+from nonos.api._angle_parsing import (
+    _fequal,
+    _parse_planet_file,
+    _parse_rotation_angle,
+)
 from nonos.api.from_simulation import Parameters
 from nonos.api.tools import find_around, find_nearest
 from nonos.logging import logger
@@ -446,7 +451,9 @@ class GasField:
         inifile: str = "",
         code: str = "",
         directory="",
-        rotate_grid: int = -1,
+        rotate_by: Optional[float] = None,
+        rotate_with: Optional[str] = None,
+        rotate_grid: int = -1,  # deprecated
     ) -> None:
         self.field = field
         self.operation = operation
@@ -458,7 +465,16 @@ class GasField:
         self.inifile = inifile
         self.code = code
         self.directory = directory
-        self._rotate_grid = rotate_grid
+        self._rotate_by = _parse_rotation_angle(
+            rotate_by=rotate_by,
+            rotate_with=rotate_with,
+            planet_number_argument=(
+                "rotate_grid",
+                (rotate_grid if rotate_grid >= 0 else None),
+            ),
+            stacklevel=2,
+            find_phip=self.find_phip,
+        )
 
     @property
     def shape(self) -> Tuple[int, int, int]:
@@ -470,7 +486,21 @@ class GasField:
         i, j, k = (max(1, n - 1) for n in self.coords.shape)
         return i, j, k
 
-    def map(self, *wanted, planet_corotation: Optional[int] = None) -> Plotable:
+    def map(
+        self,
+        *wanted,
+        rotate_by: Optional[float] = None,
+        rotate_with: Optional[str] = None,
+        planet_corotation: Optional[int] = None,  # deprecated
+    ) -> Plotable:
+        rotate_by = _parse_rotation_angle(
+            rotate_by=rotate_by,
+            rotate_with=rotate_with,
+            planet_number_argument=("planet_corotation", planet_corotation),
+            stacklevel=2,
+            find_phip=self.find_phip,
+        )
+
         data_key = self.field
         # we count the number of 1 in the shape of the data, which gives the real dimension of the data,
         # i.e. the number of reductions already performed (0 -> 3D, 1 -> 2D, 2 -> 1D)
@@ -483,13 +513,8 @@ class GasField:
             # abscissa = meshgrid_conversion[wanted[0]]
             abscissa_value = list(meshgrid_conversion.values())[0]
             abscissa_key = list(meshgrid_conversion.keys())[0]
-            if (
-                planet_corotation is not None
-                and "phi" in wanted
-                and self._rotate_grid != planet_corotation
-            ):
-                phip = self.find_phip(planet_number=planet_corotation)
-                phicoord = self.coords.phi - phip  # - np.pi
+            if "phi" in wanted and not _fequal(self._rotate_by, rotate_by):
+                phicoord = self.coords.phi - rotate_by
                 ipi = find_nearest(phicoord, 0)
                 if abs(0 - phicoord[ipi]) > abs(
                     np.ediff1d(find_around(phicoord, 0))[0]
@@ -505,8 +530,9 @@ class GasField:
                     )
                 else:
                     raise NotImplementedError(
-                        f"geometry flag '{self.native_geometry}' not implemented yet if planet_corotation"
+                        f"geometry flag '{self.native_geometry}' not implemented yet if corotation"
                     )
+                self._rotate_by = rotate_by
 
             datamoved_tmp = np.moveaxis(self.data, self.shape.index(1), 0)
             datamoved = np.moveaxis(
@@ -528,13 +554,8 @@ class GasField:
             )
             abscissa_key, ordinate_key = (wanted[0], wanted[1])
             native_from_wanted = self.coords.native_from_wanted(*wanted)[0]
-            if (
-                planet_corotation is not None
-                and "phi" in native_from_wanted
-                and self._rotate_grid != planet_corotation
-            ):
-                phip = self.find_phip(planet_number=planet_corotation)
-                phicoord = self.coords.phi - phip  # - np.pi
+            if "phi" in native_from_wanted and not _fequal(self._rotate_by, rotate_by):
+                phicoord = self.coords.phi - rotate_by
                 # ipi = find_nearest(phicoord, np.pi)
                 # if (abs(np.pi-phicoord[ipi])>abs(np.ediff1d(find_around(phicoord, np.pi))[0])):
                 #     ipi = find_nearest(phicoord, -np.pi)
@@ -553,9 +574,9 @@ class GasField:
                     )
                 else:
                     raise NotImplementedError(
-                        f"geometry flag '{self.native_geometry}' not implemented yet if planet_corotation"
+                        f"geometry flag '{self.native_geometry}' not implemented yet if corotation"
                     )
-                self._rotate_grid = planet_corotation
+                self._rotate_by = rotate_by
 
             data = self.data.squeeze()
             if self.shape.index(1) != 1 or not meshgrid_conversion["ordered"]:
@@ -644,32 +665,48 @@ class GasField:
         if self.native_geometry in ("polar", "spherical"):
             return find_nearest(self.coords.phi, phi) % self.coords.phimed.shape[0]
 
-    def find_rp(self, planet_number: int = 0):
+    def find_rp(
+        self, planet_number: Optional[int] = None, *, planet_file: Optional[str] = None
+    ) -> float:
+        planet_file = _parse_planet_file(
+            planet_number=planet_number, planet_file=planet_file
+        )
+        del planet_number
         init = Parameters(
             inifile=self.inifile, code=self.code, directory=self.directory
         )
         init.loadIniFile()
-        init.loadPlanetFile(planet_number=planet_number)
+        init.loadPlanetFile(planet_file=planet_file)
         ind_on = find_nearest(init.tpl, init.vtk * self.on)
         return init.dpl[ind_on]
 
-    def find_rhill(self, planet_number: int = 0):
+    def find_rhill(
+        self, planet_number: Optional[int] = None, *, planet_file: Optional[str] = None
+    ) -> float:
+        planet_file = _parse_planet_file(
+            planet_number=planet_number, planet_file=planet_file
+        )
+        del planet_number
         init = Parameters(
             inifile=self.inifile, code=self.code, directory=self.directory
         )
         init.loadIniFile()
-        init.loadPlanetFile(planet_number=planet_number)
+        init.loadPlanetFile(planet_file=planet_file)
         ind_on = find_nearest(init.tpl, init.vtk * self.on)
         return pow(init.qpl[ind_on] / 3.0, 1.0 / 3.0) * init.apl[ind_on]
 
-    def find_phip(self, planet_number: int = 0):
-        if self._rotate_grid == planet_number:
-            return 0.0
+    def find_phip(
+        self, planet_number: Optional[int] = None, *, planet_file: Optional[str] = None
+    ) -> float:
+        planet_file = _parse_planet_file(
+            planet_number=planet_number, planet_file=planet_file
+        )
+        del planet_number
         init = Parameters(
             inifile=self.inifile, code=self.code, directory=self.directory
         )
         init.loadIniFile()
-        init.loadPlanetFile(planet_number=planet_number)
+        init.loadPlanetFile(planet_file=planet_file)
         ind_on = find_nearest(init.tpl, init.vtk * self.on)
         return np.arctan2(init.ypl, init.xpl)[ind_on] % (2 * np.pi) - np.pi
 
@@ -739,7 +776,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
-            rotate_grid=self._rotate_grid,
+            rotate_by=self._rotate_by,
         )
 
     # def latitudinal_projection(self, theta=None):
@@ -835,7 +872,7 @@ class GasField:
     #         inifile=self.inifile,
     #         code=self.code,
     #         directory=self.directory,
-    #         rotate_grid=self._rotate_grid,
+    #         rotate_by=self._rotate_by,
     #     )
 
     def vertical_projection(self, z=None) -> "GasField":
@@ -896,7 +933,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
-            rotate_grid=self._rotate_grid,
+            rotate_by=self._rotate_by,
         )
 
     def vertical_at_midplane(self) -> "GasField":
@@ -942,7 +979,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
-            rotate_grid=self._rotate_grid,
+            rotate_by=self._rotate_by,
         )
 
     def latitudinal_at_theta(self, theta=None, name_operation=None) -> "GasField":
@@ -1023,7 +1060,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
-            rotate_grid=self._rotate_grid,
+            rotate_by=self._rotate_by,
         )
 
     def vertical_at_z(self, z=None, name_operation=None) -> "GasField":
@@ -1116,7 +1153,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
-            rotate_grid=self._rotate_grid,
+            rotate_by=self._rotate_by,
         )
 
     def azimuthal_at_phi(self, phi=None) -> "GasField":
@@ -1156,12 +1193,18 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
-            rotate_grid=self._rotate_grid,
+            rotate_by=self._rotate_by,
         )
 
-    def azimuthal_at_planet(self, planet_number: int = 0) -> "GasField":
+    def azimuthal_at_planet(
+        self, planet_number: Optional[int] = None, *, planet_file: Optional[str] = None
+    ) -> "GasField":
+        planet_file = _parse_planet_file(
+            planet_number=planet_number, planet_file=planet_file
+        )
+        del planet_number
         operation = self.operation + "_azimuthal_at_planet"
-        phip = self.find_phip(planet_number=planet_number)
+        phip = self.find_phip(planet_file=planet_file)
         aziphip = self.azimuthal_at_phi(phi=phip)
         return GasField(
             self.field,
@@ -1173,7 +1216,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
-            rotate_grid=self._rotate_grid,
+            rotate_by=self._rotate_by,
         )
 
     def azimuthal_average(self) -> "GasField":
@@ -1214,15 +1257,21 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
-            rotate_grid=self._rotate_grid,
+            rotate_by=self._rotate_by,
         )
 
-    def remove_planet_hill(self, planet_number: int = 0) -> "GasField":
+    def remove_planet_hill(
+        self, planet_number: Optional[int] = None, *, planet_file: Optional[str] = None
+    ) -> "GasField":
+        planet_file = _parse_planet_file(
+            planet_number=planet_number, planet_file=planet_file
+        )
+        del planet_number
         # self.field = r"$\langle$%s$\rangle$" % self.field
         operation = self.operation + "_remove_planet_hill"
-        phip = self.find_phip(planet_number=planet_number)
-        rp = self.find_rp(planet_number=planet_number)
-        rhill = self.find_rhill(planet_number=planet_number)
+        phip = self.find_phip(planet_file=planet_file)
+        rp = self.find_rp(planet_file=planet_file)
+        rhill = self.find_rhill(planet_file=planet_file)
         iphip_m = self.find_iphi(phi=phip - 2 * rhill / rp)
         iphip_p = self.find_iphi(phi=phip + 2 * rhill / rp)
         if self.native_geometry == "cartesian":
@@ -1279,7 +1328,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
-            rotate_grid=self._rotate_grid,
+            rotate_by=self._rotate_by,
         )
 
     def radial_at_r(self, distance=None):
@@ -1318,7 +1367,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
-            rotate_grid=self._rotate_grid,
+            rotate_by=self._rotate_by,
         )
 
     def radial_average_interval(self, vmin=None, vmax=None) -> "GasField":
@@ -1365,7 +1414,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
-            rotate_grid=self._rotate_grid,
+            rotate_by=self._rotate_by,
         )
 
     def diff(self, on_2) -> "GasField":
@@ -1394,18 +1443,29 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
-            rotate_grid=self._rotate_grid,
+            rotate_by=self._rotate_by,
         )
 
-    def rotate(self, planet_corotation: Optional[int] = None) -> "GasField":
+    def rotate(
+        self,
+        planet_corotation: Optional[int] = None,
+        *,
+        rotate_with: Optional[str] = None,
+        rotate_by: Optional[float] = None,
+    ) -> "GasField":
+        rotate_by = _parse_rotation_angle(
+            rotate_by=rotate_by,
+            rotate_with=rotate_with,
+            planet_number_argument=("planet_corotation", planet_corotation),
+            find_phip=self.find_phip,
+            stacklevel=2,
+        )
+
         operation = self.operation
         if self.shape.count(1) != 1:
             raise ValueError("data has to be 2D in order to rotate the data.")
-        if (
-            planet_corotation is not None and self._rotate_grid != planet_corotation
-        ):  # and self.coords.phi.shape[0]!=1:
-            phip = self.find_phip(planet_number=planet_corotation)
-            phicoord = self.coords.phi - phip  # - np.pi
+        if not _fequal(self._rotate_by, rotate_by):
+            phicoord = self.coords.phi - rotate_by
             ipi = find_nearest(phicoord, 0)
             if abs(0 - phicoord[ipi]) > abs(np.ediff1d(find_around(phicoord, 0))[0]):
                 ipi = find_nearest(phicoord, 2 * np.pi)
@@ -1428,9 +1488,9 @@ class GasField:
                 )
             else:
                 raise NotImplementedError(
-                    f"geometry flag '{self.native_geometry}' not implemented yet if planet_corotation"
+                    f"geometry flag '{self.native_geometry}' not implemented yet if corotation"
                 )
-            self._rotate_grid = planet_corotation
+            self._rotate_by = rotate_by
         else:
             ret_data = self.data
             if self.native_geometry == "polar":
@@ -1455,7 +1515,7 @@ class GasField:
             inifile=self.inifile,
             code=self.code,
             directory=self.directory,
-            rotate_grid=self._rotate_grid,
+            rotate_by=self._rotate_by,
         )
 
 

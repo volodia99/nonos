@@ -67,7 +67,7 @@ Optional arguments:
 
     As mentioned earlier, `ds` contains in particular a dictionary with the different fields. Let's say you want to perform a vertical slice of the density in the midplane, plot the result in the `xy` plane and rotate the grid given the planet number 0 (which orbit is described in the planet0.dat file):
     ```python
-    dsvm = ds["RHO"].vertical_at_midplane().map("x", "y", planet_corotation=0)
+    dsvm = ds["RHO"].vertical_at_midplane().map("x", "y", rotate_with="planet0.dat")
     ```
 
     dsop is now a Plotable object. We can e.g. represent its log10, with a given colormap, and display the colorbar by adding the argument `title`.
@@ -200,7 +200,7 @@ It is also possible to access some other quantities in the arrays:
 
 ### 2. Other important operations
 
-* `map("XDIR","YDIR")`: before plotting the field, **we have to map it** in the `("XDIR","YDIR")` plane + optional `planet_corotation` (int) argument to rotate the grid with respect to the corresponding planet number. Mapping the field means here that we start with a native geometry for the outputs, e.g., a 2D polar geometry ($R$, $\phi$), and we want to visualize it in a cartesian plane ($x$, $y$). `("XDIR","YDIR")` can be for example `("R","phi")`, `("x","y")`, `("x","z")`, `("r","theta")`,... depending on the native geometry you have and the target geometry you want.
+* `map("XDIR","YDIR")`: before plotting the field, **we have to map it** in the `("XDIR","YDIR")` plane + optional `rotate_by` (rotation angle, float) or `rotate_with` (planet log file, str) to rotate the grid. Mapping the field means here that we start with a native geometry for the outputs, e.g., a 2D polar geometry ($R$, $\phi$), and we want to visualize it in a cartesian plane ($x$, $y$). `("XDIR","YDIR")` can be for example `("R","phi")`, `("x","y")`, `("x","z")`, `("r","theta")`,... depending on the native geometry you have and the target geometry you want.
 * `diff(on)`: compute the relative difference of the same field for a different VTK file.
 * `save(directory)`: create a .npy file which saves in `directory` the array you just computed.
 
