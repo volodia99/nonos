@@ -36,6 +36,7 @@ from nonos.parsing import (
     parse_output_number_range,
     parse_range,
     range_converter,
+    userval_or_default,
 )
 from nonos.styling import set_mpl_style
 
@@ -446,21 +447,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     params.countSimuFiles()
     data_files = params.data_files
 
-    if not is_set(args["operation"]):
-        operations = ["vm"]
-    else:
-        operations = args["operation"]
-
-    if not is_set(args["plane"]):
-        plane = None
-    else:
-        plane = args["plane"]
-
-    if not is_set(args["geometry"]):
-        geometry = "unknown"
-    else:
-        geometry = args["geometry"]
-
     available = set()
     for fn in data_files:
         if (num := re.search(r"\d+", fn)) is not None:
@@ -499,48 +485,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     assert not set(clargs).difference(set(DEFAULTS))
 
     args["field"] = args["field"].upper()
-
-    if not is_set(args["title"]):
-        title = args["field"]
-    else:
-        title = args["title"]
-
-    planet_file: Optional[str]
-    if not is_set(args["corotate"]):
-        planet_file = None
-    else:
-        planet_file = _parse_planet_file(planet_number=args["corotate"])
-
-    if not is_set(args["vmin"]):
-        vmin = None
-    else:
-        vmin = args["vmin"]
-
-    if not is_set(args["vmax"]):
-        vmax = None
-    else:
-        vmax = args["vmax"]
-
-    if not is_set(args["theta"]):
-        theta = None
-    else:
-        theta = args["theta"]
-
-    if not is_set(args["z"]):
-        z = None
-    else:
-        z = args["z"]
-
-    if not is_set(args["phi"]):
-        phi = None
-    else:
-        phi = args["phi"]
-
-    if not is_set(args["distance"]):
-        distance = None
-    else:
-        distance = args["distance"]
-
     extent = args["range"]
 
     if args["ncpu"] > (ncpu := min(args["ncpu"], os.cpu_count())):
@@ -559,32 +503,38 @@ def main(argv: Optional[List[str]] = None) -> int:
         def mytrack(iterable, *args, **kwargs):  # noqa: ARG001
             return iterable
 
+    planet_file: Optional[str]
+    if not is_set(args["corotate"]):
+        planet_file = None
+    else:
+        planet_file = _parse_planet_file(planet_number=args["corotate"])
+
     # call of the process_field function, whether it be in parallel or not
     # TODO: reduce this to the bare minimum
     func = functools.partial(
         process_field,
-        operations=operations,
+        operations=userval_or_default(args["operation"], default=["vm"]),
         field=args["field"],
-        plane=plane,
-        geometry=geometry,
+        plane=userval_or_default(args["plane"], default=None),
+        geometry=userval_or_default(args["geometry"], default="unknown"),
         diff=args["diff"],
         log=args["log"],
         planet_file=planet_file,
         extent=extent,
-        vmin=vmin,
-        vmax=vmax,
+        vmin=userval_or_default(args["vmin"], default=None),
+        vmax=userval_or_default(args["vmax"], default=None),
         scaling=args["scaling"],
         cmap=args["cmap"],
-        title=title,
+        title=userval_or_default(args["title"], default=args["field"]),
         unit_conversion=args["unit_conversion"],
         datadir=args["datadir"],
         show=show,
         dpi=args["dpi"],
         fmt=args["format"],
-        theta=theta,
-        z=z,
-        phi=phi,
-        distance=distance,
+        theta=userval_or_default(args["theta"], default=None),
+        z=userval_or_default(args["z"], default=None),
+        phi=userval_or_default(args["phi"], default=None),
+        distance=userval_or_default(args["distance"], default=None),
         log_level=level,
     )
 

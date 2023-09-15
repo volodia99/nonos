@@ -1,10 +1,25 @@
-from typing import Any, List, Optional, Tuple, Union, overload
+from typing import Any, List, Optional, Tuple, TypeVar, Union, overload
 
 import numpy as np
 
 
 def is_set(x: Any) -> bool:
     return x not in (None, "unset")
+
+
+T1 = TypeVar("T1")
+T2 = TypeVar("T2")
+
+
+def userval_or_default(userval: T1, /, *, default: T2) -> Union[T1, T2]:
+    # it'd be nice to avoid a Union as a return type, however it's not clear
+    # how to express what this function does in typing language.
+    # In practice this is used in places where it's very hard to constrain T1, so
+    # the infered return type always degrades down to Any anyway.
+    if is_set(userval):
+        return userval
+    else:
+        return default
 
 
 def parse_output_number_range(
