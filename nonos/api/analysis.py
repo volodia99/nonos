@@ -5,9 +5,10 @@ import sys
 import warnings
 from pathlib import Path
 from shutil import copyfile
-from typing import Any, Dict, Optional, Tuple, Union, overload
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Union, overload
 
 import numpy as np
+from matplotlib.scale import SymmetricalLogTransform
 from matplotlib.ticker import SymmetricalLogLocator
 
 from nonos.api.from_simulation import Parameters
@@ -18,6 +19,10 @@ if sys.version_info >= (3, 9):
     from collections.abc import ItemsView, KeysView, ValuesView
 else:
     from typing import ItemsView, KeysView, ValuesView
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
 
 
 class Plotable:
@@ -33,8 +38,8 @@ class Plotable:
 
     def plot(
         self,
-        fig,
-        ax,
+        fig: "Figure",
+        ax: "Axes",
         *,
         log=False,
         cmap="inferno",
@@ -104,10 +109,12 @@ class Plotable:
                     # as of matplotlib 3.7.1, see
                     # https://github.com/matplotlib/matplotlib/issues/25994
                     trf = cb_axis.get_transform()
+                    if not isinstance(trf, SymmetricalLogTransform):
+                        raise RuntimeError
                     cb_axis.set_major_locator(SymmetricalLogLocator(trf))
                     if float(trf.base).is_integer():
                         locator = SymmetricalLogLocator(
-                            trf, subs=np.arange(1, trf.base)
+                            trf, subs=list(range(1, int(trf.base)))
                         )
                         cb_axis.set_minor_locator(locator)
             else:
@@ -120,11 +127,7 @@ class Plotable:
             if "norm" in kwargs:
                 logger.info("norm has no meaning in 1D.")
                 kwargs.pop("norm")
-            im = ax.plot(
-                self.avalue,
-                data,
-                **kwargs,
-            )
+            ax.plot(self.avalue, data, **kwargs)
             ax.set_ylim(ymin=vmin)
             ax.set_ylim(ymax=vmax)
             ax.set_xlabel(self.akey)
