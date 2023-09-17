@@ -1,12 +1,16 @@
 import os
 import warnings
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 from lick.lick import lick_box
 
 from nonos.api.analysis import Coordinates, GasField, Plotable
 from nonos.api.from_simulation import Parameters
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
 
 
 def file_analysis(filename, *, inifile="", code="", directory="", norb=None):
@@ -85,8 +89,8 @@ class NonosLick:
 
     def plot(
         self,
-        fig,
-        ax,
+        fig: "Figure",
+        ax: "Axes",
         *,
         vmin: Optional[float] = None,
         vmax: Optional[float] = None,
