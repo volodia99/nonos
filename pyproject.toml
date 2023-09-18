@@ -84,7 +84,10 @@ select = [
 combine-as-imports = true
 
 [tool.pytest.ini_options]
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    'ignore:datetime\.datetime\.utcfromtimestamp\(\) is deprecated:DeprecationWarning', # https://github.com/dateutil/dateutil/pull/1285
+]
 
 [tool.mypy]
 python_version = "3.8"
