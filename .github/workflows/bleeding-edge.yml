@@ -12,7 +12,7 @@ on:
 
   pull_request:
     paths:
-    - .github/workflows/bleeding-edge.yaml
+    - .github/workflows/bleeding-edge.yml
 
   schedule:
     # run this once a week (wednesday) at 3 am UTC
