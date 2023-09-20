@@ -21,6 +21,7 @@ from inifix.format import iniformat
 
 from nonos.__version__ import __version__
 from nonos.api import GasDataSet, Parameters
+from nonos.api._angle_parsing import _parse_planet_file
 from nonos.config import DEFAULTS
 from nonos.logging import (
     configure_logger,
@@ -54,7 +55,7 @@ def process_field(
     geometry,
     diff,
     log,
-    corotate,
+    planet_file: Optional[str],
     extent,
     vmin,
     vmax,
@@ -96,7 +97,7 @@ def process_field(
     if "ap" in operations:
         dsop = dsop.azimuthal_at_phi(phi=phi)
     elif "apl" in operations:
-        dsop = dsop.azimuthal_at_planet(planet_number=corotate)
+        dsop = dsop.azimuthal_at_planet(planet_file=planet_file)
     elif "aa" in operations:
         dsop = dsop.azimuthal_average()
 
@@ -120,7 +121,7 @@ def process_field(
     fig = plt.figure()
     ax = fig.add_subplot(111, polar=False)
     if dim == 1:
-        dsop.map(plane[0], planet_corotation=corotate).plot(
+        dsop.map(plane[0], rotate_with=planet_file).plot(
             fig,
             ax,
             log=log,
@@ -129,13 +130,13 @@ def process_field(
             title="$%s$" % title,
             unit_conversion=unit_conversion,
         )
-        akey = dsop.map(plane[0], planet_corotation=corotate).dict_plotable["abscissa"]
-        avalue = dsop.map(plane[0], planet_corotation=corotate).dict_plotable[akey]
+        akey = dsop.map(plane[0], rotate_with=planet_file).dict_plotable["abscissa"]
+        avalue = dsop.map(plane[0], rotate_with=planet_file).dict_plotable[akey]
         extent = parse_range(extent, dim=dim)
         extent = range_converter(extent, abscissa=avalue, ordinate=np.zeros(2))
         ax.set_xlim(extent[0], extent[1])
     elif dim == 2:
-        dsop.map(plane[0], plane[1], planet_corotation=corotate).plot(
+        dsop.map(plane[0], plane[1], rotate_with=planet_file).plot(
             fig,
             ax,
             log=log,
@@ -145,16 +146,16 @@ def process_field(
             title="$%s$" % title,
             unit_conversion=unit_conversion,
         )
-        akey = dsop.map(plane[0], plane[1], planet_corotation=corotate).dict_plotable[
+        akey = dsop.map(plane[0], plane[1], rotate_with=planet_file).dict_plotable[
             "abscissa"
         ]
-        okey = dsop.map(plane[0], plane[1], planet_corotation=corotate).dict_plotable[
+        okey = dsop.map(plane[0], plane[1], rotate_with=planet_file).dict_plotable[
             "ordinate"
         ]
-        avalue = dsop.map(plane[0], plane[1], planet_corotation=corotate).dict_plotable[
+        avalue = dsop.map(plane[0], plane[1], rotate_with=planet_file).dict_plotable[
             akey
         ]
-        ovalue = dsop.map(plane[0], plane[1], planet_corotation=corotate).dict_plotable[
+        ovalue = dsop.map(plane[0], plane[1], rotate_with=planet_file).dict_plotable[
             okey
         ]
         extent = parse_range(extent, dim=dim)
@@ -217,6 +218,8 @@ def get_parser() -> argparse.ArgumentParser:
         nargs="+",
         help=f"abscissa and ordinate of the plane of projection (default: '{DEFAULTS['plane']}'), example: r phi",
     )
+
+    # TODO(GWF): add support for -rotate_by -1.2453036989845032 (idefix_newvtk_planet2d)
     parser.add_argument(
         "-corotate",
         type=int,
@@ -502,10 +505,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         title = args["title"]
 
+    planet_file: Optional[str]
     if not is_set(args["corotate"]):
-        corotate = None
+        planet_file = None
     else:
-        corotate = args["corotate"]
+        planet_file = _parse_planet_file(planet_number=args["corotate"])
 
     if not is_set(args["vmin"]):
         vmin = None
@@ -565,7 +569,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         geometry=geometry,
         diff=args["diff"],
         log=args["log"],
-        corotate=corotate,
+        planet_file=planet_file,
         extent=extent,
         vmin=vmin,
         vmax=vmax,

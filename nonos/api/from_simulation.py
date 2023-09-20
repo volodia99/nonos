@@ -7,6 +7,7 @@ from typing import Optional, Tuple, Union
 import inifix
 import numpy as np
 
+from nonos.api._angle_parsing import _parse_planet_file
 from nonos.logging import logger
 
 _INIFILES_LOOKUP_TABLE = {
@@ -81,8 +82,13 @@ class Parameters:
                 self.omegaframe = None
                 self.frame = None
 
-    def loadPlanetFile(self, *, planet_number: int = 0):
-        planet_file = f"planet{planet_number}.dat"
+    def loadPlanetFile(
+        self, *, planet_number: Optional[int] = None, planet_file: Optional[str] = None
+    ) -> None:
+        planet_file = _parse_planet_file(
+            planet_number=planet_number, planet_file=planet_file
+        )
+        del planet_number
 
         if self.code in ("idefix", "fargo3d"):
             if Path(self.directory).joinpath(planet_file).is_file():

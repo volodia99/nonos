@@ -126,7 +126,7 @@ def test_plot_planet_corotation(test_data_dir):
         ds["RHO"]
         .radial_at_r()
         .vertical_at_midplane()
-        .map("phi", planet_corotation=0)
+        .map("phi", rotate_with="planet0.dat")
         .data
     )
     assert (
@@ -175,15 +175,15 @@ def test_compute_from_data(test_data_dir):
     rhovp = rhovpfield.data
     vx2vp = vx2vpfield.data
 
-    rhovx2_from_data = from_data(
-        field="RHOVX2",
-        data=rhovp * vx2vp,
-        coords=rhovpfield.coords,
-        on=rhovpfield.on,
-        operation=rhovpfield.operation,
-        directory=directory,
-        rotate_grid=rhovpfield._rotate_grid,
-    )
+    with pytest.deprecated_call():
+        rhovx2_from_data = from_data(
+            field="RHOVX2",
+            data=rhovp * vx2vp,
+            coords=rhovpfield.coords,
+            on=rhovpfield.on,
+            operation=rhovpfield.operation,
+            directory=directory,
+        )
 
     datane = ne.evaluate("rhovp*vx2vp")
     rhovx2_compute = compute(
@@ -203,3 +203,14 @@ def test_pbar(simulation_dir, capsys, tmp_path):
     assert err == ""
     assert "Processing snapshots" in out
     assert ret == 0
+
+
+def test_corotation_api_float(test_data_dir):
+    os.chdir(test_data_dir / "idefix_newvtk_planet2d")
+
+    ds = GasDataSet(23)
+    case1 = ds["RHO"].map("x", "y", rotate_with="planet0.dat")
+    ds = GasDataSet(23)
+    case2 = ds["RHO"].map("x", "y", rotate_by=-1.2453036989845032)
+
+    npt.assert_array_equal(case1.data, case2.data)
