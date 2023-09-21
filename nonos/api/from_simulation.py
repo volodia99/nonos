@@ -1,6 +1,8 @@
 import glob
 import os
 import re
+import sys
+from enum import auto
 from pathlib import Path
 from typing import Any, Dict, Literal, Optional, Tuple, Union, cast
 
@@ -10,10 +12,23 @@ import numpy as np
 from nonos.api._angle_parsing import _parse_planet_file
 from nonos.logging import logger
 
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+else:
+    from nonos._backports import StrEnum
+
+
+class Code(StrEnum):
+    IDEFIX = auto()
+    PLUTO = auto()
+    FARGO3D = auto()
+    FARGO_ADSG = auto()
+
+
 _INIFILES_LOOKUP_TABLE = {
-    "idefix.ini": "idefix",
-    "pluto.ini": "pluto",
-    "variables.par": "fargo3d",
+    "idefix.ini": Code.IDEFIX,
+    "pluto.ini": Code.PLUTO,
+    "variables.par": Code.FARGO3D,
 }
 
 
@@ -27,12 +42,15 @@ class Parameters:
     ) -> None:
         self.directory = directory
         self.paramfile = inifile
-        self.code = code
-        if (self.code, self.paramfile).count("") == 0:
+        self.code: Code
+        if code:
+            self.code = Code(code)
+
+        if (code, self.paramfile).count("") == 0:
             found = Path(self.directory).joinpath(self.paramfile).is_file()
             if not found:
                 raise FileNotFoundError(f"{self.paramfile} not found.")
-        elif (self.code, self.paramfile).count("") == 2:
+        elif (code, self.paramfile).count("") == 2:
             found_dict = {
                 paramfile: Path(self.directory).joinpath(paramfile).is_file()
                 for paramfile in _INIFILES_LOOKUP_TABLE
@@ -48,7 +66,7 @@ class Parameters:
                 list(found_dict.values()).index(True)
             ]
             self.code = _INIFILES_LOOKUP_TABLE[self.paramfile]
-        elif (self.code, self.paramfile).count("") == 1:
+        elif (code, self.paramfile).count("") == 1:
             raise ValueError("both inifile and code have to be given.")
 
     def loadIniFile(self) -> None:
