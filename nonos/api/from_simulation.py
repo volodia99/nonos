@@ -2,7 +2,7 @@ import glob
 import os
 import re
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Any, Dict, Literal, Optional, Tuple, Union, cast
 
 import inifix
 import numpy as np
@@ -24,7 +24,7 @@ class Parameters:
         inifile: str = "",
         code: str = "",
         directory: str = "",
-    ):
+    ) -> None:
         self.directory = directory
         self.paramfile = inifile
         self.code = code
@@ -51,33 +51,108 @@ class Parameters:
         elif (self.code, self.paramfile).count("") == 1:
             raise ValueError("both inifile and code have to be given.")
 
-    def loadIniFile(self):
+    def loadIniFile(self) -> None:
+        FrameT = Literal["F", "C", None]
+
+        # inifix.load uses dynamic type inference and doesn't provide type safety at
+        # all. Here we define minimal classes that take in arbitrary keyword arguments
+        # and store selected values as attributes in a typechecker-friendly way. This
+        # implements type safety for the few parameters that we actually care about at
+        # typecheck time *and* at runtime.
+
+        class IdefixIniOutput:
+            def __init__(self, *, vtk, **_kwargs) -> None:
+                self.vtk = float(vtk)
+
+        class IdefixIniHydro:
+            def __init__(self, **kwargs) -> None:
+                self.rotation: Optional[float]
+                if "rotation" in kwargs:
+                    self.rotation = float(kwargs["rotation"])
+                else:
+                    self.rotation = None
+
+        class IdefixIni:
+            def __init__(self, *, Hydro, Output, **_kwargs) -> None:
+                self.hydro = IdefixIniHydro(**Hydro)
+                self.output = IdefixIniOutput(**Output)
+
+        class PlutoIniOutput:
+            def __init__(self, *, vtk, **_kwargs) -> None:
+                self.vtk = int(list(vtk)[0])
+
+        class PlutoIni:
+            def __init__(self, **kwargs) -> None:
+                self.output = PlutoIniOutput(**kwargs["Static Grid Output"])
+
+        class Fargo3DIni:
+            def __init__(self, *, NINTERM, DT, FRAME, **kwargs) -> None:
+                self.NINTERM = int(NINTERM)
+                self.DT = float(DT)
+                self.FRAME: FrameT
+                self.OMEGAFRAME: Optional[float]
+
+                if (str_frame := str(FRAME)) in ("F", "C"):
+                    str_frame = cast(Literal["F", "C"], str_frame)
+                    self.FRAME = str_frame
+                else:
+                    self.FRAME = None
+
+                if self.FRAME == "F":
+                    self.OMEGAFRAME = float(kwargs["OMEGAFRAME"])
+                else:
+                    self.OMEGAFRAME = None
+
+        class FargoADSGIni:
+            def __init__(self, *, Ninterm, DT, Frame, **kwargs) -> None:
+                self.Ninterm = int(Ninterm)
+                self.DT = float(DT)
+                self.Frame: FrameT
+                self.OmegaFrame: Optional[float]
+
+                if (str_frame := str(Frame)) in ("F", "C"):
+                    str_frame = cast(Literal["F", "C"], str_frame)
+                    self.Frame = str_frame
+                else:
+                    self.Frame = None
+
+                if self.Frame == "F":
+                    self.OmegaFrame = float(kwargs["OmegaFrame"])
+                else:
+                    self.OmegaFrame = None
+
+        self.vtk: float
+        self.omegaframe: Optional[float]
+        self.frame: FrameT
         self.inifile = inifix.load(os.path.join(self.directory, self.paramfile))
         if self.code == "idefix":
-            self.vtk = self.inifile["Output"]["vtk"]
-            try:
-                self.omegaframe = self.inifile["Hydro"]["rotation"]
-                self.frame = "F"
-            except KeyError:
-                self.omegaframe = None
+            idefix_ini = IdefixIni(**self.inifile)
+            self.vtk = idefix_ini.output.vtk
+            self.omegaframe = idefix_ini.hydro.rotation
+            if self.omegaframe is None:
                 self.frame = None
+            else:
+                self.frame = "F"
         elif self.code == "pluto":
-            self.vtk = self.inifile["Static Grid Output"]["vtk"][0]
+            pluto_ini = PlutoIni(**self.inifile)
+            self.vtk = pluto_ini.output.vtk
             self.omegaframe = None
             self.frame = None
         elif self.code == "fargo3d":
-            self.vtk = self.inifile["NINTERM"] * self.inifile["DT"]
-            if self.inifile["FRAME"] == "F":
+            fargo3D_ini = Fargo3DIni(**self.inifile)
+            self.vtk = fargo3D_ini.NINTERM * fargo3D_ini.DT
+            if fargo3D_ini.FRAME == "F":
+                self.omegaframe = fargo3D_ini.OMEGAFRAME
                 self.frame = "F"
-                self.omegaframe = self.inifile["OMEGAFRAME"]
             else:
                 self.omegaframe = None
                 self.frame = None
         elif self.code == "fargo-adsg":
-            self.vtk = self.inifile["Ninterm"] * self.inifile["DT"]
-            if self.inifile["Frame"] == "F":
-                self.omegaframe = self.inifile["OmegaFrame"]
-                self.frame = None
+            fargoADSG_ini = FargoADSGIni(**self.inifile)
+            self.vtk = fargoADSG_ini.Ninterm * fargoADSG_ini.DT
+            if fargoADSG_ini.Frame == "F":
+                self.omegaframe = fargoADSG_ini.OmegaFrame
+                self.frame = fargoADSG_ini.Frame
             else:
                 self.omegaframe = None
                 self.frame = None
@@ -167,7 +242,7 @@ class Parameters:
             #         "We do not yet compute eccentricity, inclination and semi-major axis if fixed rotating frame."
             #     )
 
-    def countSimuFiles(self):
+    def countSimuFiles(self) -> None:
         if self.code in ("fargo3d", "fargo-adsg"):
             self.data_files = [
                 fn
@@ -187,7 +262,7 @@ class Parameters:
         geometry: str = "unknown",
         cell: str = "edges",
         fluid: Optional[str] = None,
-    ):
+    ) -> "DataStructure":
         if fluid is not None and self.code != "fargo3d":
             raise ValueError("fluid is defined only for fargo3d outputs")
         output_number, filename = funnel_on_type(
@@ -253,13 +328,22 @@ class DataStructure:
         "x2",
         "x3",
     )
-    pass
+    data: Dict[str, Any]
+    geometry: str
+    t: np.ndarray
+    periodicity: Tuple[bool, bool, bool]
+    n1: int
+    n2: int
+    n3: int
+    x1: "np.ndarray[Any, np.dtype[np.float32 | np.float64]]"
+    x2: "np.ndarray[Any, np.dtype[np.float32 | np.float64]]"
+    x3: "np.ndarray[Any, np.dtype[np.float32 | np.float64]]"
 
 
 class CodeReadFormat:
     def idfxReadVTK(
         self, filename, *, geometry="unknown", cell="edges", computedata=True
-    ):
+    ) -> DataStructure:
         """
         Adapted from Geoffroy Lesur
         Function that reads a vtk file in polar coordinates
@@ -326,8 +410,8 @@ class CodeReadFormat:
                             )
                     V.geometry = thisgeometry
                 elif entry == "PERIODICITY":
-                    periodicity = np.fromfile(fid, dint, 3).astype(bool)
-                    V.periodicity = tuple(periodicity)
+                    pint = np.fromfile(fid, dint, 3)
+                    V.periodicity = (bool(pint[0]), bool(pint[1]), bool(pint[2]))
                 else:
                     raise ValueError(f"Received unknown field: '{entry}'.")
 
@@ -347,6 +431,8 @@ class CodeReadFormat:
         V.n1 = int(slist[1])
         V.n2 = int(slist[2])
         V.n3 = int(slist[3])
+
+        z: Union["np.ndarray", "np.memmap"]
 
         if V.geometry == "cartesian":
             # CARTESIAN geometry
@@ -690,7 +776,7 @@ class CodeReadFormat:
 
         return V
 
-    def fargoAdsgReadDat(self, on, *, directory=""):
+    def fargoAdsgReadDat(self, on, *, directory="") -> DataStructure:
         V = DataStructure()
         fluid = "gas"
         densfile = os.path.join(directory, f"{fluid}dens{on}.dat")
@@ -737,7 +823,9 @@ class CodeReadFormat:
 
         return V
 
-    def fargo3dReadDat(self, on, *, directory="", inifile="", fluid=None):
+    def fargo3dReadDat(
+        self, on, *, directory="", inifile="", fluid=None
+    ) -> DataStructure:
         if fluid is None:
             fluid = "gas"
         V = DataStructure()
@@ -753,7 +841,11 @@ class CodeReadFormat:
 
         params.loadIniFile()
 
-        V.geometry = params.inifile["COORDINATES"]
+        class Fargo3DIni:
+            def __init__(self, *, COORDINATES, **_kwargs) -> None:
+                self.COORDINATES = str(COORDINATES)
+
+        V.geometry = Fargo3DIni(**params.inifile).COORDINATES
         V.data = {}
 
         domain_x = np.loadtxt(os.path.join(directory, "domain_x.dat"))
