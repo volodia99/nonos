@@ -1,6 +1,8 @@
 import glob
 import os
 import re
+import sys
+from enum import auto
 from pathlib import Path
 from typing import Any, Dict, Literal, Optional, Tuple, Union, cast
 
@@ -10,10 +12,26 @@ import numpy as np
 from nonos.api._angle_parsing import _parse_planet_file
 from nonos.logging import logger
 
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+    from typing import assert_never
+else:
+    from typing_extensions import assert_never
+
+    from nonos._backports import StrEnum
+
+
+class Code(StrEnum):
+    IDEFIX = auto()
+    PLUTO = auto()
+    FARGO3D = auto()
+    FARGO_ADSG = auto()
+
+
 _INIFILES_LOOKUP_TABLE = {
-    "idefix.ini": "idefix",
-    "pluto.ini": "pluto",
-    "variables.par": "fargo3d",
+    "idefix.ini": Code.IDEFIX,
+    "pluto.ini": Code.PLUTO,
+    "variables.par": Code.FARGO3D,
 }
 
 
@@ -21,18 +39,21 @@ class Parameters:
     def __init__(
         self,
         *,
-        inifile: str = "",
-        code: str = "",
-        directory: str = "",
+        inifile: Optional[str] = None,
+        code: Optional[str] = None,
+        directory: Optional[str] = None,
     ) -> None:
-        self.directory = directory
-        self.paramfile = inifile
-        self.code = code
-        if (self.code, self.paramfile).count("") == 0:
+        self.directory = directory or ""
+        self.paramfile = inifile or ""
+        self.code: Code
+        if code:
+            self.code = Code(code)
+
+        if code and self.paramfile:
             found = Path(self.directory).joinpath(self.paramfile).is_file()
             if not found:
                 raise FileNotFoundError(f"{self.paramfile} not found.")
-        elif (self.code, self.paramfile).count("") == 2:
+        elif not code and not self.paramfile:
             found_dict = {
                 paramfile: Path(self.directory).joinpath(paramfile).is_file()
                 for paramfile in _INIFILES_LOOKUP_TABLE
@@ -48,7 +69,7 @@ class Parameters:
                 list(found_dict.values()).index(True)
             ]
             self.code = _INIFILES_LOOKUP_TABLE[self.paramfile]
-        elif (self.code, self.paramfile).count("") == 1:
+        elif code or self.paramfile:
             raise ValueError("both inifile and code have to be given.")
 
     def loadIniFile(self) -> None:
@@ -125,7 +146,7 @@ class Parameters:
         self.omegaframe: Optional[float]
         self.frame: FrameT
         self.inifile = inifix.load(os.path.join(self.directory, self.paramfile))
-        if self.code == "idefix":
+        if self.code is Code.IDEFIX:
             idefix_ini = IdefixIni(**self.inifile)
             self.vtk = idefix_ini.output.vtk
             self.omegaframe = idefix_ini.hydro.rotation
@@ -133,12 +154,12 @@ class Parameters:
                 self.frame = None
             else:
                 self.frame = "F"
-        elif self.code == "pluto":
+        elif self.code is Code.PLUTO:
             pluto_ini = PlutoIni(**self.inifile)
             self.vtk = pluto_ini.output.vtk
             self.omegaframe = None
             self.frame = None
-        elif self.code == "fargo3d":
+        elif self.code is Code.FARGO3D:
             fargo3D_ini = Fargo3DIni(**self.inifile)
             self.vtk = fargo3D_ini.NINTERM * fargo3D_ini.DT
             if fargo3D_ini.FRAME == "F":
@@ -147,7 +168,7 @@ class Parameters:
             else:
                 self.omegaframe = None
                 self.frame = None
-        elif self.code == "fargo-adsg":
+        elif self.code is Code.FARGO_ADSG:
             fargoADSG_ini = FargoADSGIni(**self.inifile)
             self.vtk = fargoADSG_ini.Ninterm * fargoADSG_ini.DT
             if fargoADSG_ini.Frame == "F":
@@ -156,6 +177,8 @@ class Parameters:
             else:
                 self.omegaframe = None
                 self.frame = None
+        else:
+            assert_never(self.code)
 
     def loadPlanetFile(
         self, *, planet_number: Optional[int] = None, planet_file: Optional[str] = None
@@ -165,12 +188,12 @@ class Parameters:
         )
         del planet_number
 
-        if self.code in ("idefix", "fargo3d"):
+        if self.code is Code.IDEFIX or self.code is Code.FARGO3D:
             if Path(self.directory).joinpath(planet_file).is_file():
                 columns = np.loadtxt(os.path.join(self.directory, planet_file)).T
                 self.qpl = columns[7]
                 self.dpl = np.sqrt(np.sum(columns[1:4] ** 2, axis=0))
-                if self.code == "fargo3d" and self.inifile["FRAME"] == "C":
+                if self.code is Code.FARGO3D and self.inifile["FRAME"] == "C":
                     self.omegaframe = np.sqrt((1.0 + self.qpl) / pow(self.dpl, 3.0))
                     self.frame = "C"
                 # TODO: change (x,y,z) and (vx,vy,vz) when rotation
@@ -184,7 +207,7 @@ class Parameters:
                 self.tpl = columns[8]
             else:
                 raise FileNotFoundError(f"{planet_file} not found")
-        elif self.code in ("fargo-adsg"):
+        elif self.code is Code.FARGO_ADSG:
             if Path(self.directory).joinpath(planet_file).is_file():
                 columns = np.loadtxt(os.path.join(self.directory, planet_file)).T
                 self.qpl = columns[5]
@@ -208,51 +231,44 @@ class Parameters:
                 f"{planet_file} not found for {self.code}. For now, you can't rotate the grid with the planet."
             )
 
-        if self.code in ("idefix", "fargo3d", "fargo-adsg"):
-            if self.omegaframe is None or self.frame == "C":
-                hx = self.ypl * self.vzpl - self.zpl * self.vypl
-                hy = self.zpl * self.vxpl - self.xpl * self.vzpl
-                hz = self.xpl * self.vypl - self.ypl * self.vxpl
-                hhor = np.sqrt(hx * hx + hy * hy)
+        if self.omegaframe is None or self.frame == "C":
+            hx = self.ypl * self.vzpl - self.zpl * self.vypl
+            hy = self.zpl * self.vxpl - self.xpl * self.vzpl
+            hz = self.xpl * self.vypl - self.ypl * self.vxpl
+            hhor = np.sqrt(hx * hx + hy * hy)
 
-                h2 = hx * hx + hy * hy + hz * hz
-                h = np.sqrt(h2)
-                self.ipl = np.arcsin(hhor / h)
+            h2 = hx * hx + hy * hy + hz * hz
+            h = np.sqrt(h2)
+            self.ipl = np.arcsin(hhor / h)
 
-                Ax = (
-                    self.vypl * hz
-                    - self.vzpl * hy
-                    - (1.0 + self.qpl) * self.xpl / self.dpl
-                )
-                Ay = (
-                    self.vzpl * hx
-                    - self.vxpl * hz
-                    - (1.0 + self.qpl) * self.ypl / self.dpl
-                )
-                Az = (
-                    self.vxpl * hy
-                    - self.vypl * hx
-                    - (1.0 + self.qpl) * self.zpl / self.dpl
-                )
+            Ax = (
+                self.vypl * hz - self.vzpl * hy - (1.0 + self.qpl) * self.xpl / self.dpl
+            )
+            Ay = (
+                self.vzpl * hx - self.vxpl * hz - (1.0 + self.qpl) * self.ypl / self.dpl
+            )
+            Az = (
+                self.vxpl * hy - self.vypl * hx - (1.0 + self.qpl) * self.zpl / self.dpl
+            )
 
-                self.epl = np.sqrt(Ax * Ax + Ay * Ay + Az * Az) / (1.0 + self.qpl)
-                self.apl = h * h / ((1.0 + self.qpl) * (1.0 - self.epl * self.epl))
+            self.epl = np.sqrt(Ax * Ax + Ay * Ay + Az * Az) / (1.0 + self.qpl)
+            self.apl = h * h / ((1.0 + self.qpl) * (1.0 - self.epl * self.epl))
             # else:
             #     raise NotImplementedError(
             #         "We do not yet compute eccentricity, inclination and semi-major axis if fixed rotating frame."
             #     )
 
     def countSimuFiles(self) -> None:
-        if self.code in ("fargo3d", "fargo-adsg"):
+        if self.code is Code.FARGO3D or self.code is Code.FARGO_ADSG:
             self.data_files = [
                 fn
                 for fn in glob.glob1(self.directory, "gasdens*.dat")
                 if re.match(r"gasdens\d+.dat", fn)
             ]
-        elif self.code in ("idefix", "pluto"):
+        elif self.code is Code.IDEFIX or self.code is Code.PLUTO:
             self.data_files = list(glob.glob1(self.directory, "data.*.vtk"))
         else:
-            raise RuntimeError("Unknown file format")
+            assert_never(self.code)
 
     def loadSimuFile(
         self,
@@ -263,35 +279,36 @@ class Parameters:
         cell: str = "edges",
         fluid: Optional[str] = None,
     ) -> "DataStructure":
-        if fluid is not None and self.code != "fargo3d":
+        if fluid is not None and self.code != Code.FARGO3D:
             raise ValueError("fluid is defined only for fargo3d outputs")
         output_number, filename = funnel_on_type(
             input_dataset, code=self.code, directory=self.directory
         )
         self.on = output_number
         codeReadFormat = CodeReadFormat()
-        if self.code == "fargo3d":
+        if self.code is Code.FARGO3D:
             return codeReadFormat.fargo3dReadDat(
                 self.on, directory=self.directory, inifile=self.paramfile, fluid=fluid
             )
-        elif self.code == "fargo-adsg":
+        elif self.code is Code.FARGO_ADSG:
             return codeReadFormat.fargoAdsgReadDat(
                 self.on, directory=self.directory
             )  # , inifile=self.paramfile)
-        elif self.code in ("idefix", "pluto"):
+        elif self.code is Code.IDEFIX or self.code is Code.PLUTO:
             return codeReadFormat.idfxReadVTK(filename, geometry=geometry, cell=cell)
         else:
-            raise ValueError(f"For now, can't read files from {self.code} simulations.")
+            assert_never(self.code)
 
 
 def funnel_on_type(
     input_dataset: Union[int, str], /, *, code: str, directory="."
 ) -> Tuple[int, str]:
-    if code.startswith("fargo"):
+    _code = Code(code)
+    if _code is Code.FARGO3D or _code is Code.FARGO_ADSG:
         if isinstance(input_dataset, str):
             raise TypeError(f"on can only be an int for {code}")
         return input_dataset, ""
-    elif code in ("idefix", "pluto"):
+    elif _code is Code.IDEFIX or _code is Code.PLUTO:
         if isinstance(input_dataset, str):
             filename = os.path.join(directory, input_dataset)
             if (m := re.search(r"\d+", filename)) is None:
@@ -307,7 +324,7 @@ def funnel_on_type(
             )
         return (on, filename)
     else:
-        raise ValueError(f"For now, can't read files from {code} simulations.")
+        assert_never(_code)
 
 
 class DataStructure:
