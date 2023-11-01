@@ -1,3 +1,5 @@
+. # install nonos too
+
 mkdocs==1.5.3
 mkdocs-material==8.5.10
 mkdocs-include-markdown-plugin==4.0.3
