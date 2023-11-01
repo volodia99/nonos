@@ -1,6 +1,6 @@
 . # install nonos too
 
 mkdocs==1.5.3
-mkdocs-material==8.5.10
-mkdocs-include-markdown-plugin==4.0.3
-mkdocstrings[python]==0.19.1
+mkdocs-material==9.4.7
+mkdocs-include-markdown-plugin==6.0.3
+mkdocstrings[python]==0.23.0
