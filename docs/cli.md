@@ -84,28 +84,28 @@ The `-plane` argument is based on the `map("XDIR","YDIR")` function. Depending o
 
     * `nonos -d -on 0 -log -op vp -z 0.1`**`-plane x y`**
     <figure markdown>
-      ![rhovp_xy](../imgs/rhovp_xy.png){ width="400" }
+      ![rhovp_xy](imgs/rhovp_xy.png){ width="400" }
       <figcaption>Vertical projection of the logarithm of the density</figcaption>
     </figure>
 
     * `nonos -d -on 0 -log -op vp -z 0.1`**`-plane R phi`**
     <figure markdown>
-      ![rhovp_Rphi](../imgs/rhovp_Rphi.png){ width="400" }
+      ![rhovp_Rphi](imgs/rhovp_Rphi.png){ width="400" }
       <figcaption>Vertical projection of the logarithm of the density</figcaption>
     </figure>
     * `nonos -d -on 0 -log -op vp -z 0.1`**`-plane phi R`**
     <figure markdown>
-      ![rhovp_phiR](../imgs/rhovp_phiR.png){ width="400" }
+      ![rhovp_phiR](imgs/rhovp_phiR.png){ width="400" }
       <figcaption>Vertical projection of the logarithm of the density</figcaption>
     </figure>
     * `nonos -d -on 0 -log -op apl -corotate 0`**`-plane R z`**
     <figure markdown>
-      ![rhoapl_Rz](../imgs/rhoapl_Rz.png){ width="400" }
+      ![rhoapl_Rz](imgs/rhoapl_Rz.png){ width="400" }
       <figcaption>Logarithm of the density at the planet azimuth</figcaption>
     </figure>
     * `nonos -d -on 0 -log -op apl -corotate 0`**`-plane theta r`**
     <figure markdown>
-      ![rhoapl_thetar](../imgs/rhoapl_thetar.png){ width="400" }
+      ![rhoapl_thetar](imgs/rhoapl_thetar.png){ width="400" }
       <figcaption>Logarithm of the density at the planet azimuth</figcaption>
     </figure>
 
@@ -119,7 +119,7 @@ The `-plane` argument is based on the `map("XDIR","YDIR")` function. Depending o
 
     `nonos -on 23 -diff -plane x y`
     <figure markdown>
-      ![rhovm_xy_nozoom](../imgs/rhovm_xy_nozoom.png){ width="400" }
+      ![rhovm_xy_nozoom](imgs/rhovm_xy_nozoom.png){ width="400" }
       <figcaption>Density at the midplane</figcaption>
     </figure>
 
@@ -129,7 +129,7 @@ The `-plane` argument is based on the `map("XDIR","YDIR")` function. Depending o
 
     `nonos -on 23 -diff -plane x y -corotate 0`
     <figure markdown>
-      ![rhovm_xy_corotate](../imgs/rhovm_xy_corotate.png){ width="400" }
+      ![rhovm_xy_corotate](imgs/rhovm_xy_corotate.png){ width="400" }
       <figcaption>Density at the midplane</figcaption>
     </figure>
 
@@ -139,7 +139,7 @@ The `-plane` argument is based on the `map("XDIR","YDIR")` function. Depending o
 
     `nonos -on 23 -diff -plane x y -range x x -2 0` will perform a zoom in the y-axis
     <figure markdown>
-      ![rhovm_xy_zoom](../imgs/rhovm_xy_zoom.png){ width="400" }
+      ![rhovm_xy_zoom](imgs/rhovm_xy_zoom.png){ width="400" }
       <figcaption>Density at the midplane</figcaption>
     </figure>
 
@@ -149,7 +149,7 @@ The `-plane` argument is based on the `map("XDIR","YDIR")` function. Depending o
 
     `nonos -on 23 -diff -plane x y -vmin -0.5 -vmax 0.5`
     <figure markdown>
-      ![rhovm_xy_minmax](../imgs/rhovm_xy_minmax.png){ width="400" }
+      ![rhovm_xy_minmax](imgs/rhovm_xy_minmax.png){ width="400" }
       <figcaption>Density at the midplane</figcaption>
     </figure>
 
@@ -165,7 +165,7 @@ The `-plane` argument is based on the `map("XDIR","YDIR")` function. Depending o
 
     `nonos -on 23 -diff -plane x y -title "\frac{\rho-\rho_0}{\rho_0}"`
     <figure markdown>
-      ![rhovm_xy_title](../imgs/rhovm_xy_title.png){ width="400" }
+      ![rhovm_xy_title](imgs/rhovm_xy_title.png){ width="400" }
       <figcaption>Density at the midplane</figcaption>
     </figure>
 
@@ -175,7 +175,7 @@ The `-plane` argument is based on the `map("XDIR","YDIR")` function. Depending o
 
     `nonos -on 23 -diff -plane x y -cmap inferno` will perform a zoom in the y-axis
     <figure markdown>
-      ![rhovm_xy_cmap](../imgs/rhovm_xy_cmap.png){ width="400" }
+      ![rhovm_xy_cmap](imgs/rhovm_xy_cmap.png){ width="400" }
       <figcaption>Density at the midplane</figcaption>
     </figure>
 
@@ -185,7 +185,7 @@ The `-plane` argument is based on the `map("XDIR","YDIR")` function. Depending o
 
     `nonos -on 23 -diff -plane x y -cmap inferno -scaling 1.2`
     <figure markdown>
-      ![rhovm_xy_scaling](../imgs/rhovm_xy_scaling.png){ width="400" }
+      ![rhovm_xy_scaling](imgs/rhovm_xy_scaling.png){ width="400" }
       <figcaption>Density at the midplane</figcaption>
     </figure>
 

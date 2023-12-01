@@ -79,7 +79,7 @@ Optional arguments:
     ```
 
     <figure markdown>
-      ![rhovm](../imgs/rhovm.png){ width="600" }
+      ![rhovm](imgs/rhovm.png){ width="600" }
       <figcaption>Density in the midplane</figcaption>
     </figure>
 
@@ -105,7 +105,7 @@ Optional arguments:
     ```
 
     <figure markdown>
-      ![rholpaa](../imgs/rholpaa.png){ width="600" }
+      ![rholpaa](imgs/rholpaa.png){ width="600" }
       <figcaption>Azimuthally-averaged surface density</figcaption>
     </figure>
 
@@ -125,7 +125,7 @@ Optional arguments:
     ```
 
     <figure markdown>
-      ![vx1](../imgs/vx1.png){ width="600" }
+      ![vx1](imgs/vx1.png){ width="600" }
       <figcaption>Radial velocity</figcaption>
     </figure>
 
@@ -278,6 +278,6 @@ By default, the figure is not saved in case you want to personalize the final pl
     )
     ```
     <figure markdown>
-      ![rhor_phiz](../imgs/rhor_phiz.png){ width="400" }
+      ![rhor_phiz](imgs/rhor_phiz.png){ width="400" }
       <figcaption>Density in the plane $\phi$-$z$</figcaption>
     </figure>
