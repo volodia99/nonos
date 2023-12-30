@@ -33,7 +33,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Setup Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -62,7 +62,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Setup Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -81,7 +81,7 @@ jobs:
 
     steps:
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: 3.x
 
@@ -112,14 +112,14 @@ jobs:
     # (and especially) in case of failure.
     - name: Upload pytest-mpl report
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: nonos_pytest_mpl_results
         path: nonos_pytest_mpl_results/*
 
     - name: Upload pytest-mpl baseline
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: nonos_pytest_mpl_new_baseline
         path: nonos_pytest_mpl_new_baseline/*
@@ -137,7 +137,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Setup Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: 3.x
     - name: Setup env
@@ -148,7 +148,7 @@ jobs:
       run: |
         python -m mkdocs build
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: site
         path: site
