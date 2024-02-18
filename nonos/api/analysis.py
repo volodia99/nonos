@@ -600,7 +600,7 @@ class GasField:
         return Plotable(dict_plotable)
 
     def save(self, directory="", header_only=False) -> None:
-        operation = "_" if self.operation=="" else self.operation
+        operation = "_" if self.operation == "" else self.operation
         if not header_only:
             if not os.path.exists(os.path.join(directory, self.field.lower())):
                 os.makedirs(os.path.join(directory, self.field.lower()))
@@ -616,21 +616,15 @@ class GasField:
                     np.save(file, self.data)
 
         group_of_files = list(
-            glob.glob1(
-                os.path.join(directory, self.field.lower()), f"{operation}*"
-            )
+            glob.glob1(os.path.join(directory, self.field.lower()), f"{operation}*")
         )
         header_file = list(
-            glob.glob1(
-                os.path.join(directory, "header"), f"header{operation}.json"
-            )
+            glob.glob1(os.path.join(directory, "header"), f"header{operation}.json")
         )
         if (len(group_of_files) > 0 and len(header_file) == 0) or header_only:
             if not os.path.exists(os.path.join(directory, "header")):
                 os.makedirs(os.path.join(directory, "header"))
-            headername = os.path.join(
-                directory, "header", f"header{operation}.json"
-            )
+            headername = os.path.join(directory, "header", f"header{operation}.json")
             if Path(headername).is_file():
                 logger.info("{} already exists", headername)
             else:
