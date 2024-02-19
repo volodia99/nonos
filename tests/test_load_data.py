@@ -1,5 +1,4 @@
 import os
-from shutil import copytree
 
 import numpy as np
 import pytest
@@ -17,30 +16,28 @@ def test_from_npy_error(test_data_dir):
 
 
 def test_roundtrip_simple(test_data_dir, tmp_path):
-    copytree(test_data_dir / "idefix_spherical_planet3d", tmp_path / "mydir")
+    os.chdir(test_data_dir / "idefix_spherical_planet3d")
 
-    os.chdir(tmp_path / "mydir")
     ds = GasDataSet(500)
     assert ds.nfields == 7
 
     gf = ds["RHO"].azimuthal_average()
 
-    gf.save()
-    dsnpy = GasDataSet.from_npy(500, operation="azimuthal_average")
+    gf.save(tmp_path)
+    dsnpy = GasDataSet.from_npy(500, operation="azimuthal_average", directory=tmp_path)
     assert dsnpy.nfields == 1
 
 
 def test_roundtrip_no_operation_all_field(test_data_dir, tmp_path):
-    copytree(test_data_dir / "idefix_spherical_planet3d", tmp_path / "mydir")
+    os.chdir(test_data_dir / "idefix_spherical_planet3d")
 
-    os.chdir(tmp_path / "mydir")
     ds = GasDataSet(500)
     assert ds.nfields == 7
 
     gf = ds["RHO"]
 
-    gf.save()
-    dsnpy = GasDataSet.from_npy(500, operation="")
+    gf.save(tmp_path)
+    dsnpy = GasDataSet.from_npy(500, operation="", directory=tmp_path)
     assert dsnpy.nfields == 1
     np.testing.assert_array_equal(ds["RHO"].data, dsnpy["RHO"].data)
 
