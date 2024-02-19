@@ -42,7 +42,7 @@ def test_roundtrip_no_operation_all_field(test_data_dir, tmp_path):
     gf.save()
     dsnpy = GasDataSet.from_npy(500, operation="")
     assert len(list(dsnpy.keys())) == 1
-    np.testing.assert_array_almost_equal(ds["RHO"].data, dsnpy["RHO"].data)
+    np.testing.assert_array_equal(ds["RHO"].data, dsnpy["RHO"].data)
 
 
 def test_roundtrip_other_dir(test_data_dir, tmp_path):

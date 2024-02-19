@@ -600,7 +600,7 @@ class GasField:
         return Plotable(dict_plotable)
 
     def save(self, directory="", header_only=False) -> None:
-        operation = "_" if self.operation == "" else self.operation
+        operation = self.operation or "_"
         if not header_only:
             if not os.path.exists(os.path.join(directory, self.field.lower())):
                 os.makedirs(os.path.join(directory, self.field.lower()))
