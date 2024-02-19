@@ -35,7 +35,7 @@ def test_roundtrip_no_operation_all_field(test_data_dir, tmp_path):
 
     os.chdir(tmp_path / "mydir")
     ds = GasDataSet(500)
-    assert dsnpy.nfields == 7
+    assert ds.nfields == 7
 
     gf = ds["RHO"]
 
