@@ -20,13 +20,13 @@ def test_roundtrip_simple(test_data_dir, tmp_path):
 
     os.chdir(tmp_path / "mydir")
     ds = GasDataSet(500)
-    assert len(list(ds.keys())) == 7
+    assert ds.nfields == 7
 
     gf = ds["RHO"].azimuthal_average()
 
     gf.save()
     dsnpy = GasDataSet.from_npy(500, operation="azimuthal_average")
-    assert len(list(dsnpy.keys())) == 1
+    assert dsnpy.nfields == 1
 
 
 def test_roundtrip_other_dir(test_data_dir, tmp_path):
@@ -34,7 +34,7 @@ def test_roundtrip_other_dir(test_data_dir, tmp_path):
     gf = GasDataSet(500)["RHO"].azimuthal_average()
     gf.save(tmp_path)
     dsnpy = GasDataSet.from_npy(500, operation="azimuthal_average", directory=tmp_path)
-    assert len(list(dsnpy.keys())) == 1
+    assert dsnpy.nfields == 1
 
 
 def test_api_vtk_by_name(test_data_dir):
@@ -64,7 +64,7 @@ def test_api_fluid_fargo3d(test_data_dir):
     on = 5
 
     ds = GasDataSet(on, fluid="dust2")
-    assert len(list(ds.keys())) == 1
+    assert ds.nfields == 1
 
     with pytest.raises(
         FileNotFoundError,

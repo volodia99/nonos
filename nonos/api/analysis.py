@@ -1652,3 +1652,12 @@ class GasDataSet:
         items of the dict
         """
         return self.dict.items()
+
+    @property
+    def nfields(self) -> int:
+        """
+        Returns
+        =======
+        The number of fields in the GasDataSet
+        """
+        return len(self.dict)
