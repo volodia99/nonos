@@ -35,13 +35,13 @@ def test_roundtrip_no_operation_all_field(test_data_dir, tmp_path):
 
     os.chdir(tmp_path / "mydir")
     ds = GasDataSet(500)
-    assert len(list(ds.keys())) == 7
+    assert dsnpy.nfields == 7
 
     gf = ds["RHO"]
 
     gf.save()
     dsnpy = GasDataSet.from_npy(500, operation="")
-    assert len(list(dsnpy.keys())) == 1
+    assert dsnpy.nfields == 1
     np.testing.assert_array_equal(ds["RHO"].data, dsnpy["RHO"].data)
 
 
