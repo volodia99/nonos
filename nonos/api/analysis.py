@@ -1457,8 +1457,8 @@ class GasField:
         )
 
         operation = self.operation
-        if self.shape.count(1) != 1:
-            raise ValueError("data has to be 2D in order to rotate the data.")
+        if self.shape.count(1) > 1:
+            raise ValueError("data has to be 2D or 3D in order to rotate the data.")
         if not _fequal(self._rotate_by, rotate_by):
             phicoord = self.coords.phi - rotate_by
             ipi = find_nearest(phicoord, 0)
