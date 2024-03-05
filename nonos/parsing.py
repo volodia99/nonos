@@ -76,8 +76,7 @@ def range_converter(
     extent: Tuple[Optional[float], Optional[float]],
     abscissa: np.ndarray,
     ordinate: np.ndarray,
-) -> Tuple[float, float]:
-    ...
+) -> Tuple[float, float]: ...
 
 
 @overload
@@ -85,8 +84,7 @@ def range_converter(
     extent: Tuple[Optional[float], Optional[float], Optional[float], Optional[float]],
     abscissa: np.ndarray,
     ordinate: np.ndarray,
-) -> Tuple[float, float, float, float]:
-    ...
+) -> Tuple[float, float, float, float]: ...
 
 
 def range_converter(extent, abscissa, ordinate):
