@@ -294,14 +294,12 @@ class Coordinates:
     @overload
     def native_from_wanted(
         self, _wanted_x1: str, _wanted_x2: str, /
-    ) -> Tuple[Tuple[str, str], str]:
-        ...
+    ) -> Tuple[Tuple[str, str], str]: ...
 
     @overload
     def native_from_wanted(
         self, _wanted_x1: str, _wanted_x2: None, /
-    ) -> Tuple[Tuple[str], str]:
-        ...
+    ) -> Tuple[Tuple[str], str]: ...
 
     def native_from_wanted(self, _wanted_x1: str, _wanted_x2: Optional[str] = None, /):
         if self.geometry == "cartesian":
