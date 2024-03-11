@@ -28,6 +28,13 @@ def test_roundtrip_simple(test_data_dir, tmp_path):
     assert dsnpy.nfields == 1
 
 
+def test_roundtrip_simple_pluto(test_data_dir):
+    os.chdir(test_data_dir / "pluto_spherical")
+
+    ds = GasDataSet.from_npy(7283, operation="azimuthal_average")
+    assert ds.nfields == 1
+
+
 def test_roundtrip_no_operation_all_field(test_data_dir, tmp_path):
     os.chdir(test_data_dir / "idefix_spherical_planet3d")
 
