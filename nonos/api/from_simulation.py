@@ -448,7 +448,7 @@ class CodeReadFormat:
         if V.geometry == "unknown":
             raise RuntimeError(
                 "Geometry couldn't be determined from data. "
-                "Try to set the geometry keyword argument explicitely."
+                "Try to set the geometry keyword argument explicitly."
             )
 
         slist = s.split()  # DIMENSIONS....
