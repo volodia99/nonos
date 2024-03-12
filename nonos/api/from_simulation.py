@@ -43,7 +43,14 @@ class Parameters:
         code: Optional[str] = None,
         directory: Optional[str] = None,
     ) -> None:
-        self.directory = directory or ""
+        if not directory:
+            directory = os.getcwd()
+        elif not os.path.exists(directory):
+            raise FileNotFoundError(f"No such file or directory {directory}")
+        elif not os.path.isdir(directory):
+            raise ValueError(f"{directory} is not a directory")
+
+        self.directory = directory
         self.paramfile = inifile or ""
         self.code: Code
         if code:

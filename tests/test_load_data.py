@@ -66,7 +66,7 @@ def test_api_vtk_by_name(test_data_dir):
     assert ds.on == on
 
     with pytest.raises(
-        FileNotFoundError, match="In idfxReadVTK: datawrong.0500.vtk not found."
+        FileNotFoundError, match=r"In idfxReadVTK: .*datawrong.0500.vtk not found\."
     ):
         GasDataSet(f"datawrong.{on:04d}.vtk")
 
