@@ -759,12 +759,13 @@ class CodeReadFormat:
                     inipos = (
                         fid.tell()
                     )  # we store the file pointer position before computing points
+                    nelements = 3 * V.n1 * V.n2 * V.n3
                     Q = np.memmap(
-                        fid, mode="r", dtype=dt, offset=inipos, shape=V.n1 * V.n2 * V.n3
+                        fid, mode="r", dtype=dt, offset=inipos, shape=nelements
                     )  # some smart memory efficient way to store the array
                     # Q = np.fromfile(fid, dt, 3 * V.n1 * V.n2 * V.n3)
                     newpos = (
-                        np.float32().nbytes * V.n1 * V.n2 * V.n3 + inipos
+                        np.float32().nbytes * nelements + inipos
                     )  # we calculate the offset that we would expect normally with a np.fromfile
                     fid.seek(
                         newpos, os.SEEK_SET
