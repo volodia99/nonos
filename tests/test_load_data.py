@@ -57,18 +57,28 @@ def test_roundtrip_other_dir(test_data_dir, tmp_path):
     assert dsnpy.nfields == 1
 
 
-def test_api_vtk_by_name(test_data_dir):
-    os.chdir(test_data_dir / "idefix_spherical_planet3d")
+@pytest.mark.parametrize(
+    "from_abs_path",
+    [
+        pytest.param(True, id="from absolute path"),
+        pytest.param(False, id="from relative path"),
+    ],
+)
+def test_api_vtk_by_name(test_data_dir, from_abs_path):
+    data_dir = test_data_dir / "idefix_spherical_planet3d"
+    if from_abs_path:
+        input_ = str((data_dir / "data.0500.vtk").absolute())
+    else:
+        os.chdir(data_dir)
+        input_ = "data.0500.vtk"
 
-    on = 500
-
-    ds = GasDataSet(f"data.{on:04d}.vtk")
-    assert ds.on == on
+    ds = GasDataSet(input_)
+    assert ds.on == 500
 
     with pytest.raises(
-        FileNotFoundError, match="In idfxReadVTK: datawrong.0500.vtk not found."
+        FileNotFoundError, match=r"In idfxReadVTK: .*datawrong\.0500\.vtk not found\."
     ):
-        GasDataSet(f"datawrong.{on:04d}.vtk")
+        GasDataSet(input_.replace("data.0500", "datawrong.0500"))
 
 
 def test_api_vtk_by_name_fargo(test_data_dir):

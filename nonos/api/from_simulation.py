@@ -43,7 +43,14 @@ class Parameters:
         code: Optional[str] = None,
         directory: Optional[str] = None,
     ) -> None:
-        self.directory = directory or ""
+        if not directory:
+            directory = os.getcwd()
+        elif not os.path.exists(directory):
+            raise FileNotFoundError(f"No such file or directory {directory}")
+        elif not os.path.isdir(directory):
+            raise ValueError(f"{directory} is not a directory")
+
+        self.directory = directory
         self.paramfile = inifile or ""
         self.code: Code
         if code:
@@ -311,7 +318,7 @@ def funnel_on_type(
     elif _code is Code.IDEFIX or _code is Code.PLUTO:
         if isinstance(input_dataset, str):
             filename = os.path.join(directory, input_dataset)
-            if (m := re.search(r"\d+", filename)) is None:
+            if (m := re.search(r"\d+", input_dataset)) is None:
                 raise ValueError("filename format is not correct")
             else:
                 on = int(m.group())
@@ -441,7 +448,7 @@ class CodeReadFormat:
         if V.geometry == "unknown":
             raise RuntimeError(
                 "Geometry couldn't be determined from data. "
-                "Try to set the geometry keyword argument explicitely."
+                "Try to set the geometry keyword argument explicitly."
             )
 
         slist = s.split()  # DIMENSIONS....

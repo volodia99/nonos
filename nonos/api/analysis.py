@@ -448,7 +448,7 @@ class GasField:
         *,
         inifile: str = "",
         code: str = "",
-        directory="",
+        directory: Optional[str] = None,
         rotate_by: Optional[float] = None,
         rotate_with: Optional[str] = None,
         rotate_grid: int = -1,  # deprecated
@@ -462,6 +462,8 @@ class GasField:
 
         self.inifile = inifile
         self.code = code
+        if directory is None:
+            directory = os.getcwd()
         self.directory = directory
         self._rotate_by = _parse_rotation_angle(
             rotate_by=rotate_by,
@@ -1533,9 +1535,21 @@ class GasDataSet:
         inifile: str = "",
         code: str = "",
         geometry: str = "unknown",
-        directory: str = "",
+        directory: Optional[str] = None,
         fluid: Optional[str] = None,
     ) -> None:
+        if isinstance(input_dataset, str):
+            directory_from_input = os.path.dirname(input_dataset)
+            if directory is None:
+                directory = directory_from_input
+            elif os.path.abspath(directory_from_input) != os.path.abspath(directory):
+                raise ValueError(
+                    f"directory value {directory!r} does not match "
+                    f"directory name from input_dataset ({directory_from_input!r})"
+                )
+            del directory_from_input
+            input_dataset = os.path.basename(input_dataset)
+
         self.params = Parameters(inifile=inifile, code=code, directory=directory)
         self._read = self.params.loadSimuFile(
             input_dataset, geometry=geometry, cell="edges", fluid=fluid
