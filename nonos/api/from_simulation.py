@@ -462,7 +462,7 @@ class CodeReadFormat:
                 fid, mode="r", dtype=dt, offset=inipos, shape=V.n1
             )  # some smart memory efficient way to store the array
             newpos = (
-                np.float32().nbytes * 1 * V.n1 + inipos
+                dt.itemsize * 1 * V.n1 + inipos
             )  # we calculate the offset that we would expect normally with a np.fromfile
             fid.seek(
                 newpos, os.SEEK_SET
@@ -478,7 +478,7 @@ class CodeReadFormat:
                 fid, mode="r", dtype=dt, offset=inipos, shape=V.n2
             )  # some smart memory efficient way to store the array
             newpos = (
-                np.float32().nbytes * 1 * V.n2 + inipos
+                dt.itemsize * 1 * V.n2 + inipos
             )  # we calculate the offset that we would expect normally with a np.fromfile
             fid.seek(
                 newpos, os.SEEK_SET
@@ -494,7 +494,7 @@ class CodeReadFormat:
                 fid, mode="r", dtype=dt, offset=inipos, shape=V.n3
             )  # some smart memory efficient way to store the array
             newpos = (
-                np.float32().nbytes * 1 * V.n3 + inipos
+                dt.itemsize * 1 * V.n3 + inipos
             )  # we calculate the offset that we would expect normally with a np.fromfile
             fid.seek(
                 newpos, os.SEEK_SET
@@ -567,7 +567,7 @@ class CodeReadFormat:
             )  # some smart memory efficient way to store the array
             # print(fid.tell())
             newpos = (
-                np.float32().nbytes * 3 * npoints + inipos
+                dt.itemsize * 3 * npoints + inipos
             )  # we calculate the offset that we would expect normally with a np.fromfile
             fid.seek(
                 newpos, os.SEEK_SET
@@ -748,7 +748,7 @@ class CodeReadFormat:
                         V.n3, V.n2, V.n1
                     )  # some smart memory efficient way to store the array
                     newpos = (
-                        np.float32().nbytes * V.n1 * V.n2 * V.n3 + inipos
+                        dt.itemsize * V.n1 * V.n2 * V.n3 + inipos
                     )  # we calculate the offset that we would expect normally with a np.fromfile
                     fid.seek(
                         newpos, os.SEEK_SET
@@ -765,7 +765,7 @@ class CodeReadFormat:
                     )  # some smart memory efficient way to store the array
                     # Q = np.fromfile(fid, dt, 3 * V.n1 * V.n2 * V.n3)
                     newpos = (
-                        np.float32().nbytes * nelements + inipos
+                        dt.itemsize * nelements + inipos
                     )  # we calculate the offset that we would expect normally with a np.fromfile
                     fid.seek(
                         newpos, os.SEEK_SET
