@@ -318,7 +318,7 @@ def funnel_on_type(
     elif _code is Code.IDEFIX or _code is Code.PLUTO:
         if isinstance(input_dataset, str):
             filename = os.path.join(directory, input_dataset)
-            if (m := re.search(r"\d+", filename)) is None:
+            if (m := re.search(r"\d+", input_dataset)) is None:
                 raise ValueError("filename format is not correct")
             else:
                 on = int(m.group())
