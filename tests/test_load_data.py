@@ -35,7 +35,7 @@ def test_roundtrip_simple_pluto(test_data_dir):
     assert ds.nfields == 1
 
 
-def test_roundtrip_simple_fargo_adsg(test_data_dir):
+def test_simple_fargo_adsg(test_data_dir):
     os.chdir(test_data_dir / "fargo_adsg_planet")
 
     ds = GasDataSet(200, code="fargo_adsg", inifile="planetpendragon_200k.par")
