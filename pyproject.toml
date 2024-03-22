@@ -99,3 +99,29 @@ warn_unreachable = true
 show_error_context = true
 disallow_untyped_defs = false  # TODO: add missing annotations and switch this option to true
 ignore_missing_imports = true
+
+[tool.coverage.run]
+source = [
+    "nonos",
+    "tests",
+]
+omit = [
+    "nonos/_backports.py",
+    "nonos/__main__.py",
+]
+
+[tool.coverage.report]
+skip_covered = true
+exclude_lines = [
+    # a stricter default pragma
+    "\\# pragma: no cover\\b",
+
+    # allow defensive code
+    "^\\s*raise NotImplementedError\\b",
+
+    # typing-related code
+    "^if TYPE_CHECKING:",
+    ": \\.\\.\\.(\\s*#.*)?$",
+    "^ +\\.\\.\\.$",
+    "-> ['\"]?NoReturn['\"]?:",
+]
