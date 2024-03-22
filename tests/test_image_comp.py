@@ -1,7 +1,42 @@
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
 import pytest
 from matplotlib.colors import SymLogNorm
 
 from nonos.api import GasDataSet
+from nonos.styling import set_mpl_style
+
+
+@pytest.fixture
+def tmp_mpl_state():
+    # reset matplotlib's state when the test is over
+    style = mpl.rcParams.copy()
+    yield
+    mpl.rcParams.update(style)
+
+
+@pytest.mark.usefixtures("tmp_mpl_state")
+@pytest.mark.parametrize("scaling", [0.5, 1.0, 2.0])
+@pytest.mark.mpl_image_compare(style="default")
+def test_set_mpl_style(scaling):
+    set_mpl_style(scaling)
+
+    fig, ax = plt.subplots()
+
+    x = np.linspace(0, 2 * np.pi)
+    for phase in np.linspace(0, np.pi / 2, 5):
+        y = np.sin(x + phase)
+        ax.plot(x, y)
+
+    ax.set(
+        title="nonos style",
+        xlabel="$x$ axis",
+        ylabel="$y$ axis",
+    )
+    ax.annotate(f"{scaling=}", (0.05, 0.1), xycoords="axes fraction", fontsize=15)
+
+    return fig
 
 
 @pytest.mark.mpl_image_compare()
