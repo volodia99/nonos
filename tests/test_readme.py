@@ -7,6 +7,10 @@ from cogapp import Cog
 
 
 @pytest.mark.skipif(
+    sys.platform.startswith("win"),
+    reason="Windows runner may choke on some special chararcters",
+)
+@pytest.mark.skipif(
     sys.version_info < (3, 10),
     reason="argparse --help messages were slightly modified in Python 3.10",
 )
