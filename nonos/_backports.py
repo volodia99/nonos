@@ -1,5 +1,15 @@
 import sys
 
+if sys.version_info >= (3, 9):
+    pass
+else:
+
+    def removesuffix(base: str, suffix: str) -> str:
+        if base.endswith(suffix):
+            return base[: len(base) - len(suffix)]
+        return base
+
+
 if sys.version_info >= (3, 11):
     pass
 else:
