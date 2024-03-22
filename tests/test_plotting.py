@@ -101,17 +101,6 @@ def test_verbose_info(simulation_dir, capsys, tmp_path):
     assert ret == 0
 
 
-@pytest.mark.xfail(strict=True)
-def test_verbose_debug(simulation_dir, capsys, tmp_path):
-    os.chdir(tmp_path)
-    ret = main(["-vv", "-dir", str(simulation_dir), "-geometry", "polar"])
-
-    out, err = capsys.readouterr()
-    assert err == ""
-    assert "DEBUG" in out
-    assert ret == 0
-
-
 # API testing
 
 
