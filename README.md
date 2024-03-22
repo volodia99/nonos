@@ -73,7 +73,7 @@ usage: nonos [-h] [-dir DATADIR] [-field FIELD]
 
 Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -dir DATADIR          location of output files and param files (default: '.').
   -field FIELD          name of field to plot (default: 'RHO').
