@@ -33,8 +33,9 @@ def file_analysis(filename, *, inifile="", code="", directory="", norb=None):
     return columns
 
 
-def planet_analysis(planet_number, *, inifile="", code="", directory="", norb=None):
-    # pragma: no cover
+def planet_analysis(
+    planet_number, *, inifile="", code="", directory="", norb=None
+):  # pragma: no cover
     warnings.warn(
         "nonos.api.satellite.planet_analysis is deprecated and will be removed in "
         "a future version. Please use nonos.api.satellite.file_analysis instead.",
