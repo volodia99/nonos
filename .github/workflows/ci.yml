@@ -79,9 +79,7 @@ jobs:
         python -m pip install --requirement requirements/typecheck.txt
 
     - name: Run mypy
-      run: |
-        mypy nonos
-        mypy tests
+      run: mypy nonos tests
 
   image-tests:
     name: Image tests
