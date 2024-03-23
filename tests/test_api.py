@@ -40,8 +40,9 @@ class TestGasDataSetFromNpy:
         cls.expected_keys = ["RHO"]
 
     def test_local_load(self):
-        os.chdir(self.kwargs["directory"])
-        ds = GasDataSet.from_npy(**self.kwargs)
+        kwargs = self.kwargs.copy()
+        os.chdir(kwargs.pop("directory"))
+        ds = GasDataSet.from_npy(**kwargs)
         assert sorted(ds.keys()) == sorted(self.expected_keys)
 
     def test_load_from_anywhere(self):

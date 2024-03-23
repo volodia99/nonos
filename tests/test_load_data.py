@@ -8,31 +8,36 @@ from nonos.api import GasDataSet
 
 
 def test_from_npy_error(test_data_dir):
-    os.chdir(test_data_dir / "idefix_spherical_planet3d")
-
-    with pytest.raises(
-        FileNotFoundError, match="Original output was not reduced, or file"
-    ):
-        GasDataSet.from_npy(500, operation="azimuthal_averag")
+    with pytest.raises(FileNotFoundError):
+        GasDataSet.from_npy(
+            500,
+            operation="typo",
+            directory=test_data_dir / "idefix_spherical_planet3d",
+        )
 
 
 def test_roundtrip_simple(test_data_dir, tmp_path):
-    os.chdir(test_data_dir / "idefix_spherical_planet3d")
-
-    ds = GasDataSet(500)
+    ds = GasDataSet(500, directory=test_data_dir / "idefix_spherical_planet3d")
     assert ds.nfields == 7
 
     gf = ds["RHO"].azimuthal_average()
 
     gf.save(tmp_path)
-    dsnpy = GasDataSet.from_npy(500, operation="azimuthal_average", directory=tmp_path)
+    dsnpy = GasDataSet.from_npy(
+        500,
+        operation="azimuthal_average",
+        directory=tmp_path,
+    )
     assert dsnpy.nfields == 1
 
 
 def test_simple_fargo_adsg(test_data_dir):
-    os.chdir(test_data_dir / "fargo_adsg_planet")
-
-    ds = GasDataSet(200, code="fargo_adsg", inifile="planetpendragon_200k.par")
+    ds = GasDataSet(
+        200,
+        code="fargo_adsg",
+        inifile="planetpendragon_200k.par",
+        directory=test_data_dir / "fargo_adsg_planet",
+    )
     assert ds.nfields == 1
 
 
@@ -45,7 +50,11 @@ def test_roundtrip_no_operation_all_field(test_data_dir, tmp_path):
     gf = ds["RHO"]
 
     gf.save(tmp_path)
-    dsnpy = GasDataSet.from_npy(500, operation="", directory=tmp_path)
+    dsnpy = GasDataSet.from_npy(
+        500,
+        operation="",
+        directory=tmp_path,
+    )
     assert dsnpy.nfields == 1
     np.testing.assert_array_equal(ds["RHO"].data, dsnpy["RHO"].data)
 
@@ -54,7 +63,11 @@ def test_roundtrip_other_dir(test_data_dir, tmp_path):
     os.chdir(test_data_dir / "idefix_spherical_planet3d")
     gf = GasDataSet(500)["RHO"].azimuthal_average()
     gf.save(tmp_path)
-    dsnpy = GasDataSet.from_npy(500, operation="azimuthal_average", directory=tmp_path)
+    dsnpy = GasDataSet.from_npy(
+        500,
+        operation="azimuthal_average",
+        directory=tmp_path,
+    )
     assert dsnpy.nfields == 1
 
 
@@ -101,24 +114,26 @@ def test_api_vtk_by_name_fargo(test_data_dir):
 
 
 def test_api_fluid_fargo3d(test_data_dir):
-    os.chdir(test_data_dir / "fargo3d_multifluid")
-
-    on = 5
-
-    ds = GasDataSet(on, fluid="dust2")
+    args = (5,)
+    kwargs = {
+        "fluid": "dust2",
+        "directory": test_data_dir / "fargo3d_multifluid",
+    }
+    ds = GasDataSet(*args, **kwargs)
     assert ds.nfields == 1
 
+    kwargs["fluid"] = "dust999"
     with pytest.raises(
         FileNotFoundError,
-        match=r"No file matches the pattern 'dust4\*5\.dat'",
+        match=r"No file matches the pattern 'dust999\*5\.dat'",
     ):
-        GasDataSet(on, fluid="dust4")
+        GasDataSet(*args, **kwargs)
 
 
 def test_api_fluid_idefix(test_data_dir):
-    os.chdir(test_data_dir / "idefix_spherical_planet3d")
-
-    on = 500
-
     with pytest.raises(ValueError, match="fluid is defined only for fargo3d outputs"):
-        GasDataSet(on, fluid="dust1")
+        GasDataSet(
+            500,
+            fluid="dust1",
+            directory=test_data_dir / "idefix_spherical_planet3d",
+        )
