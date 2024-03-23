@@ -31,12 +31,26 @@ def test_roundtrip_simple(test_data_dir, tmp_path):
     assert dsnpy.nfields == 1
 
 
-def test_simple_fargo_adsg(test_data_dir):
+@pytest.mark.parametrize(
+    "implicit_directory",
+    [
+        pytest.param(True, id="implicit directory"),
+        pytest.param(False, id="explicit directory"),
+    ],
+)
+def test_simple_fargo_adsg(test_data_dir, implicit_directory):
+    data_dir = test_data_dir / "fargo_adsg_planet"
+    if implicit_directory:
+        os.chdir(data_dir)
+        directory = None
+    else:
+        directory = data_dir.absolute()
+
     ds = GasDataSet(
         200,
         code="fargo_adsg",
         inifile="planetpendragon_200k.par",
-        directory=test_data_dir / "fargo_adsg_planet",
+        directory=directory,
     )
     assert ds.nfields == 1
 
