@@ -4,10 +4,17 @@ if sys.version_info >= (3, 9):
     pass
 else:
 
+    def removeprefix(base: str, prefix: str) -> str:
+        if base.startswith(prefix):
+            return base[len(prefix) :]
+        else:
+            return base
+
     def removesuffix(base: str, suffix: str) -> str:
         if base.endswith(suffix):
             return base[: len(base) - len(suffix)]
-        return base
+        else:
+            return base
 
 
 if sys.version_info >= (3, 11):
