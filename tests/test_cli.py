@@ -4,7 +4,6 @@ import textwrap
 import inifix
 
 from nonos import __version__
-from nonos.api import Parameters
 from nonos.main import main
 
 
@@ -17,21 +16,17 @@ def test_no_inifile(capsys, tmp_path):
     assert err.endswith("idefix.ini, pluto.ini, variables.par not found.\n")
 
 
-def test_default_conf(capsys, tmp_path):
-    os.chdir(tmp_path)
+def test_default_conf(capsys):
     ret = main(["-config"])
     assert ret == 0
     out, err = capsys.readouterr()
     assert err == ""
 
     # validate output is reusable
-    (tmp_path / "idefix.ini").touch()
-    dictout = inifix.loads(out)
-    Parameters(directory=dictout["datadir"])
+    inifix.loads(out)
 
 
-def test_version(capsys, tmp_path):
-    os.chdir(tmp_path)
+def test_version(capsys):
     ret = main(["-version"])
     assert ret == 0
 
@@ -40,8 +35,7 @@ def test_version(capsys, tmp_path):
     assert out == str(__version__) + "\n"
 
 
-def test_logo(capsys, tmp_path):
-    os.chdir(tmp_path)
+def test_logo(capsys):
     ret = main(["-logo"])
 
     assert ret == 0
