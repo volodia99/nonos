@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple, TypeVar, Union, overload
+from typing import Any, List, Literal, Optional, Tuple, TypeVar, Union, overload
 
 import numpy as np
 
@@ -23,7 +23,8 @@ def userval_or_default(userval: T1, /, *, default: T2) -> Union[T1, T2]:
 
 
 def parse_output_number_range(
-    on: Optional[Union[List[int], int, str]], maxval: Optional[int] = None
+    on: Union[List[int], int, Literal["unset"], None],
+    maxval: Optional[int] = None,
 ) -> List[int]:
     if not is_set(on):
         if maxval is None:

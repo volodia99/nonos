@@ -11,7 +11,23 @@ from nonos.parsing import (
     parse_output_number_range,
     parse_range,
     range_converter,
+    userval_or_default,
 )
+
+
+@pytest.mark.parametrize(
+    "received, expected",
+    [
+        (("val", "default"), "val"),
+        (("unset", "default"), "default"),
+        ((None, "default"), "default"),
+        (("unset", None), None),
+        ((None, None), None),
+    ],
+)
+def test_userval_or_default(received, expected):
+    userval, default = received
+    assert userval_or_default(userval, default=default) == expected
 
 
 @pytest.mark.parametrize(
@@ -19,6 +35,7 @@ from nonos.parsing import (
     [
         (1, [1]),
         (0, [0]),
+        ([1], [1]),
         ([0, 1], [0, 1]),
         ([0, 2], [0, 1, 2]),
         ([0, 5], [0, 1, 2, 3, 4, 5]),
@@ -28,6 +45,11 @@ from nonos.parsing import (
 )
 def test_range_outputs(received, expected):
     assert parse_output_number_range(received) == expected
+
+
+def test_from_maxval():
+    maxval = 1.0
+    assert parse_output_number_range(None, maxval=maxval) == [maxval]
 
 
 def test_unparseable_data():
@@ -118,6 +140,14 @@ def test_parse_range(abscissa, ordinate, dim, expected):
     ) == (0.5, 10.0, -0.2, 0.4)
 
 
+def test_range_converter_error():
+    with pytest.raises(
+        TypeError,
+        match="Expected extent to be of lenght 2 or 4,",
+    ):
+        range_converter(extent=[], abscissa=None, ordinate=None)
+
+
 @pytest.mark.parametrize(
     "received, expected",
     [
@@ -129,6 +159,13 @@ def test_parse_range(abscissa, ordinate, dim, expected):
 )
 def test_image_format(received, expected):
     assert parse_image_format(received) == expected
+
+
+@pytest.mark.parametrize("received", ["unset", None])
+def test_image_format_default(received):
+    result = parse_image_format(received)
+    assert isinstance(result, str)
+    assert re.fullmatch(r"\w+", result)
 
 
 def test_invalid_image_format():
