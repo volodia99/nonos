@@ -422,6 +422,7 @@ class CodeReadFormat:
                     elif g == 3:
                         thisgeometry = "cylindrical"
                     else:
+                        fid.close()
                         raise ValueError(
                             f"Unknown value for GEOMETRY flag ('{g}') was found in the VTK file."
                         )
@@ -429,6 +430,7 @@ class CodeReadFormat:
                     if V.geometry != "unknown":
                         # We already have a proposed geometry, check that what is read from the file matches
                         if thisgeometry != V.geometry:
+                            fid.close()
                             raise ValueError(
                                 f"geometry argument ('{V.geometry}') is inconsistent with GEOMETRY flag from the VTK file ('{thisgeometry}')"
                             )
@@ -437,6 +439,7 @@ class CodeReadFormat:
                     pint = np.fromfile(fid, dint, 3)
                     V.periodicity = (bool(pint[0]), bool(pint[1]), bool(pint[2]))
                 else:
+                    fid.close()
                     raise ValueError(f"Received unknown field: '{entry}'.")
 
                 s = fid.readline()  # extra linefeed
@@ -446,6 +449,7 @@ class CodeReadFormat:
             s = fid.readline()  # DIMENSIONS...
 
         if V.geometry == "unknown":
+            fid.close()
             raise RuntimeError(
                 "Geometry couldn't be determined from data. "
                 "Try to set the geometry keyword argument explicitly."
@@ -547,6 +551,7 @@ class CodeReadFormat:
                 V.x3 = z
 
             if V.n1 * V.n2 * V.n3 != npoints:
+                fid.close()
                 raise ValueError(
                     "In idfxReadVTK: Grid size (%d) incompatible with number of points (%d) in the data set"
                     % (V.n1 * V.n2 * V.n3, npoints)
@@ -584,6 +589,7 @@ class CodeReadFormat:
 
             # V.points=points
             if V.n1 * V.n2 * V.n3 != npoints:
+                fid.close()
                 raise ValueError(
                     "In idfxReadVTK: Grid size (%d) incompatible with number of points (%d) in the data set"
                     % (V.n1 * V.n2 * V.n3, npoints)
@@ -789,6 +795,7 @@ class CodeReadFormat:
                     )
 
                 else:
+                    fid.close()
                     raise ValueError(
                         "In idfxReadVTK: Unknown datatype '%s', should be 'SCALARS' or 'VECTORS'"
                         % datatype
