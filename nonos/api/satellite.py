@@ -200,7 +200,7 @@ def from_data(
     code: str = "",
     directory: str = "",
     rotate_grid: int = -1,
-):
+):  # pragma: no cover
     warnings.warn(
         "nonos.api.satellite.from_data is deprecated and will be removed "
         "in a future version. Please use nonos.api.satellite.compute instead",
