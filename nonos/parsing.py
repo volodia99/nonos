@@ -57,12 +57,7 @@ def parse_output_number_range(
 
 def parse_range(extent, dim: int) -> Tuple[Optional[float], ...]:
     if not is_set(extent):
-        if dim == 2:
-            return (None, None, None, None)
-        elif dim == 1:
-            return (None, None)
-        else:
-            raise ValueError("dim has to be 1 or 2.")
+        return (None,) * 2 * dim
 
     if len(extent) != 2 * dim:
         raise ValueError(
