@@ -190,7 +190,7 @@ def test_pbar(simulation_dir, capsys, tmp_path):
 
     out, err = capsys.readouterr()
     assert err == ""
-    assert "Processing snapshots" in out
+    assert out == ""
     assert ret == 0
 
 
