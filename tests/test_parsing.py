@@ -140,6 +140,14 @@ def test_parse_range(abscissa, ordinate, dim, expected):
     ) == (0.5, 10.0, -0.2, 0.4)
 
 
+def test_range_converter_error():
+    with pytest.raises(
+        TypeError,
+        match="Expected extent to be of lenght 2 or 4,",
+    ):
+        range_converter(extent=[], abscissa=None, ordinate=None)
+
+
 @pytest.mark.parametrize(
     "received, expected",
     [
@@ -151,6 +159,13 @@ def test_parse_range(abscissa, ordinate, dim, expected):
 )
 def test_image_format(received, expected):
     assert parse_image_format(received) == expected
+
+
+@pytest.mark.parametrize("received", ["unset", None])
+def test_image_format_default(received):
+    result = parse_image_format(received)
+    assert isinstance(result, str)
+    assert re.fullmatch(r"\w+", result)
 
 
 def test_invalid_image_format():
