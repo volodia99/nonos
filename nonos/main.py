@@ -511,8 +511,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # call of the process_field function, whether it be in parallel or not
     # TODO: reduce this to the bare minimum
-    func = functools.partial(
-        process_field,
+    func_kwargs = dict(  # noqa: C408
         operations=userval_or_default(args["operation"], default=["vm"]),
         field=args["field"],
         plane=userval_or_default(args["plane"], default=None),
@@ -542,8 +541,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     tstart = time.time()
     if ncpu == 1:
         for on in args["on"]:
-            func(on)
+            process_field(on, **func_kwargs)
     else:
+        func = functools.partial(process_field, **func_kwargs)
         with Pool(ncpu) as pool:
             list(
                 mytrack(
