@@ -19,6 +19,7 @@ from nonos.parsing import (
     [
         (1, [1]),
         (0, [0]),
+        ([1], [1]),
         ([0, 1], [0, 1]),
         ([0, 2], [0, 1, 2]),
         ([0, 5], [0, 1, 2, 3, 4, 5]),
@@ -28,6 +29,11 @@ from nonos.parsing import (
 )
 def test_range_outputs(received, expected):
     assert parse_output_number_range(received) == expected
+
+
+def test_from_maxval():
+    maxval = 1.0
+    assert parse_output_number_range(None, maxval=maxval) == [maxval]
 
 
 def test_unparseable_data():
