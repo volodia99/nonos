@@ -46,7 +46,7 @@ else:
     import importlib_resources
 
 
-# process function for parallisation purpose with progress bar
+# process function for parallelisation purpose with progress bar
 # counterParallel = Value('i', 0) # initialization of a counter
 def process_field(
     on,
@@ -540,14 +540,18 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     logger.info("Starting main loop")
     tstart = time.time()
-    with Pool(ncpu) as pool:
-        list(
-            mytrack(
-                pool.imap(func, args["on"]),
-                description="Processing snapshots",
-                total=len(args["on"]),
+    if ncpu == 1:
+        for on in args["on"]:
+            func(on)
+    else:
+        with Pool(ncpu) as pool:
+            list(
+                mytrack(
+                    pool.imap(func, args["on"]),
+                    description="Processing snapshots",
+                    total=len(args["on"]),
+                )
             )
-        )
     if not show:
         logger.info("Operation took {:.2f}s", time.time() - tstart)
 
