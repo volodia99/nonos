@@ -66,7 +66,7 @@ def _parse_rotation_angle(
     if rotate_with is not None:
         rotate_by = find_phip(planet_file=rotate_with)
 
-    if rotate_by is None:
+    if rotate_by is None:  # pragma: no cover
         # this is never supposed to happen, but it's needed to convince mypy that
         # we will not return a None
         raise RuntimeError("Something went terribly wrong. Please report this.")
