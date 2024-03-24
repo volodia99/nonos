@@ -11,7 +11,23 @@ from nonos.parsing import (
     parse_output_number_range,
     parse_range,
     range_converter,
+    userval_or_default,
 )
+
+
+@pytest.mark.parametrize(
+    "received, expected",
+    [
+        (("val", "default"), "val"),
+        (("unset", "default"), "default"),
+        ((None, "default"), "default"),
+        (("unset", None), None),
+        ((None, None), None),
+    ],
+)
+def test_userval_or_default(received, expected):
+    userval, default = received
+    assert userval_or_default(userval, default=default) == expected
 
 
 @pytest.mark.parametrize(
