@@ -6,6 +6,7 @@ __pycache__
 .pytest*
 .python-version
 .ipynb_checkpoints
+.coverage
 
 # temp files
 *\#
