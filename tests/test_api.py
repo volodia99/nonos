@@ -1,50 +1,69 @@
 import os
-from pathlib import Path
 
 import numpy as np
 import pytest
 
 from nonos.api import GasDataSet, file_analysis
 
-TEST_DATA_DIR = Path(__file__).parent / "data"
-
 
 class TestFileAnalysis:
     @pytest.mark.parametrize(
         "directory",
-        [TEST_DATA_DIR / "idefix_planet3d", TEST_DATA_DIR / "fargo_adsg_planet"],
+        ["idefix_planet3d", "fargo_adsg_planet"],
     )
-    def test_simple(self, directory):
+    def test_simple(self, test_data_dir, directory):
         result = file_analysis(
             "planet0.dat",
-            directory=directory,
+            directory=test_data_dir / directory,
         )
         assert isinstance(result, np.ndarray)
 
-    def test_norb(self):
+    def test_norb(self, test_data_dir):
         result = file_analysis(
             "planet0.dat",
-            directory=TEST_DATA_DIR / "idefix_planet3d",
+            directory=test_data_dir / "idefix_planet3d",
             norb=10,
         )
         assert isinstance(result, np.ndarray)
 
+    def test_norb_not_idefix(self, test_data_dir):
+        with pytest.raises(NotImplementedError):
+            file_analysis(
+                "planet0.dat",
+                directory=test_data_dir / "fargo_adsg_planet",
+                norb=10,
+            )
+
+    def test_implicit_directory(self, test_data_dir):
+        os.chdir(test_data_dir / "idefix_planet3d")
+        result = file_analysis("planet0.dat")
+        assert isinstance(result, np.ndarray)
+
 
 class TestGasDataSetFromNpy:
-    def setup_class(cls):
-        cls.kwargs = {
-            "on": 7283,
-            "directory": TEST_DATA_DIR / "pluto_spherical",
-            "operation": "azimuthal_average",
-        }
-        cls.expected_keys = ["RHO"]
+    expected_keys = ["RHO"]
+    args = (7283,)
+    kwargs = {"operation": "azimuthal_average"}
+    directory = "pluto_spherical"
 
-    def test_local_load(self):
-        kwargs = self.kwargs.copy()
-        os.chdir(kwargs.pop("directory"))
-        ds = GasDataSet.from_npy(**kwargs)
-        assert sorted(ds.keys()) == sorted(self.expected_keys)
+    def test_from_npy_implicit_directory(self, test_data_dir):
+        os.chdir(test_data_dir / self.directory)
+        ds = GasDataSet(*self.args, **self.kwargs)
+        assert sorted(ds.keys()) == self.expected_keys
 
-    def test_load_from_anywhere(self):
-        ds = GasDataSet.from_npy(**self.kwargs)
-        assert sorted(ds.keys()) == sorted(self.expected_keys)
+    def test_from_npy_explicit_directory(self, test_data_dir):
+        ds = GasDataSet(
+            *self.args,
+            **self.kwargs,
+            directory=test_data_dir / self.directory,
+        )
+        assert sorted(ds.keys()) == self.expected_keys
+
+    def test_deprecation(self, test_data_dir):
+        with pytest.deprecated_call():
+            ds = GasDataSet.from_npy(
+                *self.args,
+                **self.kwargs,
+                directory=test_data_dir / self.directory,
+            )
+        assert sorted(ds.keys()) == self.expected_keys

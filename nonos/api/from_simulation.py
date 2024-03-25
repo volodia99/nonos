@@ -2,6 +2,7 @@ import glob
 import os
 import re
 import sys
+import warnings
 from enum import auto
 from pathlib import Path
 from typing import Any, Dict, Literal, Optional, Tuple, Union, cast
@@ -43,6 +44,13 @@ class Parameters:
         code: Optional[str] = None,
         directory: Optional[str] = None,
     ) -> None:
+        warnings.warn(
+            "The Parameters class is deprecated "
+            "and will be removed in a future version. "
+            "Instead, use nonos.loaders.loader_from ",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
         if not directory:
             directory = os.getcwd()
         elif not os.path.exists(directory):
@@ -365,6 +373,16 @@ class DataStructure:
 
 
 class CodeReadFormat:
+    def __init__(self):
+        warnings.warn(
+            "The CodeReadFormat class is deprecated "
+            "and will be removed in a future version. "
+            "It is replaced internally with nonos._readers.binary, "
+            "which isn't intended for external use.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+
     def idfxReadVTK(
         self, filename, *, geometry="unknown", cell="edges", computedata=True
     ) -> DataStructure:

@@ -108,6 +108,7 @@ source = [
 omit = [
     "nonos/_backports.py",
     "nonos/__main__.py",
+    "nonos/api/from_simulation.py", # deprecated module
 ]
 
 [tool.coverage.report]
