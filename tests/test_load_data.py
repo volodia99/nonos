@@ -9,7 +9,7 @@ from nonos.api import GasDataSet
 
 def test_from_npy_error(test_data_dir):
     with pytest.raises(FileNotFoundError):
-        GasDataSet.from_npy(
+        GasDataSet(
             500,
             operation="typo",
             directory=test_data_dir / "idefix_spherical_planet3d",
@@ -23,7 +23,7 @@ def test_roundtrip_simple(test_data_dir, tmp_path):
     gf = ds["RHO"].azimuthal_average()
 
     gf.save(tmp_path)
-    dsnpy = GasDataSet.from_npy(
+    dsnpy = GasDataSet(
         500,
         operation="azimuthal_average",
         directory=tmp_path,
@@ -64,7 +64,7 @@ def test_roundtrip_no_operation_all_field(test_data_dir, tmp_path):
     gf = ds["RHO"]
 
     gf.save(tmp_path)
-    dsnpy = GasDataSet.from_npy(
+    dsnpy = GasDataSet(
         500,
         operation="",
         directory=tmp_path,
@@ -77,7 +77,7 @@ def test_roundtrip_other_dir(test_data_dir, tmp_path):
     os.chdir(test_data_dir / "idefix_spherical_planet3d")
     gf = GasDataSet(500)["RHO"].azimuthal_average()
     gf.save(tmp_path)
-    dsnpy = GasDataSet.from_npy(
+    dsnpy = GasDataSet(
         500,
         operation="azimuthal_average",
         directory=tmp_path,
@@ -114,17 +114,12 @@ def test_api_vtk_by_name(test_data_dir, from_abs_path):
     ds = GasDataSet(input_)
     assert ds.on == 500
 
-    with pytest.raises(
-        FileNotFoundError, match=r"In idfxReadVTK: .*datawrong\.0500\.vtk not found\."
-    ):
+    with pytest.raises(FileNotFoundError):
         GasDataSet(input_.replace("data.0500", "datawrong.0500"))
 
 
 def test_api_vtk_by_name_fargo(test_data_dir):
-    os.chdir(test_data_dir / "fargo3d_planet2d")
-
-    with pytest.raises(TypeError, match="on can only be an int for fargo3d"):
-        GasDataSet(f"gasdens{40:04d}.dat")
+    GasDataSet(test_data_dir / "fargo3d_planet2d" / "gasdens40.dat")
 
 
 def test_api_fluid_fargo3d(test_data_dir):
@@ -145,7 +140,10 @@ def test_api_fluid_fargo3d(test_data_dir):
 
 
 def test_api_fluid_idefix(test_data_dir):
-    with pytest.raises(ValueError, match="fluid is defined only for fargo3d outputs"):
+    with pytest.warns(
+        UserWarning,
+        match="Unused keyword argument: 'fluid'",
+    ):
         GasDataSet(
             500,
             fluid="dust1",
