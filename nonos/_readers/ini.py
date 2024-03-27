@@ -77,25 +77,31 @@ class Fargo3DReader(ReaderMixin):
     @staticmethod
     def read(file: PathT, /) -> IniData:
         class Fargo3DIni:
-            def __init__(self, *, NINTERM, DT, FRAME, **kwargs) -> None:
+            def __init__(
+                self,
+                *,
+                NINTERM,
+                DT,
+                FRAME: str = "F",
+                OMEGAFRAME: float = 0.0,
+                **_kwargs,
+            ) -> None:
                 self.NINTERM = int(NINTERM)
                 self.DT = float(DT)
                 self.FRAME: FrameType
                 self.OMEGAFRAME: float
 
-                str_frame = str(FRAME)
-                if str_frame == "F":
-                    self.OMEGAFRAME = float(kwargs["OMEGAFRAME"])
+                if FRAME == "F":
+                    self.OMEGAFRAME = float(OMEGAFRAME)
                     if self.OMEGAFRAME == 0.0:
                         self.FRAME = FrameType.FIXED_FRAME
                     else:
                         self.FRAME = FrameType.CONSTANT_ROTATION
-                elif str_frame == "C":
+                elif FRAME == "C":
                     self.FRAME = FrameType.PLANET_COROTATION
                     self.OMEGAFRAME = float("nan")
                 else:
-                    self.FRAME = FrameType.FIXED_FRAME
-                    self.OMEGAFRAME = 0.0
+                    raise NotImplementedError
 
         meta = inifix.load(file)
         ini = Fargo3DIni(**meta)
@@ -113,29 +119,35 @@ class Fargo3DReader(ReaderMixin):
 class FargoADSGReader(ReaderMixin):
     @staticmethod
     def read(file: PathT, /) -> IniData:
-        class Fargo3DIni:
-            def __init__(self, *, Ninterm, DT, Frame, **kwargs) -> None:
+        class FargoADSGIni:
+            def __init__(
+                self,
+                *,
+                Ninterm,
+                DT,
+                Frame: str = "F",
+                OmegaFrame: float = 0.0,
+                **_kwargs,
+            ) -> None:
                 self.NINTERM = int(Ninterm)
                 self.DT = float(DT)
                 self.FRAME: FrameType
                 self.OMEGAFRAME: float
 
-                str_frame = str(Frame)
-                if str_frame == "F":
-                    self.OMEGAFRAME = float(kwargs["OmegaFrame"])
+                if Frame == "F":
+                    self.OMEGAFRAME = float(OmegaFrame)
                     if self.OMEGAFRAME == 0.0:
                         self.FRAME = FrameType.FIXED_FRAME
                     else:
                         self.FRAME = FrameType.CONSTANT_ROTATION
-                elif str_frame == "C":
+                elif Frame == "C":
                     self.FRAME = FrameType.PLANET_COROTATION
                     self.OMEGAFRAME = float("nan")
                 else:
-                    self.FRAME = FrameType.FIXED_FRAME
-                    self.OMEGAFRAME = 0.0
+                    raise NotImplementedError
 
         meta = inifix.load(file)
-        ini = Fargo3DIni(**meta)
+        ini = FargoADSGIni(**meta)
 
         return IniData(
             file=Path(file).resolve(),
