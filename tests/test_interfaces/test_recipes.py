@@ -9,7 +9,14 @@ from nonos.loaders import Loader, loader_from
 
 
 def validate_dataclass_instance(instance, cls):
-    for key in cls.__slots__:
+    if hasattr(cls, "_init_attrs"):
+        # special case, initially designed for PlanetData
+        attrs = cls._init_attrs
+    else:
+        # general case: __slots__ are exactly the fields
+        # that are expected at initialization
+        attrs = cls.__slots__
+    for key in attrs:
         expected_type = cls.__annotations__[key]
         obj = getattr(instance, key)
         if expected_type == FloatArray:

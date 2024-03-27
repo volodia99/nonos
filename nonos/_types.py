@@ -5,6 +5,7 @@ __all__ = [
     "Geometry",
     "FrameType",
     "BinData",
+    "OrbitalElements",
     "PlanetData",
     "IniData",
     "BinReader",
@@ -26,7 +27,10 @@ else:
 
 if sys.version_info >= (3, 11):
     from enum import StrEnum
+    from typing import assert_never
 else:
+    from typing_extensions import assert_never
+
     from nonos._backports import StrEnum
 
 
@@ -70,10 +74,24 @@ class BinData:
 
 
 @final
-@dataclass(frozen=True)
-class PlanetData:
+@dataclass(frozen=True, eq=False)
+class OrbitalElements:
     # TODO: use slots=True in @dataclass when Python 3.9 is dropped
-    __slots__ = ["x", "y", "z", "vx", "vy", "vz", "q", "t", "dt", "d", "i", "e", "a"]
+    __slots__ = ["i", "e", "a"]
+    i: FloatArray
+    e: FloatArray
+    a: FloatArray
+
+
+@final
+@dataclass(frozen=True, eq=False)
+class PlanetData:
+    # fields that are required at __init__
+    _init_attrs = ["x", "y", "z", "vx", "vy", "vz", "q", "t", "dt"]
+    # additional derived field that can be computed on the fly
+    _post_init_attrs = ["d"]
+    __slots__ = _init_attrs + _post_init_attrs
+
     # cartesian position
     x: FloatArray
     y: FloatArray
@@ -92,31 +110,42 @@ class PlanetData:
     dt: FloatArray
 
     def __post_init__(self) -> None:
-        # Compute orbital moments
         object.__setattr__(self, "d", np.sqrt(self.x**2 + self.y**2 + self.z**2))
 
-        hx = self.y * self.vz - self.z * self.vy
-        hy = self.z * self.vx - self.x * self.vz
-        hz = self.x * self.vy - self.y * self.vx
-        hhor = np.hypot(hx, hy)
+    def get_orbital_elements(self, frame: FrameType) -> OrbitalElements:
+        if frame is FrameType.COROT:
+            hx = self.y * self.vz - self.z * self.vy
+            hy = self.z * self.vx - self.x * self.vz
+            hz = self.x * self.vy - self.y * self.vx
+            hhor = np.hypot(hx, hy)
 
-        h2 = hx * hx + hy * hy + hz * hz
-        h = np.sqrt(h2)
-        object.__setattr__(self, "i", np.arcsin(hhor / h))
+            h2 = hx * hx + hy * hy + hz * hz
+            h = np.sqrt(h2)
+            i = np.arcsin(hhor / h)
 
-        d = object.__getattribute__(self, "d")
-        Ax = self.vy * hz - self.vz * hy - (1.0 + self.q) * self.x / d
-        Ay = self.vz * hx - self.vx * hz - (1.0 + self.q) * self.y / d
-        Az = self.vx * hy - self.vy * hx - (1.0 + self.q) * self.z / d
+            d = object.__getattribute__(self, "d")
+            Ax = self.vy * hz - self.vz * hy - (1.0 + self.q) * self.x / d
+            Ay = self.vz * hx - self.vx * hz - (1.0 + self.q) * self.y / d
+            Az = self.vx * hy - self.vy * hx - (1.0 + self.q) * self.z / d
 
-        object.__setattr__(
-            self, "e", np.sqrt(Ax * Ax + Ay * Ay + Az * Az) / (1.0 + self.q)
-        )
-        e = object.__getattribute__(self, "e")
-        object.__setattr__(self, "a", h * h / ((1.0 + self.q) * (1.0 - e * e)))
+            e = np.sqrt(Ax * Ax + Ay * Ay + Az * Az) / (1.0 + self.q)
+            a = h * h / ((1.0 + self.q) * (1.0 - e * e))
+            return OrbitalElements(i, e, a)
+        elif frame is FrameType.FIXED:
+            raise NotImplementedError(
+                f"PlanetData.set_orbital_elements isn't implemented for {frame=}"
+            )
+        elif frame is FrameType.UNSET:
+            raise RuntimeError(f"Cannot set orbital elements with {frame=}")
+        else:
+            assert_never(frame)
+
+    def get_rotational_rate(self) -> FloatArray:
+        d = self.d  # type: ignore [attr-defined]
+        return np.sqrt((1.0 + self.q) / pow(d, 3.0))
 
 
-for key in ["d", "i", "e", "a"]:
+for key in PlanetData._post_init_attrs:
     PlanetData.__annotations__[key] = FloatArray
 
 

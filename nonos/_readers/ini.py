@@ -90,8 +90,6 @@ class Fargo3DReader(ReaderMixin):
                 elif str_frame == "C":
                     self.FRAME = FrameType.COROT
                     self.OMEGAFRAME = float("nan")
-                    # TODO: reimplement this:
-                    # self.OMEGAFRAME = np.sqrt((1.0 + qpl) / pow(dpl, 3.0))
                 else:
                     self.FRAME = FrameType.UNSET
                     self.OMEGAFRAME = 0.0
@@ -126,8 +124,6 @@ class FargoADSGReader(ReaderMixin):
                 elif str_frame == "C":
                     self.FRAME = FrameType.COROT
                     self.OMEGAFRAME = float("nan")
-                    # TODO: reimplement this:
-                    # self.OMEGAFRAME = np.sqrt((1.0 + qpl) / pow(dpl, 3.0))
                 else:
                     self.FRAME = FrameType.UNSET
                     self.OMEGAFRAME = 0.0
