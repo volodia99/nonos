@@ -36,6 +36,29 @@ class Recipe(StrEnum):
 @final
 @dataclass(frozen=True)
 class Loader:
+    r"""
+    A composable data loader interface.
+
+    Loader instances are immutable and extremely lightweight as they do
+    not hold any data other than a Path to a parameter file.
+    All actual loading capabilities are deleguated to specialized readers.
+
+    Parameters
+    ----------
+      parameter_file: Path
+        path to an existing parameter file.
+      binary_reader: type[BinReader]
+        a class that implements the BinReader interface, as defined in nonos._types
+      planet_reader: type[PlanetReader]
+        a class that implements the PlanetReader interface, as defined in nonos._types
+      ini_reader: type[IniReader]
+        a class that implements the IniReader interface, as defined in nonos._types
+
+    Raises
+    ------
+      FileNotFoundError: if `parameter_file` doesn't exist or is a directory.
+    """
+
     # TODO: use slots=True in @dataclass when Python 3.9 is dropped
     __slots__ = [
         "parameter_file",
@@ -75,6 +98,33 @@ def loader_from(
     parameter_file: Optional["PathT"] = None,
     directory: Optional["PathT"] = None,
 ) -> Loader:
+    r"""
+    Compose a Loader object following a known Recipe.
+
+    The exact Recipe needs to be uniquely identifiable from the parameters.
+
+    Parameters
+    ----------
+      code: str (optional)
+        This string should match a Recipe enum member.
+        Lower case is expected.
+        Valid values include, but are not necessarily limited to:
+        - 'idefix_vtk'
+        - 'pluto_vtk'
+        - 'fargo_adsg'
+        - 'fargo3d'
+
+      parameter_file: Path or str (optional)
+        A path to a parameter file (e.g. idefix.ini). This path can be
+        absolute or relative to the `directory` argument.
+
+      directory: Path or str (optional)
+        A path to the simulation directory.
+
+    Raises
+    ------
+      TypeError: if no argument is provided.
+    """
     return _compose_loader(
         recipe_from(
             code=code,
@@ -165,6 +215,38 @@ def recipe_from(
     parameter_file: Optional["PathT"] = None,
     directory: Optional["PathT"] = None,
 ) -> Recipe:
+    r"""
+    Determine an appropriate loader recipe from user input.
+
+    Parameters
+    ----------
+      code: str (optional)
+        This string should match a Recipe enum member.
+        Lower case is expected.
+        Valid values include, but are not necessarily limited to:
+        - 'idefix_vtk'
+        - 'pluto_vtk'
+        - 'fargo_adsg'
+        - 'fargo3d'
+
+      parameter_file: Path or str (optional)
+        A path to a parameter file (e.g. idefix.ini). This path can be
+        absolute or relative to the `directory` argument.
+
+      directory: Path or str (optional)
+        A path to the simulation directory.
+
+    Returns
+    -------
+       a Recipe enum member
+
+    Raises
+    ------
+      TypeError: if no argument is provided.
+
+      ValueError: if `code` is omitted and a working inifile reader cannot
+        be uniquely identified.
+    """
     if code is not None:
         return _code_to_recipe(code)
 
