@@ -1,3 +1,15 @@
+"""
+This module contains low-level tests for the internal details of
+nonos._reader and nonos.loaders.
+They are meant to ensure that the constraints ingrained
+in the original design continue to hold in the future, and provide
+immediate feedback if a refactor breaks any of the initial promises,
+in areas that cannot be easily checked by a type checker.
+
+These tests are *not* sacred, and may need to be adjusted in case of
+a new change in design.
+"""
+
 import inspect
 import sys
 from enum import Enum

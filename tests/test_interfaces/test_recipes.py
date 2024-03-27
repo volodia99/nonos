@@ -1,3 +1,10 @@
+"""
+Test basic functionalities of loaders composed according
+to known recipes.
+These tests are at an intermediate between contract tests
+and integration tests.
+"""
+
 from contextlib import nullcontext
 from typing import Any, Dict, List, Optional, Tuple
 
