@@ -49,9 +49,9 @@ class Geometry(StrEnum):
 
 
 class FrameType(Enum):
-    FIXED = auto()
-    COROT = auto()
-    UNSET = auto()
+    FIXED_FRAME = auto()
+    CONSTANT_ROTATION = auto()
+    PLANET_COROTATION = auto()
 
 
 @final
@@ -113,7 +113,7 @@ class PlanetData:
         object.__setattr__(self, "d", np.sqrt(self.x**2 + self.y**2 + self.z**2))
 
     def get_orbital_elements(self, frame: FrameType) -> OrbitalElements:
-        if frame is FrameType.COROT:
+        if frame is FrameType.FIXED_FRAME:
             hx = self.y * self.vz - self.z * self.vy
             hy = self.z * self.vx - self.x * self.vz
             hz = self.x * self.vy - self.y * self.vx
@@ -131,12 +131,13 @@ class PlanetData:
             e = np.sqrt(Ax * Ax + Ay * Ay + Az * Az) / (1.0 + self.q)
             a = h * h / ((1.0 + self.q) * (1.0 - e * e))
             return OrbitalElements(i, e, a)
-        elif frame is FrameType.FIXED:
+        elif frame is FrameType.CONSTANT_ROTATION:
             raise NotImplementedError(
                 f"PlanetData.set_orbital_elements isn't implemented for {frame=}"
             )
-        elif frame is FrameType.UNSET:
-            raise RuntimeError(f"Cannot set orbital elements with {frame=}")
+        elif frame is FrameType.PLANET_COROTATION:
+            # bug-for-bug compat
+            return self.get_orbital_elements(FrameType.FIXED_FRAME)
         else:
             assert_never(frame)
 

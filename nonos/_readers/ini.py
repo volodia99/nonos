@@ -25,10 +25,10 @@ class IdefixVTKReader(ReaderMixin):
         class IdefixIniHydro:
             def __init__(self, **kwargs) -> None:
                 if "rotation" in kwargs:
-                    self.frame = FrameType.FIXED
+                    self.frame = FrameType.CONSTANT_ROTATION
                     self.rotation = float(kwargs["rotation"])
                 else:
-                    self.frame = FrameType.UNSET
+                    self.frame = FrameType.FIXED_FRAME
                     self.rotation = 0.0
 
         class IdefixIni:
@@ -65,7 +65,7 @@ class PlutoVTKReader(ReaderMixin):
 
         return IniData(
             file=Path(file).resolve(),
-            frame=FrameType.UNSET,
+            frame=FrameType.FIXED_FRAME,
             rotational_rate=0.0,
             output_time_interval=ini.output.vtk,
             meta=meta,
@@ -85,13 +85,16 @@ class Fargo3DReader(ReaderMixin):
 
                 str_frame = str(FRAME)
                 if str_frame == "F":
-                    self.FRAME = FrameType.FIXED
                     self.OMEGAFRAME = float(kwargs["OMEGAFRAME"])
+                    if self.OMEGAFRAME == 0.0:
+                        self.FRAME = FrameType.FIXED_FRAME
+                    else:
+                        self.FRAME = FrameType.CONSTANT_ROTATION
                 elif str_frame == "C":
-                    self.FRAME = FrameType.COROT
+                    self.FRAME = FrameType.PLANET_COROTATION
                     self.OMEGAFRAME = float("nan")
                 else:
-                    self.FRAME = FrameType.UNSET
+                    self.FRAME = FrameType.FIXED_FRAME
                     self.OMEGAFRAME = 0.0
 
         meta = inifix.load(file)
@@ -119,13 +122,16 @@ class FargoADSGReader(ReaderMixin):
 
                 str_frame = str(Frame)
                 if str_frame == "F":
-                    self.FRAME = FrameType.FIXED
                     self.OMEGAFRAME = float(kwargs["OmegaFrame"])
+                    if self.OMEGAFRAME == 0.0:
+                        self.FRAME = FrameType.FIXED_FRAME
+                    else:
+                        self.FRAME = FrameType.CONSTANT_ROTATION
                 elif str_frame == "C":
-                    self.FRAME = FrameType.COROT
+                    self.FRAME = FrameType.PLANET_COROTATION
                     self.OMEGAFRAME = float("nan")
                 else:
-                    self.FRAME = FrameType.UNSET
+                    self.FRAME = FrameType.FIXED_FRAME
                     self.OMEGAFRAME = 0.0
 
         meta = inifix.load(file)

@@ -24,19 +24,18 @@ class TestPlanetData:
         # given z=0
         npt.assert_allclose(pd.d, np.hypot(pd.x, pd.y))
 
-    def test_get_orbital_elements_corot(self):
-        oe = self.data.get_orbital_elements(FrameType.COROT)
+    def test_get_orbital_elements_unset(self):
+        oe = self.data.get_orbital_elements(FrameType.FIXED_FRAME)
         npt.assert_allclose(oe.i, 0.0)
         npt.assert_allclose(oe.e, 1e-12, rtol=1e-4)
         npt.assert_allclose(oe.a, 1.0)
 
     def test_get_orbital_elements_fixed(self):
         with pytest.raises(NotImplementedError):
-            self.data.get_orbital_elements(FrameType.FIXED)
+            self.data.get_orbital_elements(FrameType.CONSTANT_ROTATION)
 
-    def test_get_orbital_elements_unset(self):
-        with pytest.raises(RuntimeError):
-            self.data.get_orbital_elements(FrameType.UNSET)
+    def test_get_orbital_elements_corot(self):
+        self.data.get_orbital_elements(FrameType.PLANET_COROTATION)
 
     def test_get_rotational_rate(self):
         res = self.data.get_rotational_rate()
