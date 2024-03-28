@@ -166,7 +166,7 @@ def _parameter_file_from(
             return directory / parameter_file
 
     raise ValueError(
-        "Received apparently inconsistent inputs " f"{parameter_file=} and {directory=}"
+        f"Received apparently inconsistent inputs {parameter_file=} and {directory=}"
     )
 
 

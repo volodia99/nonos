@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -165,27 +166,83 @@ class TestGetRecipe:
             recipe_from(directory=tmp_path)
 
 
-class TestGetLoader:
-    @pytest.mark.parametrize(
-        "in_",
-        [
-            pytest.param(
-                Path("idefix_planet3d", "idefix.ini"),
-                id="idefix_vtk",
-            ),
-            pytest.param(
-                Path("pluto_spherical", "pluto.ini"),
-                id="pluto_vtk",
-            ),
-            pytest.param(
-                Path("fargo3d_planet2d", "variables.par"),
-                id="fargo3d",
-            ),
-            pytest.param(
-                Path("fargo_adsg_planet", "planetpendragon_200k.par"),
-                id="fargo_adsg",
-            ),
-        ],
-    )
-    def test_loader_from_parameter_file(self, test_data_dir, in_):
-        assert type(loader_from(parameter_file=test_data_dir / in_)) is Loader
+@pytest.mark.parametrize(
+    "parameter_file, code",
+    [
+        pytest.param(
+            ("idefix_planet3d", "idefix.ini"),
+            "idefix_vtk",
+            id="idefix_vtk",
+        ),
+        pytest.param(
+            ("pluto_spherical", "pluto.ini"),
+            "pluto_vtk",
+            id="pluto_vtk",
+        ),
+        pytest.param(
+            ("fargo3d_planet2d", "variables.par"),
+            "fargo3d",
+            id="fargo3d",
+        ),
+        pytest.param(
+            ("fargo_adsg_planet", "planetpendragon_200k.par"),
+            "fargo_adsg",
+            id="fargo_adsg",
+        ),
+    ],
+)
+class TestLoaderFrom:
+
+    def test_loaders_from_user_inputs(self, test_data_dir, parameter_file, code):
+        parameter_file = test_data_dir.joinpath(*parameter_file)
+        directory = parameter_file.parent
+        loader0 = loader_from(
+            code=code,
+            parameter_file=parameter_file,
+            directory=directory,
+        )
+        loader1 = loader_from(
+            parameter_file=parameter_file,
+            directory=directory,
+        )
+        assert loader1 == loader0
+
+        loader2 = loader_from(
+            parameter_file=parameter_file.name,
+            directory=directory,
+        )
+        assert loader2 == loader0
+
+        loader3 = loader_from(directory=directory)
+        assert loader3 == loader0
+
+        loader4 = loader_from(parameter_file=parameter_file)
+        assert loader4 == loader0
+
+        loader5 = loader_from(
+            code=code,
+            parameter_file=parameter_file,
+        )
+        assert loader5 == loader0
+
+        loader6 = loader_from(
+            code=code,
+            directory=directory,
+        )
+        assert loader6 == loader0
+
+    def test_loader_from_code_alone_error(
+        self,
+        test_data_dir,  # noqa: ARG002
+        parameter_file,  # noqa: ARG002,
+        code,
+    ):
+        with pytest.raises(TypeError):
+            loader_from(code=code)
+
+    def test_loader_from_code_alone_with_chdir_error(
+        self, test_data_dir, parameter_file, code
+    ):
+        os.chdir(test_data_dir.joinpath(*parameter_file).parent)
+        with pytest.raises(TypeError):
+            loader_from(code=code)

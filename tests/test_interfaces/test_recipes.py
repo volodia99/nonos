@@ -5,7 +5,6 @@ These tests are at an intermediate between contract tests
 and integration tests.
 """
 
-import os
 from contextlib import nullcontext
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -46,53 +45,6 @@ class CheckLoader:
     expected_n_planet_files: Optional[int]
     expected_data_keys: List[str]
     meta: Dict[str, Any]
-
-    def test_loaders_from_user_inputs(self, test_data_dir):
-        parameter_file = test_data_dir.joinpath(*self.parameter_file)
-        directory = parameter_file.parent
-        loader0 = loader_from(
-            code=self.code,
-            parameter_file=parameter_file,
-            directory=directory,
-        )
-        loader1 = loader_from(
-            parameter_file=parameter_file,
-            directory=directory,
-        )
-        assert loader1 == loader0
-
-        loader2 = loader_from(
-            parameter_file=parameter_file.name,
-            directory=directory,
-        )
-        assert loader2 == loader0
-
-        loader3 = loader_from(directory=directory)
-        assert loader3 == loader0
-
-        loader4 = loader_from(parameter_file=parameter_file)
-        assert loader4 == loader0
-
-        loader5 = loader_from(
-            code=self.code,
-            parameter_file=parameter_file,
-        )
-        assert loader5 == loader0
-
-        loader6 = loader_from(
-            code=self.code,
-            directory=directory,
-        )
-        assert loader6 == loader0
-
-    def test_loader_from_code_alone_error(self):
-        with pytest.raises(TypeError):
-            loader_from(code=self.code)
-
-    def test_loader_from_code_alone_with_chdir_error(self, test_data_dir):
-        os.chdir(test_data_dir.joinpath(*self.parameter_file).parent)
-        with pytest.raises(TypeError):
-            loader_from(code=self.code)
 
     @pytest.fixture
     def initloader(self, test_data_dir):
