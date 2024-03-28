@@ -246,3 +246,15 @@ class TestLoaderFrom:
         os.chdir(test_data_dir.joinpath(*parameter_file).parent)
         with pytest.raises(TypeError):
             loader_from(code=code)
+
+    def test_loader_from_inconsistent_inputs_error(
+        self,
+        test_data_dir,
+        parameter_file,
+        code,  # noqa: ARG002,
+    ):
+        parameter_file = test_data_dir.joinpath(*parameter_file).name
+        with pytest.raises(
+            ValueError, match=r"Received apparently inconsistent inputs"
+        ):
+            loader_from(parameter_file=parameter_file)
