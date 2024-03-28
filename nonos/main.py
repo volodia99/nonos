@@ -20,9 +20,10 @@ import numpy as np
 from inifix.format import iniformat
 
 from nonos.__version__ import __version__
-from nonos.api import GasDataSet, Parameters
+from nonos.api import GasDataSet
 from nonos.api._angle_parsing import _parse_planet_file
 from nonos.config import DEFAULTS
+from nonos.loaders import loader_from
 from nonos.logging import (
     configure_logger,
     logger,
@@ -439,17 +440,16 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 0
 
     try:
-        params = Parameters(directory=args["datadir"])
+        loader = loader_from(directory=args["datadir"])
     except (FileNotFoundError, RuntimeError, ValueError) as exc:
         print_err(exc)
         return 1
-    params.loadIniFile()
-    params.countSimuFiles()
-    data_files = params.data_files
+
+    data_files = loader.binary_reader.get_bin_files(args["datadir"])
 
     available = set()
     for fn in data_files:
-        if (num := re.search(r"\d+", fn)) is not None:
+        if (num := re.search(r"\d+", fn.name)) is not None:
             available.add(int(num.group()))
 
     if args.pop("all"):
@@ -515,7 +515,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         operations=userval_or_default(args["operation"], default=["vm"]),
         field=args["field"],
         plane=userval_or_default(args["plane"], default=None),
-        geometry=userval_or_default(args["geometry"], default="unknown"),
+        geometry=userval_or_default(args["geometry"], default="unset"),
         diff=args["diff"],
         log=args["log"],
         planet_file=planet_file,

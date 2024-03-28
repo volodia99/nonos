@@ -6,36 +6,58 @@ import numpy as np
 from lick.lick import lick_box
 
 from nonos.api.analysis import Coordinates, GasField, Plotable
-from nonos.api.from_simulation import Parameters
+from nonos.loaders import Recipe, loader_from, recipe_from
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
 
+    from nonos._types import FloatArray, PathT
 
-def file_analysis(filename, *, inifile="", code="", directory="", norb=None):
+
+def file_analysis(
+    filename: "PathT",
+    *,
+    inifile: Optional[str] = None,
+    code: Optional[str] = None,
+    directory: Optional["PathT"] = None,
+    norb: Optional[int] = None,
+) -> "FloatArray":
     from scipy.ndimage import uniform_filter1d
 
+    if directory is None:
+        directory = os.getcwd()
+
     columns = np.loadtxt(os.path.join(directory, filename), dtype="float64").T
-    if norb is not None:
-        init = Parameters(inifile=inifile, code=code, directory=directory)
-        init.loadIniFile()
-        if init.code == "idefix" and "analysis" in init.inifile["Output"]:
-            analysis = init.inifile["Output"]["analysis"]
-            rpini = init.inifile["Planet"]["dpl"]
-            Ntmean = round(norb * 2 * np.pi * pow(rpini, 1.5) / analysis)
-            for i in range(1, len(columns) - 1):
-                columns[i] = uniform_filter1d(columns[i], Ntmean)
-        else:
-            raise NotImplementedError(
-                f"moving average on {norb} orbits is not implemented for the code {init.code}"
-            )
+    if norb is None:
+        return columns
+
+    loader = loader_from(
+        code=code,
+        parameter_file=inifile,
+        directory=directory,
+    )
+    recipe = recipe_from(code=code, parameter_file=inifile, directory=directory)
+    ini = loader.load_ini_file().meta
+
+    if recipe is Recipe.IDEFIX_VTK and "analysis" in ini["Output"]:
+        analysis = ini["Output"]["analysis"]
+        rpini = ini["Planet"]["dpl"]
+        Ntmean = round(norb * 2 * np.pi * pow(rpini, 1.5) / analysis)
+        for i in range(1, len(columns) - 1):
+            columns[i] = uniform_filter1d(columns[i], Ntmean)
+    else:
+        raise NotImplementedError(
+            f"moving average on {norb} orbits is not implemented for the recipe {recipe}"
+        )
     return columns
 
 
 def planet_analysis(
     planet_number, *, inifile="", code="", directory="", norb=None
 ):  # pragma: no cover
+    from nonos.api.from_simulation import Parameters
+
     warnings.warn(
         "nonos.api.satellite.planet_analysis is deprecated and will be removed in "
         "a future version. Please use nonos.api.satellite.file_analysis instead.",
@@ -183,7 +205,6 @@ def compute(
         ref.on,
         operation=ref.operation,
         inifile=ref.inifile,
-        code=ref.code,
         directory=ref.directory,
         rotate_by=ref._rotate_by,
     )
@@ -196,8 +217,8 @@ def from_data(
     coords: Coordinates,
     on: int,
     operation: str,
-    inifile: str = "",
-    code: str = "",
+    inifile: Optional[str] = None,
+    code: Optional[str] = None,
     directory: str = "",
     rotate_grid: int = -1,
 ):  # pragma: no cover
