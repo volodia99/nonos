@@ -233,7 +233,6 @@ class TestLoaderFrom:
 
     def test_loader_from_code_alone_error(
         self,
-        test_data_dir,  # noqa: ARG002
         parameter_file,  # noqa: ARG002,
         code,
     ):
