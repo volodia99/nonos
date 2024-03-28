@@ -34,7 +34,7 @@ class Recipe(StrEnum):
 
 
 @final
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=True)
 class Loader:
     r"""
     A composable data loader interface.
