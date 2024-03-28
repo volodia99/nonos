@@ -147,16 +147,27 @@ def _parameter_file_from(
     parameter_file: Optional["PathT"] = None,
     directory: Optional["PathT"] = None,
 ) -> Path:
-    if parameter_file is not None:
-        return Path(parameter_file).resolve()
-    elif directory is not None:
-        directory = Path(directory).resolve()
-        return _parameter_file_from_dir(directory)
-    else:
+    if parameter_file is None and directory is None:
         raise TypeError(
             "Missing required keyword arguments: 'parameter_file', 'directory' "
             "(need at least one)"
         )
+
+    if directory is not None:
+        directory = Path(directory).resolve()
+        if parameter_file is None:
+            return _parameter_file_from_dir(directory)
+
+    if parameter_file is not None:
+        parameter_file = Path(parameter_file)
+        if parameter_file.is_absolute():
+            return parameter_file
+        elif directory is not None and parameter_file == Path(parameter_file.name):
+            return directory / parameter_file
+
+    raise ValueError(
+        "Received apparently inconsistent inputs " f"{parameter_file=} and {directory=}"
+    )
 
 
 def _parameter_file_from_dir(directory: "PathT", /) -> Path:
