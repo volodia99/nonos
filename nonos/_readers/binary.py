@@ -289,7 +289,7 @@ class VTKReader(ReaderMixin):
                 if data_type != "CELL_DATA":  # pragma: no cover
                     fid.close()
                     raise ValueError(
-                        "Expected 'CELL DATA' as produced by PLUTO, got {data_type!r}."
+                        f"Expected 'CELL DATA' as produced by PLUTO, got {data_type!r}."
                     )
                 s = fid.readline()  # Line feed
 
