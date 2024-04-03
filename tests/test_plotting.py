@@ -1,6 +1,7 @@
 import os
 from glob import glob
 
+import matplotlib.pyplot as plt
 import numexpr as ne
 import numpy.testing as npt
 import pytest
@@ -187,3 +188,16 @@ def test_corotation_api_float(test_data_dir):
     case2 = ds["RHO"].map("x", "y", rotate_by=-1.2453036989845032)
 
     npt.assert_array_equal(case1.data, case2.data)
+
+
+@pytest.mark.parametrize(
+    "map_args",
+    [
+        pytest.param(("R", "phi")),
+        pytest.param(("phi", "R"), marks=pytest.mark.xfail(strict=True)),
+    ],
+)
+def test_reg(test_data_dir, map_args):
+    ds = GasDataSet(23, directory=test_data_dir / "idefix_newvtk_planet2d")
+    fig, ax = plt.subplots()
+    ds["RHO"].map(*map_args).plot(fig, ax)
