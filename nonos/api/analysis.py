@@ -1,8 +1,10 @@
+import dataclasses
 import glob
 import json
 import os
 import sys
 import warnings
+from functools import cached_property
 from pathlib import Path
 from shutil import copyfile
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Union, overload
@@ -11,19 +13,25 @@ import numpy as np
 from matplotlib.scale import SymmetricalLogTransform
 from matplotlib.ticker import SymmetricalLogLocator
 
+from nonos._readers.binary import NPYReader
+from nonos._types import PathT, PlanetData
 from nonos.api._angle_parsing import (
     _fequal,
     _parse_planet_file,
     _parse_rotation_angle,
 )
-from nonos.api.from_simulation import Parameters
 from nonos.api.tools import find_around, find_nearest
+from nonos.loaders import Recipe, loader_from, recipe_from
 from nonos.logging import logger
 
 if sys.version_info >= (3, 9):
     from collections.abc import ItemsView, KeysView, ValuesView
+
+    removesuffix = str.removesuffix
 else:
     from typing import ItemsView, KeysView, ValuesView
+
+    from nonos._backports import removesuffix
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -446,9 +454,9 @@ class GasField:
         on: int,
         operation: str,
         *,
-        inifile: str = "",
-        code: str = "",
-        directory: Optional[str] = None,
+        inifile: Optional[PathT] = None,
+        code: Union[str, Recipe, None] = None,
+        directory: Optional[PathT] = None,
         rotate_by: Optional[float] = None,
         rotate_with: Optional[str] = None,
         rotate_grid: int = -1,  # deprecated
@@ -460,11 +468,17 @@ class GasField:
         self.coords = coords
         self.on = on
 
-        self.inifile = inifile
-        self.code = code
         if directory is None:
             directory = os.getcwd()
         self.directory = directory
+
+        self._loader = loader_from(
+            code=code,
+            parameter_file=inifile,
+            directory=directory,
+        )
+        self.inifile = self._loader.parameter_file
+
         self._rotate_by = _parse_rotation_angle(
             rotate_by=rotate_by,
             rotate_with=rotate_with,
@@ -475,6 +489,19 @@ class GasField:
             stacklevel=2,
             find_phip=self.find_phip,
         )
+
+        # TODO: remove this after deprecation
+        self._recipe = recipe_from(parameter_file=inifile, directory=directory)
+        self._code = str(code or self._recipe)
+
+    @property
+    def code(self) -> str:
+        warnings.warn(
+            "GasField.code is deprecated and will be removed in a future version.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._code
 
     @property
     def shape(self) -> Tuple[int, int, int]:
@@ -662,50 +689,52 @@ class GasField:
         if self.native_geometry in ("polar", "spherical"):
             return find_nearest(self.coords.phi, phi) % self.coords.phimed.shape[0]
 
-    def find_rp(
-        self, planet_number: Optional[int] = None, *, planet_file: Optional[str] = None
-    ) -> float:
+    def _load_planet(
+        self,
+        *,
+        planet_number: Optional[int] = None,
+        planet_file: Optional[str] = None,
+    ) -> PlanetData:
         planet_file = _parse_planet_file(
             planet_number=planet_number, planet_file=planet_file
         )
-        del planet_number
-        init = Parameters(
-            inifile=self.inifile, code=self.code, directory=self.directory
-        )
-        init.loadIniFile()
-        init.loadPlanetFile(planet_file=planet_file)
-        ind_on = find_nearest(init.tpl, init.vtk * self.on)
-        return init.dpl[ind_on]
+        file = os.path.join(self.directory, planet_file)
+        return self._loader.load_planet_data(file)
+
+    def _get_ind_output_number(self, time) -> int:
+        ini = self._loader.load_ini_file()
+        target_time = ini.output_time_interval * self.on
+        return find_nearest(time, target_time)
+
+    def find_rp(
+        self,
+        planet_number: Optional[int] = None,
+        *,
+        planet_file: Optional[str] = None,
+    ) -> float:
+        pd = self._load_planet(planet_number=planet_number, planet_file=planet_file)
+        ind_on = self._get_ind_output_number(pd.t)
+        return pd.d[ind_on]  # type: ignore [attr-defined]
 
     def find_rhill(
-        self, planet_number: Optional[int] = None, *, planet_file: Optional[str] = None
+        self,
+        planet_number: Optional[int] = None,
+        *,
+        planet_file: Optional[str] = None,
     ) -> float:
-        planet_file = _parse_planet_file(
-            planet_number=planet_number, planet_file=planet_file
-        )
-        del planet_number
-        init = Parameters(
-            inifile=self.inifile, code=self.code, directory=self.directory
-        )
-        init.loadIniFile()
-        init.loadPlanetFile(planet_file=planet_file)
-        ind_on = find_nearest(init.tpl, init.vtk * self.on)
-        return pow(init.qpl[ind_on] / 3.0, 1.0 / 3.0) * init.apl[ind_on]
+        pd = self._load_planet(planet_number=planet_number, planet_file=planet_file)
+        ind_on = self._get_ind_output_number(pd.t)
+        return pow(pd.q[ind_on] / 3.0, 1.0 / 3.0) * pd.a[ind_on]  # type: ignore [attr-defined]
 
     def find_phip(
-        self, planet_number: Optional[int] = None, *, planet_file: Optional[str] = None
+        self,
+        planet_number: Optional[int] = None,
+        *,
+        planet_file: Optional[str] = None,
     ) -> float:
-        planet_file = _parse_planet_file(
-            planet_number=planet_number, planet_file=planet_file
-        )
-        del planet_number
-        init = Parameters(
-            inifile=self.inifile, code=self.code, directory=self.directory
-        )
-        init.loadIniFile()
-        init.loadPlanetFile(planet_file=planet_file)
-        ind_on = find_nearest(init.tpl, init.vtk * self.on)
-        return np.arctan2(init.ypl, init.xpl)[ind_on] % (2 * np.pi) - np.pi
+        pd = self._load_planet(planet_number=planet_number, planet_file=planet_file)
+        ind_on = self._get_ind_output_number(pd.t)
+        return np.arctan2(pd.y, pd.x)[ind_on] % (2 * np.pi) - np.pi
 
     def latitudinal_projection(self, theta=None):
         operation = self.operation + "_latitudinal_projection"
@@ -771,7 +800,6 @@ class GasField:
             self.on,
             operation,
             inifile=self.inifile,
-            code=self.code,
             directory=self.directory,
             rotate_by=self._rotate_by,
         )
@@ -867,7 +895,6 @@ class GasField:
     #         self.on,
     #         operation,
     #         inifile=self.inifile,
-    #         code=self.code,
     #         directory=self.directory,
     #         rotate_by=self._rotate_by,
     #     )
@@ -928,7 +955,6 @@ class GasField:
             self.on,
             operation,
             inifile=self.inifile,
-            code=self.code,
             directory=self.directory,
             rotate_by=self._rotate_by,
         )
@@ -974,7 +1000,6 @@ class GasField:
             self.on,
             operation,
             inifile=self.inifile,
-            code=self.code,
             directory=self.directory,
             rotate_by=self._rotate_by,
         )
@@ -1055,7 +1080,6 @@ class GasField:
             self.on,
             operation,
             inifile=self.inifile,
-            code=self.code,
             directory=self.directory,
             rotate_by=self._rotate_by,
         )
@@ -1148,7 +1172,6 @@ class GasField:
             self.on,
             operation,
             inifile=self.inifile,
-            code=self.code,
             directory=self.directory,
             rotate_by=self._rotate_by,
         )
@@ -1188,7 +1211,6 @@ class GasField:
             self.on,
             operation,
             inifile=self.inifile,
-            code=self.code,
             directory=self.directory,
             rotate_by=self._rotate_by,
         )
@@ -1211,7 +1233,6 @@ class GasField:
             self.on,
             operation,
             inifile=self.inifile,
-            code=self.code,
             directory=self.directory,
             rotate_by=self._rotate_by,
         )
@@ -1252,7 +1273,6 @@ class GasField:
             self.on,
             operation,
             inifile=self.inifile,
-            code=self.code,
             directory=self.directory,
             rotate_by=self._rotate_by,
         )
@@ -1323,7 +1343,6 @@ class GasField:
             self.on,
             operation,
             inifile=self.inifile,
-            code=self.code,
             directory=self.directory,
             rotate_by=self._rotate_by,
         )
@@ -1362,7 +1381,6 @@ class GasField:
             self.on,
             operation,
             inifile=self.inifile,
-            code=self.code,
             directory=self.directory,
             rotate_by=self._rotate_by,
         )
@@ -1409,7 +1427,6 @@ class GasField:
             self.on,
             operation,
             inifile=self.inifile,
-            code=self.code,
             directory=self.directory,
             rotate_by=self._rotate_by,
         )
@@ -1419,7 +1436,6 @@ class GasField:
             on_2,
             geometry=self.native_geometry,
             inifile=self.inifile,
-            code=self.code,
             directory=self.directory,
         )
         if self.operation != "":
@@ -1438,7 +1454,6 @@ class GasField:
             self.on,
             self.operation,
             inifile=self.inifile,
-            code=self.code,
             directory=self.directory,
             rotate_by=self._rotate_by,
         )
@@ -1510,7 +1525,6 @@ class GasField:
             self.on,
             operation,
             inifile=self.inifile,
-            code=self.code,
             directory=self.directory,
             rotate_by=self._rotate_by,
         )
@@ -1531,16 +1545,17 @@ class GasDataSet:
 
     def __init__(
         self,
-        input_dataset: Union[int, str],
+        input_dataset: Union[int, PathT],
         /,
         *,
-        inifile: str = "",
-        code: str = "",
-        geometry: str = "unknown",
-        directory: Optional[str] = None,
+        inifile: Optional[PathT] = None,
+        code: Union[str, Recipe, None] = None,
+        geometry: Optional[str] = "unset",
+        directory: Optional[PathT] = None,
         fluid: Optional[str] = None,
+        operation: Optional[str] = None,
     ) -> None:
-        if isinstance(input_dataset, str):
+        if isinstance(input_dataset, (str, Path)):
             directory_from_input = os.path.dirname(input_dataset)
             if directory is None:
                 directory = directory_from_input
@@ -1552,15 +1567,64 @@ class GasDataSet:
             del directory_from_input
             input_dataset = os.path.basename(input_dataset)
 
-        self.params = Parameters(inifile=inifile, code=code, directory=directory)
-        self._read = self.params.loadSimuFile(
-            input_dataset, geometry=geometry, cell="edges", fluid=fluid
+        if directory is None:
+            directory = os.getcwd()
+
+        recipe = recipe_from(
+            code=code,
+            parameter_file=inifile,
+            directory=directory,
         )
-        self.on = self.params.on
+
+        if fluid is not None and recipe is not Recipe.FARGO3D:
+            warnings.warn(
+                "Unused keyword argument: 'fluid'",
+                category=UserWarning,
+                stacklevel=2,
+            )
+
+        loader = loader_from(
+            code=code,
+            parameter_file=inifile,
+            directory=directory,
+        )
+        if operation is not None:
+            ignored_kwargs = []
+            msg = ""
+            if fluid is not None:
+                ignored_kwargs.append("fluid")
+            if geometry != "unset":
+                ignored_kwargs.append("geometry")
+            if ignored_kwargs:
+                ignored = ", ".join(repr(_) for _ in ignored_kwargs)
+                msg = (
+                    "The following keyword arguments are ignored "
+                    f"when combined with 'operation': {ignored}"
+                )
+                warnings.warn(msg, UserWarning, stacklevel=2)
+            self._loader = dataclasses.replace(loader, binary_reader=NPYReader)
+        else:
+            self._loader = loader
+
+        self.on, datafile = self._loader.binary_reader.parse_output_number_and_filename(
+            input_dataset,
+            directory=directory,
+            prefix=operation or "",
+        )
+
+        self._read = self._loader.load_bin_data(
+            datafile,
+            geometry=geometry,
+            fluid=fluid,
+        )
+
         self.native_geometry = self._read.geometry
         self.dict = self._read.data
         self.coords = Coordinates(
-            self.native_geometry, self._read.x1, self._read.x2, self._read.x3
+            self.native_geometry,
+            self._read.x1,
+            self._read.x2,
+            self._read.x3,
         )
         for key in self.dict:
             self.dict[key] = GasField(
@@ -1569,68 +1633,55 @@ class GasDataSet:
                 self.coords,
                 self.native_geometry,
                 self.on,
-                "",
-                inifile=self.params.paramfile,
-                code=self.params.code,
+                operation="",
+                inifile=self._loader.parameter_file,
+                code=recipe,
                 directory=directory,
             )
+
+        # backward compatibility for self.params
+        self._parameters_input = {
+            "inifile": inifile,
+            "code": removesuffix(code, "_vtk") if code is not None else None,
+            "directory": directory,
+        }
+
+    @cached_property
+    def params(self):
+        from nonos.api.from_simulation import Parameters
+
+        warnings.warn(
+            "GasDataSet.params is deprecated "
+            "and will be removed in a future version.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        return Parameters(**self._parameters_input)
 
     @classmethod
     def from_npy(
         cls,
         on: int,
         *,
+        inifile: Optional[PathT] = None,
+        code: Union[str, Recipe, None] = None,
+        directory: Optional[PathT] = None,
         operation: str,
-        directory=".",
-        inifile: str = "",
-        code: str = "",
     ) -> "GasDataSet":
-        self = super().__new__(cls)
-        self.on = on
-        self.params = Parameters(inifile=inifile, code=code, directory=directory)
-        self.dict = {}
-        for dirname, dirs, files in os.walk(directory):
-            if dirname == str(directory):
-                fields = dirs
-                continue
-            for field in fields:
-                npyname = f"_{operation}_{field.upper()}.{self.on:04d}.npy"
-                if dirname != os.path.join(directory, field) or npyname not in files:
-                    continue
-                headername = os.path.join(
-                    directory, "header", f"header_{operation}.json"
-                )
-                with open(headername) as hfile:
-                    dict_coords = json.load(hfile)
-
-                for key in dict_coords:
-                    if key != "geometry":
-                        dict_coords[key] = np.array(dict_coords[key], dtype="float32")
-
-                self.coords = Coordinates(*dict_coords.values())
-                self.native_geometry = dict_coords["geometry"]
-
-                fileout = os.path.join(dirname, npyname)
-                with open(fileout, "rb") as file:
-                    ret_data = np.load(file)
-
-                self.dict[field.upper()] = GasField(
-                    field.upper(),
-                    ret_data,
-                    self.coords,
-                    self.native_geometry,
-                    self.on,
-                    operation=operation,
-                    directory=directory,
-                    inifile=self.params.paramfile,
-                    code=self.params.code,
-                )
-        if not self.dict:
-            raise FileNotFoundError(
-                f"Original output was not reduced, or file '_{operation}_*.{self.on:04d}.npy'"
-                " not recognized. Try with classical GasDataSet."
-            )
-        return self
+        warnings.warn(
+            "GasDataSet.from_npy is deprecated "
+            "and will be removed in a future version. "
+            "Instead, call GasDataSet(...) directly.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        return GasDataSet(
+            on,
+            inifile=inifile,
+            code=code,
+            directory=directory,
+            operation=operation,
+        )
 
     def __getitem__(self, key) -> "GasField":
         if key in self.dict:

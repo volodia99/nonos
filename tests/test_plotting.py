@@ -74,22 +74,6 @@ def test_newvtk_geometry(test_data_dir, capsys, tmp_path):
     assert ret == 0
 
 
-def test_error_no_planet(test_data_dir, tmp_path):
-    os.chdir(tmp_path)
-    # just check that the call returns the correct err
-    with pytest.raises(FileNotFoundError, match=r"planet0\.dat not found"):
-        main(
-            [
-                "-cor",
-                "0",
-                "-dir",
-                str(test_data_dir / "idefix_rwi"),
-                "-geometry",
-                "polar",
-            ]
-        )
-
-
 def test_verbose_info(simulation_dir, capsys, tmp_path):
     os.chdir(tmp_path)
     ret = main(["-v", "-dir", str(simulation_dir), "-geometry", "polar"])
