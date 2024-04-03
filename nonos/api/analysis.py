@@ -604,12 +604,21 @@ class GasField:
                         f"geometry flag '{self.native_geometry}' not implemented yet if corotation"
                     )
                 self._rotate_by = rotate_by
-
-            data = self.data.squeeze()
-            if self.shape.index(1) != 1 or not meshgrid_conversion["ordered"]:
-                # make sure the output plane axes always form a *direct* triedre
-                # with the plane normal.
-                data = data.T
+            ordered = meshgrid_conversion["ordered"]
+            # move the axis of reduction in the front in order to
+            # perform the operation 3D(i,j,1) -> 2D(i,j) in a general way,
+            # whatever the position of (i,j,1)
+            # for that we must be careful to change the order ("ordered") if the data is reversed
+            # in practice, this is tricky only if the "1" is in the middle:
+            # 3D(i,1,k) -> 2D(i,k) is not a direct triedre anymore, we need to do 2D(i,k).T = 2D(k,i)
+            position_of_3d_dimension = self.shape.index(1)
+            datamoved = np.moveaxis(self.data, position_of_3d_dimension, 0)
+            if position_of_3d_dimension == 1:
+                ordered = not ordered
+            if ordered:
+                data_value = datamoved[0].T
+            else:
+                data_value = datamoved[0]
 
             dict_plotable = {
                 "abscissa": abscissa_key,
@@ -617,7 +626,7 @@ class GasField:
                 "field": data_key,
                 abscissa_key: abscissa_value,
                 ordinate_key: ordinate_value,
-                data_key: data,
+                data_key: data_value,
             }
         else:
             raise RuntimeError

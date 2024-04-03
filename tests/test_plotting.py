@@ -192,10 +192,7 @@ def test_corotation_api_float(test_data_dir):
 
 @pytest.mark.parametrize(
     "map_args",
-    [
-        pytest.param(("R", "phi")),
-        pytest.param(("phi", "R"), marks=pytest.mark.xfail(strict=True)),
-    ],
+    [("R", "phi"), ("phi", "R")],
 )
 def test_reg(test_data_dir, map_args):
     ds = GasDataSet(23, directory=test_data_dir / "idefix_newvtk_planet2d")
