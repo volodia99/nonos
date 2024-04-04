@@ -131,7 +131,7 @@ class NonosLick:
         cmap=None,
         title: Optional[str] = None,
         density_streamlines: Optional[float] = None,
-        color_streamlines: str = "k",
+        color_streamlines: str = "black",
     ):
         dict_background = {}
         dict_background["field"] = "background"
