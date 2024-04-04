@@ -28,6 +28,8 @@ def get_classes_from(module: ModuleType) -> List[Type]:
     for objname in module.__all__:
         obj = module.__dict__[objname]
         if inspect.isclass(obj):
+            if obj.__class__ is type:
+                continue
             if issubclass(obj, (Protocol, Enum)):  # type: ignore [arg-type]
                 continue
             retv.append(obj)
