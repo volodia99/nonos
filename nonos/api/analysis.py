@@ -2,12 +2,12 @@ import dataclasses
 import glob
 import json
 import os
-import sys
 import warnings
+from collections.abc import ItemsView, KeysView, ValuesView
 from functools import cached_property
 from pathlib import Path
 from shutil import copyfile
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Union, overload
+from typing import TYPE_CHECKING, Any, Optional, Union, overload
 
 import numpy as np
 from matplotlib.scale import SymmetricalLogTransform
@@ -23,15 +23,6 @@ from nonos.api._angle_parsing import (
 from nonos.api.tools import find_around, find_nearest
 from nonos.loaders import Recipe, loader_from, recipe_from
 from nonos.logging import logger
-
-if sys.version_info >= (3, 9):
-    from collections.abc import ItemsView, KeysView, ValuesView
-
-    removesuffix = str.removesuffix
-else:
-    from typing import ItemsView, KeysView, ValuesView
-
-    from nonos._backports import removesuffix
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -198,7 +189,7 @@ class Coordinates:
             self.zmed = 0.5 * (self.z[1:] + self.z[:-1])
 
     @property
-    def shape(self) -> Tuple[int, int, int]:
+    def shape(self) -> tuple[int, int, int]:
         """
         Returns
         =======
@@ -214,7 +205,7 @@ class Coordinates:
             raise RuntimeError(f"Unknown geometry {self.geometry!r}")
 
     @property
-    def get_attributes(self) -> Dict[str, Any]:
+    def get_attributes(self) -> dict[str, Any]:
         if self.geometry == "cartesian":
             return {"geometry": self.geometry, "x": self.x, "y": self.y, "z": self.z}
         elif self.geometry == "spherical":
@@ -235,7 +226,7 @@ class Coordinates:
             raise RuntimeError(f"Unknown geometry {self.geometry!r}")
 
     @property
-    def get_coords(self) -> Dict[str, Any]:
+    def get_coords(self) -> dict[str, Any]:
         if self.geometry == "cartesian":
             return {
                 "x": self.x,
@@ -266,7 +257,7 @@ class Coordinates:
         else:
             raise RuntimeError(f"Unknown geometry {self.geometry!r}")
 
-    def _meshgrid_reduction(self, *reducted) -> Dict:
+    def _meshgrid_reduction(self, *reducted) -> dict:
         for i in reducted:
             if i not in self.cube:
                 raise KeyError(f"{i} not in {self.cube}")
@@ -275,7 +266,7 @@ class Coordinates:
             for coords in reducted:
                 dictcoords[coords] = vars(self)[coords]
             axis = list(set(reducted) ^ set(self.cube))
-            dictmesh: Dict[str, Any] = {}
+            dictmesh: dict[str, Any] = {}
             # 2D map
             if len(axis) == 1:
                 dictmesh[reducted[0]], dictmesh[reducted[1]] = np.meshgrid(
@@ -302,12 +293,12 @@ class Coordinates:
     @overload
     def native_from_wanted(
         self, _wanted_x1: str, _wanted_x2: str, /
-    ) -> Tuple[Tuple[str, str], str]: ...
+    ) -> tuple[tuple[str, str], str]: ...
 
     @overload
     def native_from_wanted(
         self, _wanted_x1: str, _wanted_x2: None, /
-    ) -> Tuple[Tuple[str], str]: ...
+    ) -> tuple[tuple[str], str]: ...
 
     def native_from_wanted(self, _wanted_x1: str, _wanted_x2: Optional[str] = None, /):
         if self.geometry == "cartesian":
@@ -339,7 +330,7 @@ class Coordinates:
         else:
             raise RuntimeError(f"Unknown geometry {self.geometry!r}")
 
-        wanted: Tuple[str, ...]
+        wanted: tuple[str, ...]
         if _wanted_x2 is None:
             wanted = (_wanted_x1,)
         else:
@@ -356,7 +347,7 @@ class Coordinates:
         else:
             raise ValueError(f"Unknown wanted plane: {wanted}.")
 
-        native: Tuple[str, ...]
+        native: tuple[str, ...]
         if _wanted_x2 is None:
             native = (conversion[_wanted_x1],)
         else:
@@ -365,7 +356,7 @@ class Coordinates:
         return native, target_geometry
 
     # for 2D arrays
-    def target_from_native(self, target_geometry, coords) -> Dict[str, np.ndarray]:
+    def target_from_native(self, target_geometry, coords) -> dict[str, np.ndarray]:
         if self.geometry == "polar":
             R, phi, z = (coords["R"], coords["phi"], coords["z"])
             if target_geometry == "cartesian":
@@ -417,7 +408,7 @@ class Coordinates:
         target_coords["ordered"] = coords["ordered"]
         return target_coords
 
-    def _meshgrid_conversion(self, *wanted) -> Dict:
+    def _meshgrid_conversion(self, *wanted) -> dict:
         native_from_wanted = self.native_from_wanted(*wanted)
         native = native_from_wanted[0]
         target_geometry = native_from_wanted[1]
@@ -504,7 +495,7 @@ class GasField:
         return self._code
 
     @property
-    def shape(self) -> Tuple[int, int, int]:
+    def shape(self) -> tuple[int, int, int]:
         """
         Returns
         =======
@@ -1651,7 +1642,7 @@ class GasDataSet:
         # backward compatibility for self.params
         self._parameters_input = {
             "inifile": inifile,
-            "code": removesuffix(code, "_vtk") if code is not None else None,
+            "code": code.removesuffix("_vtk") if code is not None else None,
             "directory": directory,
         }
 

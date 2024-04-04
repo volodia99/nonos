@@ -6,7 +6,7 @@ and integration tests.
 """
 
 from contextlib import nullcontext
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 import numpy as np
 import pytest
@@ -38,13 +38,13 @@ def validate_dataclass_instance(instance, cls):
 
 
 class CheckLoader:
-    parameter_file: Tuple[str, str]  # parent dir and filename
+    parameter_file: tuple[str, str]  # parent dir and filename
     code: str
     loader: Loader
     expected_n_bin_files: int
     expected_n_planet_files: Optional[int]
-    expected_data_keys: List[str]
-    meta: Dict[str, Any]
+    expected_data_keys: list[str]
+    meta: dict[str, Any]
 
     @pytest.fixture
     def initloader(self, test_data_dir):

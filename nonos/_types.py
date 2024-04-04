@@ -16,7 +16,7 @@ import sys
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Dict, List, Protocol, Tuple, Union, final
+from typing import Any, Protocol, Union, final
 
 import numpy as np
 
@@ -35,7 +35,7 @@ else:
 
 
 PathT: TypeAlias = Union[str, Path]
-StrDict: TypeAlias = Dict[str, Any]
+StrDict: TypeAlias = dict[str, Any]
 
 FloatArray: TypeAlias = "np.ndarray[Any, np.dtype[np.float32 | np.float64]]"
 
@@ -175,10 +175,10 @@ class BinReader(Protocol):
         *,
         directory: PathT,
         prefix: str,
-    ) -> Tuple[int, Path]: ...
+    ) -> tuple[int, Path]: ...
 
     @staticmethod
-    def get_bin_files(directory: PathT, /) -> List[Path]: ...
+    def get_bin_files(directory: PathT, /) -> list[Path]: ...
 
     @staticmethod
     def read(file: PathT, /, **meta) -> BinData: ...
@@ -186,7 +186,7 @@ class BinReader(Protocol):
 
 class PlanetReader(Protocol):
     @staticmethod
-    def get_planet_files(directory: Path, /) -> List[Path]: ...
+    def get_planet_files(directory: Path, /) -> list[Path]: ...
 
     @staticmethod
     def read(file: PathT, /) -> PlanetData: ...

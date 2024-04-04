@@ -7,7 +7,7 @@ __all__ = [
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, final
+from typing import final
 
 import numpy as np
 
@@ -18,7 +18,7 @@ from nonos._types import PathT, PlanetData
 @final
 class NullReader(ReaderMixin):
     @staticmethod
-    def get_planet_files(directory: Path, /) -> List[Path]:
+    def get_planet_files(directory: Path, /) -> list[Path]:
         raise NotImplementedError(
             f"{directory} couldn't be read. The default reader class (NullReader) "
             "was previously selected, possibly by mistake ?"
@@ -35,7 +35,7 @@ class NullReader(ReaderMixin):
 @final
 class IdefixReader(ReaderMixin):
     @staticmethod
-    def get_planet_files(directory: Path, /) -> List[Path]:
+    def get_planet_files(directory: Path, /) -> list[Path]:
         return sorted(directory.glob("planet*.dat"))
 
     @staticmethod
@@ -46,7 +46,7 @@ class IdefixReader(ReaderMixin):
 
 class FargoReader(ReaderMixin, ABC):
     @staticmethod
-    def get_planet_files(directory: Path, /) -> List[Path]:
+    def get_planet_files(directory: Path, /) -> list[Path]:
         return [
             fn
             for fn in sorted(directory.glob("planet*.dat"))

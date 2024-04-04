@@ -14,7 +14,7 @@ import inspect
 import sys
 from enum import Enum
 from types import ModuleType
-from typing import List, Protocol, Type
+from typing import Protocol
 
 import pytest
 
@@ -23,8 +23,8 @@ from nonos import _types
 from nonos._readers._base import ReaderMixin
 
 
-def get_classes_from(module: ModuleType) -> List[Type]:
-    retv: List[Type] = []
+def get_classes_from(module: ModuleType) -> list[type]:
+    retv: list[type] = []
     for objname in module.__all__:
         obj = module.__dict__[objname]
         if inspect.isclass(obj):
@@ -36,7 +36,7 @@ def get_classes_from(module: ModuleType) -> List[Type]:
     return retv
 
 
-_reader_classes: List[Type] = []
+_reader_classes: list[type] = []
 for module in [
     readers._base,
     readers.ini,
@@ -45,7 +45,7 @@ for module in [
 ]:
     _reader_classes.extend(get_classes_from(module))
 
-_all_classes: List[Type] = _reader_classes.copy()
+_all_classes: list[type] = _reader_classes.copy()
 _all_classes.extend(get_classes_from(_types))
 
 

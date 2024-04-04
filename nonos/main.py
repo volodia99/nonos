@@ -6,13 +6,13 @@ Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
 
 import argparse
 import functools
+import importlib.resources as importlib_resources
 import os
 import re
-import sys
 import time
 from collections import ChainMap
 from multiprocessing import Pool
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import cblind  # noqa
 import inifix
@@ -41,17 +41,12 @@ from nonos.parsing import (
 )
 from nonos.styling import set_mpl_style
 
-if sys.version_info >= (3, 9):
-    import importlib.resources as importlib_resources
-else:
-    import importlib_resources
-
 
 # process function for parallelisation purpose with progress bar
 # counterParallel = Value('i', 0) # initialization of a counter
 def process_field(
     on,
-    operations: List[str],
+    operations: list[str],
     field,
     plane,
     geometry,
@@ -388,7 +383,7 @@ def get_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: Optional[list[str]] = None) -> int:
     parser = get_parser()
     clargs = vars(parser.parse_args(argv))
 
@@ -409,7 +404,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # logger.setLevel(level)
 
     if clargs.pop("isolated"):
-        config_file_args: Dict[str, Any] = {}
+        config_file_args: dict[str, Any] = {}
     elif (ifile := clargs.pop("input")) is not None:
         if not os.path.isfile(ifile):
             print_err(f"Couldn't find requested input file '{ifile}'.")

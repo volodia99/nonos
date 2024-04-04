@@ -1,21 +1,14 @@
 import os
-import sys
 from pathlib import Path
 
 import pytest
 
 from nonos.loaders import Loader, Recipe, loader_from, recipe_from
 
-if sys.version_info >= (3, 9):
-    removeprefix = str.removeprefix
-    removesuffix = str.removesuffix
-else:
-    from nonos._backports import removeprefix, removesuffix
-
 
 class TestLoader:
 
-    @pytest.fixture(params=Loader.__slots__, ids=lambda s: removesuffix(s, "_"))
+    @pytest.fixture(params=Loader.__slots__, ids=lambda s: s.removesuffix("_"))
     def loader_slot(self, request):
         return request.param
 
@@ -39,7 +32,7 @@ class TestLoader:
             ini_reader=None,
         )
 
-        public_name = removeprefix(loader_slot, "_")
+        public_name = loader_slot.removeprefix("_")
         assert hasattr(loader, public_name)
         with pytest.raises(AttributeError):
             setattr(loader, public_name, None)

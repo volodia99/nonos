@@ -1,4 +1,4 @@
-from typing import Any, List, Literal, Optional, Tuple, TypeVar, Union, overload
+from typing import Any, Literal, Optional, TypeVar, Union, overload
 
 import numpy as np
 
@@ -23,9 +23,9 @@ def userval_or_default(userval: T1, /, *, default: T2) -> Union[T1, T2]:
 
 
 def parse_output_number_range(
-    on: Union[List[int], int, Literal["unset"], None],
+    on: Union[list[int], int, Literal["unset"], None],
     maxval: Optional[int] = None,
-) -> List[int]:
+) -> list[int]:
     if not is_set(on):
         if maxval is None:
             raise ValueError("Can't parse a range from unset values without a max.")
@@ -56,7 +56,7 @@ def parse_output_number_range(
     return ret
 
 
-def parse_range(extent, dim: int) -> Tuple[Optional[float], ...]:
+def parse_range(extent, dim: int) -> tuple[Optional[float], ...]:
     if not is_set(extent):
         return (None,) * 2 * dim
 
@@ -69,18 +69,18 @@ def parse_range(extent, dim: int) -> Tuple[Optional[float], ...]:
 
 @overload
 def range_converter(
-    extent: Tuple[Optional[float], Optional[float]],
+    extent: tuple[Optional[float], Optional[float]],
     abscissa: np.ndarray,
     ordinate: np.ndarray,
-) -> Tuple[float, float]: ...
+) -> tuple[float, float]: ...
 
 
 @overload
 def range_converter(
-    extent: Tuple[Optional[float], Optional[float], Optional[float], Optional[float]],
+    extent: tuple[Optional[float], Optional[float], Optional[float], Optional[float]],
     abscissa: np.ndarray,
     ordinate: np.ndarray,
-) -> Tuple[float, float, float, float]: ...
+) -> tuple[float, float, float, float]: ...
 
 
 def range_converter(extent, abscissa, ordinate):

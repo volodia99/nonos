@@ -1,11 +1,6 @@
-import sys
+import importlib.resources as importlib_resources
 
 import matplotlib as mpl
-
-if sys.version_info >= (3, 9):
-    import importlib.resources as importlib_resources
-else:
-    import importlib_resources
 
 
 def scale_mpl(scaling: float) -> None:
