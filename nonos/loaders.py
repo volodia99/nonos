@@ -8,7 +8,7 @@ import sys
 from dataclasses import dataclass
 from enum import auto
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Type, TypedDict, final
+from typing import TYPE_CHECKING, Optional, TypedDict, final
 
 import nonos._readers as readers
 from nonos._types import BinReader, IniReader, PlanetReader
@@ -67,9 +67,9 @@ class Loader:
         "ini_reader",
     ]
     parameter_file: Path
-    binary_reader: Type["BinReader"]
-    planet_reader: Type["PlanetReader"]
-    ini_reader: Type["IniReader"]
+    binary_reader: type["BinReader"]
+    planet_reader: type["PlanetReader"]
+    ini_reader: type["IniReader"]
 
     def __post_init__(self) -> None:
         pf = Path(self.parameter_file).resolve()
@@ -79,10 +79,7 @@ class Loader:
 
     def load_bin_data(self, file: "PathT", /, **meta) -> "BinData":
         ini = self.load_ini_file()
-        if sys.version_info >= (3, 9):
-            meta = ini.meta | meta
-        else:
-            meta = {**ini.meta, **meta}
+        meta = ini.meta | meta
         return self.binary_reader.read(file, **meta)
 
     def load_planet_data(self, file: "PathT") -> "PlanetData":
@@ -186,9 +183,9 @@ def _parameter_file_from_dir(directory: "PathT", /) -> Path:
 
 
 class Ingredients(TypedDict):
-    binary_reader: Type[BinReader]
-    planet_reader: Type[PlanetReader]
-    ini_reader: Type[IniReader]
+    binary_reader: type[BinReader]
+    planet_reader: type[PlanetReader]
+    ini_reader: type[IniReader]
 
 
 def _ingredients_from(recipe: Recipe, /) -> Ingredients:
@@ -266,7 +263,7 @@ def recipe_from(
         directory=directory,
     )
 
-    recipe_candidates: List[Recipe] = []
+    recipe_candidates: list[Recipe] = []
     for recipe in Recipe.__members__.values():
         loader = _compose_loader(recipe, parameter_file)
         try:

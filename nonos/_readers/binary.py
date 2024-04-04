@@ -9,7 +9,7 @@ import re
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union, final
+from typing import Optional, Union, final
 
 import numpy as np
 
@@ -35,7 +35,7 @@ class VTKReader(ReaderMixin):
         *,
         directory: PathT,
         prefix: str,  # noqa: ARG004
-    ) -> Tuple[int, Path]:
+    ) -> tuple[int, Path]:
         if isinstance(file_or_number, (str, Path)):
             file = Path(file_or_number)
             if (m := re.search(r"\d+", file.name)) is None:
@@ -54,7 +54,7 @@ class VTKReader(ReaderMixin):
         return output_number, file
 
     @staticmethod
-    def get_bin_files(directory: PathT, /) -> List[Path]:
+    def get_bin_files(directory: PathT, /) -> list[Path]:
         directory = Path(directory)
         return sorted(directory.glob("data.*.vtk"))
 
@@ -476,7 +476,7 @@ class _FargoReader(ReaderMixin, ABC):
         *,
         directory: PathT,
         prefix: str,  # noqa ARG004
-    ) -> Tuple[int, Path]:
+    ) -> tuple[int, Path]:
         directory = Path(directory).resolve()
         if isinstance(file_or_number, int):
             output_number = file_or_number
@@ -496,7 +496,7 @@ class _FargoReader(ReaderMixin, ABC):
         return output_number, file
 
     @staticmethod
-    def get_bin_files(directory: PathT, /) -> List[Path]:
+    def get_bin_files(directory: PathT, /) -> list[Path]:
         directory = Path(directory)
         return [
             fn
@@ -505,7 +505,7 @@ class _FargoReader(ReaderMixin, ABC):
         ]
 
     @staticmethod
-    def _get_output_number_and_dir_from(file) -> Tuple[int, Path]:
+    def _get_output_number_and_dir_from(file) -> tuple[int, Path]:
         _in_file = Path(file).resolve()
         directory = _in_file.parent
         if (match := re.search(r"(?P<on>\d+).dat$", _in_file.name)) is not None:
@@ -657,7 +657,7 @@ class NPYReader(ReaderMixin):
         *,
         directory: PathT,
         prefix: str,
-    ) -> Tuple[int, Path]:
+    ) -> tuple[int, Path]:
         directory = Path(directory).resolve()
         if isinstance(file_or_number, (str, Path)):
             file = Path(file_or_number)
@@ -682,11 +682,11 @@ class NPYReader(ReaderMixin):
         return output_number, file
 
     @staticmethod
-    def get_bin_files(directory: PathT, /) -> List[Path]:
+    def get_bin_files(directory: PathT, /) -> list[Path]:
         # return *all* loadable files
         # (not just the ones matching a particular prefix)
         directory = Path(directory).resolve()
-        density_file_paths: List[Path] = []
+        density_file_paths: list[Path] = []
         for subdir in directory.parent.glob("*"):
             if not subdir.is_dir():
                 continue
@@ -719,14 +719,14 @@ class NPYReader(ReaderMixin):
             header_data = json.load(fh)
 
         geometry = Geometry(header_data.pop("geometry"))
-        coordinates: Dict[str, FloatArray] = {
+        coordinates: dict[str, FloatArray] = {
             k: np.array(v, dtype="float32") for k, v in header_data.items()
         }
         x1, x2, x3 = coordinates.values()
         n1, n2, n3 = (len(x) for x in (x1, x2, x3))
 
         # field discovery
-        fields_found: Dict[str, Path] = {}
+        fields_found: dict[str, Path] = {}
         haystack = NPYReader.get_bin_files(ref_file.parent)
         for file in haystack:
             match = NPYReader._filename_re.fullmatch(file.name)
@@ -741,7 +741,7 @@ class NPYReader(ReaderMixin):
         # sanity check: we should have rediscovered our starting file by now
         assert ref_file in fields_found.values()
 
-        data: Dict[str, FloatArray] = {
+        data: dict[str, FloatArray] = {
             k: np.load(v, allow_pickle=True) for k, v in fields_found.items()
         }
 

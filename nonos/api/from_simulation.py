@@ -5,7 +5,7 @@ import sys
 import warnings
 from enum import auto
 from pathlib import Path
-from typing import Any, Dict, Literal, Optional, Tuple, Union, cast
+from typing import Any, Literal, Optional, Union, cast
 
 import inifix
 import numpy as np
@@ -317,7 +317,7 @@ class Parameters:
 
 def funnel_on_type(
     input_dataset: Union[int, str], /, *, code: str, directory="."
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     _code = Code(code)
     if _code is Code.FARGO3D or _code is Code.FARGO_ADSG:
         if isinstance(input_dataset, str):
@@ -360,10 +360,10 @@ class DataStructure:
         "x2",
         "x3",
     )
-    data: Dict[str, Any]
+    data: dict[str, Any]
     geometry: str
     t: np.ndarray
-    periodicity: Tuple[bool, bool, bool]
+    periodicity: tuple[bool, bool, bool]
     n1: int
     n2: int
     n3: int

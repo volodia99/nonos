@@ -1,11 +1,8 @@
-import sys
+import importlib.resources as importlib_resources
+from pathlib import Path
+from typing import cast
 
 import matplotlib as mpl
-
-if sys.version_info >= (3, 9):
-    import importlib.resources as importlib_resources
-else:
-    import importlib_resources
 
 
 def scale_mpl(scaling: float) -> None:
@@ -59,5 +56,8 @@ def set_mpl_style(scaling: float) -> None:
 
         plt.style.use("nonos.default")
     else:
-        mpl.rc_file(importlib_resources.files("nonos") / "default.mplstyle")
+        # promise mypy this is a Path to get around a broad return type
+        # from importlib_resource.files
+        nonos_path = cast(Path, importlib_resources.files("nonos"))
+        mpl.rc_file(nonos_path / "default.mplstyle")
     scale_mpl(scaling)

@@ -1,7 +1,7 @@
 import warnings
 from collections.abc import Callable
 from math import isclose
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     # note that these are documented as deprecated, but the replacement
@@ -35,7 +35,7 @@ def _parse_rotation_angle(
     *,
     rotate_by: Optional[float],
     rotate_with: Optional[str],
-    planet_number_argument: Tuple[str, Optional[int]],
+    planet_number_argument: tuple[str, Optional[int]],
     find_phip: "find_phip_T",
     stacklevel: int,
 ) -> float:
