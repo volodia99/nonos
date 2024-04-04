@@ -92,6 +92,7 @@ class NonosLick:
         niter_lic: int = 6,
         kernel_length: int = 101,
         method: str = "linear",
+        method_background: str = "nearest",
         light_source: bool = True,
     ):
         self.xmin = xmin
@@ -114,6 +115,7 @@ class NonosLick:
             niter_lic=niter_lic,
             kernel_length=kernel_length,
             method=method,
+            method_background=method_background,
             light_source=light_source,
         )
 
@@ -129,6 +131,7 @@ class NonosLick:
         cmap=None,
         title: Optional[str] = None,
         density_streamlines: Optional[float] = None,
+        color_streamlines: str = "k",
     ):
         dict_background = {}
         dict_background["field"] = "background"
@@ -180,7 +183,7 @@ class NonosLick:
                 density=density_streamlines,
                 arrowstyle="->",
                 linewidth=0.5,
-                color="k",
+                color=color_streamlines,
                 # color=np.log10(self.F*np.sqrt(self.LINE1**2+self.LINE2**2)),#/np.max(np.log10(self.F*np.sqrt(self.LINE1**2+self.LINE2**2))),
                 # cmap=cb.cbmap("binary_r"),
             )
