@@ -541,12 +541,16 @@ class GasField:
                 if self.native_geometry == "polar":
                     self.data = np.roll(
                         # self.data, -ipi - self.coords.phi.shape[0] // 2 + 1, axis=1
-                        self.data, -ipi + 1, axis=1
+                        self.data,
+                        -ipi + 1,
+                        axis=1,
                     )
                 elif self.native_geometry == "spherical":
                     self.data = np.roll(
                         # self.data, -ipi - self.coords.phi.shape[0] // 2 + 1, axis=2
-                        self.data, -ipi + 1, axis=2
+                        self.data,
+                        -ipi + 1,
+                        axis=2,
                     )
                 else:
                     raise NotImplementedError(
@@ -587,12 +591,16 @@ class GasField:
                 if self.native_geometry == "polar":
                     self.data = np.roll(
                         # self.data, -ipi - self.coords.phi.shape[0] // 2 + 1, axis=1
-                        self.data, -ipi + 1, axis=1
+                        self.data,
+                        -ipi + 1,
+                        axis=1,
                     )
                 elif self.native_geometry == "spherical":
                     self.data = np.roll(
                         # self.data, -ipi - self.coords.phi.shape[0] // 2 + 1, axis=2
-                        self.data, -ipi + 1, axis=2
+                        self.data,
+                        -ipi + 1,
+                        axis=2,
                     )
                 else:
                     raise NotImplementedError(
@@ -1488,7 +1496,9 @@ class GasField:
             if self.native_geometry == "polar":
                 ret_data = np.roll(
                     # self.data, -ipi - self.coords.phi.shape[0] // 2 + 1, axis=1
-                    self.data, -ipi + 1, axis=1
+                    self.data,
+                    -ipi + 1,
+                    axis=1,
                 )
                 ret_coords = Coordinates(
                     self.native_geometry, self.coords.R, self.coords.phi, self.coords.z
@@ -1496,7 +1506,9 @@ class GasField:
             elif self.native_geometry == "spherical":
                 ret_data = np.roll(
                     # self.data, -ipi - self.coords.phi.shape[0] // 2 + 1, axis=2
-                    self.data, -ipi + 1, axis=2
+                    self.data,
+                    -ipi + 1,
+                    axis=2,
                 )
                 ret_coords = Coordinates(
                     self.native_geometry,
