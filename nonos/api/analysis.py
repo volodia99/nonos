@@ -171,8 +171,8 @@ class Coordinates:
             self.r = x1
             self.theta = x2
             self.phi = x3
-            if self.phi.max() - np.pi > np.pi / 2:
-                self.phi -= np.pi
+            # if self.phi.max() - np.pi > np.pi / 2:
+            #     self.phi -= np.pi
             self.cube = ("r", "theta", "phi")
             self.rmed = 0.5 * (self.r[1:] + self.r[:-1])
             self.thetamed = 0.5 * (self.theta[1:] + self.theta[:-1])
@@ -180,8 +180,8 @@ class Coordinates:
         if self.geometry == "polar":
             self.R = x1
             self.phi = x2
-            if self.phi.max() - np.pi > np.pi / 2:
-                self.phi -= np.pi
+            # if self.phi.max() - np.pi > np.pi / 2:
+            #     self.phi -= np.pi
             self.z = x3
             self.cube = ("R", "phi", "z")
             self.Rmed = 0.5 * (self.R[1:] + self.R[:-1])
