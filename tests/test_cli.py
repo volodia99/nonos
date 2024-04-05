@@ -67,9 +67,7 @@ def test_logo(capsys):
                `:|}$$$$}):`
 
         Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
-        """.lstrip(
-            "\n"
-        )
+        """.lstrip("\n")
     )
     expected += f"Version {__version__}\n"
     assert out == expected

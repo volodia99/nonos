@@ -7,7 +7,6 @@ from nonos.loaders import Loader, Recipe, loader_from, recipe_from
 
 
 class TestLoader:
-
     @pytest.fixture(params=Loader.__slots__, ids=lambda s: s.removesuffix("_"))
     def loader_slot(self, request):
         return request.param
@@ -185,7 +184,6 @@ class TestGetRecipe:
     ],
 )
 class TestLoaderFrom:
-
     def test_loaders_from_user_inputs(self, test_data_dir, parameter_file, code):
         parameter_file = test_data_dir.joinpath(*parameter_file)
         directory = parameter_file.parent

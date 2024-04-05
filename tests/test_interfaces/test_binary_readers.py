@@ -8,13 +8,12 @@ from nonos._readers.binary import NPYReader, VTKReader
 
 
 class TestVTKReader:
-
+    # fmt: off
     @pytest.mark.parametrize(
         "file,expected_fields",
         [
             (
                 ("micro_cubes", "micro_orszagtang.vtk"),
-                # fmt: off
                 [
                     "BX1","BX2", "BX3",
                     "PRS",
@@ -22,7 +21,6 @@ class TestVTKReader:
                     "TR0", "TR1",
                     "VX1", "VX2", "VX3"
                 ],
-                # fmt: on
             ),
             (
                 ("micro_cubes", "micro_disk.vtk"),
@@ -30,6 +28,7 @@ class TestVTKReader:
             ),
         ],
     )
+    # fmt: on
     def test_fields(self, test_data_dir, file, expected_fields):
         bd = VTKReader.read(test_data_dir.joinpath(*file))
         fields = sorted(bd.data.keys())

@@ -642,7 +642,6 @@ class FargoADSGReader(_FargoReader):
 
 
 class NPYReader(ReaderMixin):
-
     # we accept a leading '_' for backward compatibility
     _filename_re = re.compile(
         r"^_?(?P<prefix>[\w\.]*)"

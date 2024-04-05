@@ -26,7 +26,6 @@ def compile_to_Fargo3D(text: str) -> str:
 
 @pytest.mark.parametrize("reader", [Fargo3DReader, FargoADSGReader])
 class TestFargoReaders:
-
     def compile(self, text: str, reader: IniReader) -> str:
         if reader is FargoADSGReader:
             return compile_to_FargoADSG(text)

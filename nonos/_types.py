@@ -57,7 +57,6 @@ class FrameType(Enum):
 @final
 @dataclass(frozen=True, eq=False)
 class BinData:
-
     # TODO: use slots=True in @dataclass when Python 3.9 is dropped
     __slots__ = ["data", "geometry", "x1", "x2", "x3"]
     data: StrDict
