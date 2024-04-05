@@ -726,9 +726,11 @@ class GasField:
         *,
         planet_file: Optional[str] = None,
     ) -> float:
+        ini = self._loader.load_ini_file()
         pd = self._load_planet(planet_number=planet_number, planet_file=planet_file)
+        oe = pd.get_orbital_elements(ini.frame)
         ind_on = self._get_ind_output_number(pd.t)
-        return pow(pd.q[ind_on] / 3.0, 1.0 / 3.0) * pd.a[ind_on]  # type: ignore [attr-defined]
+        return pow(pd.q[ind_on] / 3.0, 1.0 / 3.0) * oe.a[ind_on]
 
     def find_phip(
         self,
