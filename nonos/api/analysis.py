@@ -540,11 +540,13 @@ class GasField:
                     ipi = find_nearest(phicoord, 2 * np.pi)
                 if self.native_geometry == "polar":
                     self.data = np.roll(
-                        self.data, -ipi - self.coords.phi.shape[0] // 2 + 1, axis=1
+                        # self.data, -ipi - self.coords.phi.shape[0] // 2 + 1, axis=1
+                        self.data, -ipi + 1, axis=1
                     )
                 elif self.native_geometry == "spherical":
                     self.data = np.roll(
-                        self.data, -ipi - self.coords.phi.shape[0] // 2 + 1, axis=2
+                        # self.data, -ipi - self.coords.phi.shape[0] // 2 + 1, axis=2
+                        self.data, -ipi + 1, axis=2
                     )
                 else:
                     raise NotImplementedError(
@@ -584,11 +586,13 @@ class GasField:
                     ipi = find_nearest(phicoord, 2 * np.pi)
                 if self.native_geometry == "polar":
                     self.data = np.roll(
-                        self.data, -ipi - self.coords.phi.shape[0] // 2 + 1, axis=1
+                        # self.data, -ipi - self.coords.phi.shape[0] // 2 + 1, axis=1
+                        self.data, -ipi + 1, axis=1
                     )
                 elif self.native_geometry == "spherical":
                     self.data = np.roll(
-                        self.data, -ipi - self.coords.phi.shape[0] // 2 + 1, axis=2
+                        # self.data, -ipi - self.coords.phi.shape[0] // 2 + 1, axis=2
+                        self.data, -ipi + 1, axis=2
                     )
                 else:
                     raise NotImplementedError(
