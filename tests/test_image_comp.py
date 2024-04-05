@@ -92,15 +92,17 @@ def test_3D_vm_xy(test_data_dir, temp_figure_and_axis):
 @pytest.mark.parametrize("method", ["nearest", "linear"])
 @pytest.mark.mpl_image_compare()
 def test_nonoslick_method(method, tmp_path, temp_figure_and_axis):
-    from nonos.api import GasField, Coordinates, NonosLick
     import inifix
+
+    from nonos.api import Coordinates, GasField, NonosLick
+
     fig, ax = temp_figure_and_axis
 
     root_size = 2
     fake_grid = {
         "geometry": "cartesian",
-        "x1": np.linspace(0,1,root_size+1),
-        "x2": np.linspace(0,1,root_size+1),
+        "x1": np.linspace(0, 1, root_size + 1),
+        "x2": np.linspace(0, 1, root_size + 1),
         "x3": np.array([1]),
     }
     fake_coords = Coordinates(**fake_grid)
@@ -113,13 +115,13 @@ def test_nonoslick_method(method, tmp_path, temp_figure_and_axis):
     rng = np.random.default_rng(seed=0)
     fake_Vx = rng.normal(0, 1, size=root_size**2).reshape(root_size, root_size)
     fake_Vy = rng.normal(0, 1, size=root_size**2).reshape(root_size, root_size)
-    fake_F  = rng.normal(0, 1, size=root_size**2).reshape(root_size, root_size)
+    fake_F = rng.normal(0, 1, size=root_size**2).reshape(root_size, root_size)
 
     # TODO : mandatory for now to have a idefix.ini file, but should be removed in the future
     data = {
-        'Output': {'vtk': 1},
-        'Hydro': {},
-        }
+        "Output": {"vtk": 1},
+        "Hydro": {},
+    }
     with open(tmp_path / "idefix.ini", "wb") as fh:
         inifix.dump(data, fh)
 
@@ -128,7 +130,7 @@ def test_nonoslick_method(method, tmp_path, temp_figure_and_axis):
         data=fake_Vx,
         coords=fake_coords,
         ngeom=fake_coords.geometry,
-        on = 0,
+        on=0,
         operation="",
         directory=tmp_path,
     )
@@ -137,7 +139,7 @@ def test_nonoslick_method(method, tmp_path, temp_figure_and_axis):
         data=fake_Vy,
         coords=fake_coords,
         ngeom=fake_coords.geometry,
-        on = 0,
+        on=0,
         operation="",
         directory=tmp_path,
     )
@@ -146,7 +148,7 @@ def test_nonoslick_method(method, tmp_path, temp_figure_and_axis):
         data=fake_F,
         coords=fake_coords,
         ngeom=fake_coords.geometry,
-        on = 0,
+        on=0,
         operation="",
         directory=tmp_path,
     )
@@ -161,11 +163,17 @@ def test_nonoslick_method(method, tmp_path, temp_figure_and_axis):
         ymin=yyedge.min(),
         ymax=yyedge.max(),
         niter_lic=1,
-        size_interpolated=50*root_size,
+        size_interpolated=50 * root_size,
         method=method,
     )
     fig, ax = plt.subplots()
-    lick.plot(fig, ax, title="F", density_streamlines=1, color_streamlines="w", cmap="inferno")
-    ax.set(title=f"{method=}", aspect="equal", xlim=(xxedge.min(),xxedge.max()), ylim=(yyedge.min(),yyedge.max()))
+    lick.plot(
+        fig, ax, title="F", density_streamlines=1, color_streamlines="w", cmap="inferno"
+    )
+    ax.set(
+        title=f"{method=}",
+        aspect="equal",
+        xlim=(xxedge.min(), xxedge.max()),
+        ylim=(yyedge.min(), yyedge.max()),
+    )
     return fig
-
