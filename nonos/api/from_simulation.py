@@ -757,9 +757,7 @@ class CodeReadFormat:
         if computedata:
             logger.debug("loading data arrays")
             while 1:
-                s = (
-                    fid.readline()
-                )  # SCALARS/VECTORS name data_type (ex: SCALARS imagedata unsigned_char)
+                s = fid.readline()  # SCALARS/VECTORS name data_type (ex: SCALARS imagedata unsigned_char)
                 # print repr(s)
                 if len(s) < 2:  # leave if end of file
                     break

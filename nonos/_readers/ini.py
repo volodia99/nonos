@@ -17,7 +17,6 @@ from nonos._types import FrameType, IniData, PathT
 class IdefixVTKReader(ReaderMixin):
     @staticmethod
     def read(file: PathT, /) -> IniData:
-
         class IdefixIniOutput:
             def __init__(self, *, vtk, **_kwargs) -> None:
                 self.vtk = float(vtk)
