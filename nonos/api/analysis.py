@@ -738,7 +738,7 @@ class GasField:
     ) -> float:
         pd = self._load_planet(planet_number=planet_number, planet_file=planet_file)
         ind_on = self._get_ind_output_number(pd.t)
-        return np.arctan2(pd.y, pd.x)[ind_on] % (2 * np.pi) - np.pi
+        return np.arctan2(pd.y, pd.x)[ind_on] % (2 * np.pi)
 
     def latitudinal_projection(self, theta=None):
         operation = self.operation + "_latitudinal_projection"
