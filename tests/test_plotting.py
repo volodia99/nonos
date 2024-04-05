@@ -94,7 +94,7 @@ def test_plot_planet_corotation(test_data_dir):
 
     ds = GasDataSet(43, geometry="polar")
     azimfield = ds["RHO"].radial_at_r().vertical_at_midplane().map("phi").data
-    assert find_nearest(azimfield, azimfield.max()) != ds["RHO"].shape[2] // 2
+    assert find_nearest(azimfield, azimfield.max()) != 0
 
     azimfieldPlanet = (
         ds["RHO"]
@@ -103,9 +103,7 @@ def test_plot_planet_corotation(test_data_dir):
         .map("phi", rotate_with="planet0.dat")
         .data
     )
-    assert (
-        find_nearest(azimfieldPlanet, azimfieldPlanet.max()) == ds["RHO"].shape[2] // 2
-    )
+    assert find_nearest(azimfieldPlanet, azimfieldPlanet.max()) == 0
 
 
 def test_unit_conversion(test_data_dir, temp_figure_and_axis):
@@ -185,7 +183,7 @@ def test_corotation_api_float(test_data_dir):
     ds = GasDataSet(23)
     case1 = ds["RHO"].map("x", "y", rotate_with="planet0.dat")
     ds = GasDataSet(23)
-    case2 = ds["RHO"].map("x", "y", rotate_by=-1.2453036989845032)
+    case2 = ds["RHO"].map("x", "y", rotate_by=1.89628895460529)
 
     npt.assert_array_equal(case1.data, case2.data)
 
