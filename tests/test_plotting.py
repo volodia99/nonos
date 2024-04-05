@@ -103,9 +103,7 @@ def test_plot_planet_corotation(test_data_dir):
         .map("phi", rotate_with="planet0.dat")
         .data
     )
-    assert (
-        find_nearest(azimfieldPlanet, azimfieldPlanet.max()) == 0
-    )
+    assert find_nearest(azimfieldPlanet, azimfieldPlanet.max()) == 0
 
 
 def test_unit_conversion(test_data_dir, temp_figure_and_axis):
