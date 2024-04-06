@@ -1,5 +1,4 @@
 from .analysis import (
-    Coordinates,
     GasDataSet,
     GasField,
     Plotable,

@@ -8,7 +8,8 @@ import pytest
 from matplotlib.colors import SymLogNorm
 from matplotlib.figure import Figure
 
-from nonos.api import Coordinates, GasDataSet, GasField, NonosLick
+from nonos._geometry import Coordinates
+from nonos.api import GasDataSet, GasField, NonosLick
 from nonos.styling import set_mpl_style
 
 
@@ -109,10 +110,10 @@ def test_nonoslick_method(method, tmp_path):
     }
     fake_coords = Coordinates(**fake_grid)
 
-    xxmed = fake_coords.xmed
-    yymed = fake_coords.ymed
-    xxedge = fake_coords.x
-    yyedge = fake_coords.y
+    xxmed = fake_coords.get_axis_array_med("x")
+    yymed = fake_coords.get_axis_array_med("y")
+    xxedge = fake_coords.get_axis_array("x")
+    yyedge = fake_coords.get_axis_array("y")
 
     rng = np.random.default_rng(seed=0)
     fake_Vx = rng.normal(0, 1, size=root_size**2).reshape(root_size, root_size)
