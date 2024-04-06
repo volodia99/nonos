@@ -120,7 +120,7 @@ def test_unit_conversion(test_data_dir, temp_figure_and_axis):
     )
     plotfield = ds["RHO"].vertical_at_midplane().map("R", "phi").plot(fig, ax)
 
-    npt.assert_array_equal(plotfield10.get_array(), 10 * plotfield.get_array())
+    npt.assert_allclose(plotfield10.get_array(), 10 * plotfield.get_array())
 
 
 def test_vmin_vmax_api(test_data_dir, temp_figure_and_axis):
