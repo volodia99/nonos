@@ -67,3 +67,10 @@ class TestGasDataSetFromNpy:
                 directory=test_data_dir / self.directory,
             )
         assert sorted(ds.keys()) == self.expected_keys
+
+
+def test_find_rhill(test_data_dir):
+    ds = GasDataSet(23, directory=test_data_dir / "idefix_newvtk_planet2d")
+    rp = ds["RHO"].find_rp()
+    rhill = ds["RHO"].find_rhill()
+    assert rhill < rp
