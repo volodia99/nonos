@@ -93,6 +93,9 @@ select = [
     "I",   # isort
     "UP",  # pyupgrade
 ]
+# tweak UP007 for consistency
+# this can be cleaned up when Python 3.9 is dropped
+pyupgrade.keep-runtime-typing = true
 
 [tool.ruff.lint.isort]
 combine-as-imports = true

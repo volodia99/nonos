@@ -152,7 +152,7 @@ def process_field(
     logger.debug("plotting a {}D plot.", dim)
 
     if plane is None:
-        dsop_dict = dsop.coords.get_attributes
+        dsop_dict = dsop.coords.to_dict()
         default_plane = []
         for key, val in dsop_dict.items():
             if not isinstance(val, str) and val.shape[0] > 2:

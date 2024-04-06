@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
-from nonos.api.analysis import Coordinates, GasField, Plotable
+from nonos._geometry import Coordinates
+from nonos.api.analysis import GasField, Plotable
 from nonos.loaders import Recipe, loader_from, recipe_from
 
 if TYPE_CHECKING:
