@@ -662,10 +662,7 @@ class GasField:
         if self.native_geometry in ("spherical"):
             return find_nearest(self.coords.rmed, distance)
 
-    def find_imid(self, altitude=None):
-        if altitude is None:
-            if self.native_geometry in ("cartesian", "polar", "spherical"):
-                altitude = 0.0
+    def find_imid(self, altitude=0.0):
         if self.native_geometry in ("cartesian", "polar"):
             return find_nearest(self.coords.zmed, altitude)
         if self.native_geometry in ("spherical"):
