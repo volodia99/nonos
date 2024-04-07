@@ -645,9 +645,13 @@ class GasField:
                 logger.info("{} already exists", headername)
             else:
                 dictsaved = self.coords.get_attributes
-                for key in dictsaved:
-                    if key != "geometry":
-                        dictsaved[key] = [float(_) for _ in dictsaved[key]]
+
+                def is_array(item: tuple[str, Any]) -> bool:
+                    _key, value = item
+                    return isinstance(value, np.ndarray)
+
+                for key, value in filter(is_array, dictsaved.items()):
+                    dictsaved[key] = value.tolist()
                 with open(headername, "w") as hfile:
                     json.dump(dictsaved, hfile, indent=2)
 
