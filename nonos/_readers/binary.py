@@ -65,7 +65,7 @@ class VTKReader(ReaderMixin):
         Function that reads a vtk file in polar coordinates
         """
 
-        meta.setdefault("geometry", "unset")
+        meta.setdefault("geometry", None)
         meta.setdefault("cell", "edges")
         meta.setdefault("computedata", True)
 
@@ -78,7 +78,8 @@ class VTKReader(ReaderMixin):
         V["data"] = {}
 
         # initialize geometry
-        V["geometry"] = Geometry(meta["geometry"])
+        if meta["geometry"] is not None:
+            V["geometry"] = Geometry(meta["geometry"])
 
         # datatype we read
         dt = np.dtype(">f")  # Big endian single precision floats
@@ -119,12 +120,12 @@ class VTKReader(ReaderMixin):
                             f"Unknown value for GEOMETRY flag ({g!r}) was found in the VTK file."
                         )
 
-                    if V["geometry"] is not Geometry.UNSET:
+                    if meta["geometry"] is not None:
                         # We already have a proposed geometry, check that what is read from the file matches
-                        if thisgeometry != V["geometry"]:  # pragma: no cover
+                        if thisgeometry != meta["geometry"]:  # pragma: no cover
                             fid.close()
                             raise ValueError(
-                                f"geometry argument ({V['geometry']!r}) is "
+                                f"geometry argument ({meta['geometry']!r}) is "
                                 "inconsistent with GEOMETRY flag from the VTK file "
                                 f"({thisgeometry!r})"
                             )
@@ -142,7 +143,7 @@ class VTKReader(ReaderMixin):
             # read next line
             s = fid.readline()  # DIMENSIONS...
 
-        if V["geometry"] is Geometry.UNSET:  # pragma: no cover
+        if not isinstance(V["geometry"], Geometry):  # pragma: no cover
             fid.close()
             raise RuntimeError(
                 "Geometry couldn't be determined from data. "
@@ -409,6 +410,9 @@ class VTKReader(ReaderMixin):
                         V["x3"] = phi
             else:
                 assert_never(V["geometry"])
+        elif V["geometry"] is Geometry.CYLINDRICAL:  # pragma: co cover
+            fid.close()
+            raise NotImplementedError
         else:
             assert_never(V["geometry"])
 

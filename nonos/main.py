@@ -75,7 +75,8 @@ def process_field(
 
     configure_logger(level=log_level)
     set_mpl_style(scaling=scaling)
-
+    if geometry == "unset":
+        geometry = None
     ds = GasDataSet(on, geometry=geometry, directory=datadir)
     dsop = ds[field]
     if diff:

@@ -1540,7 +1540,7 @@ class GasDataSet:
         *,
         inifile: Optional[PathT] = None,
         code: Union[str, Recipe, None] = None,
-        geometry: Optional[str] = "unset",
+        geometry: Optional[str] = None,
         directory: Optional[PathT] = None,
         fluid: Optional[str] = None,
         operation: Optional[str] = None,
@@ -1583,7 +1583,7 @@ class GasDataSet:
             msg = ""
             if fluid is not None:
                 ignored_kwargs.append("fluid")
-            if geometry != "unset":
+            if geometry is not None:
                 ignored_kwargs.append("geometry")
             if ignored_kwargs:
                 ignored = ", ".join(repr(_) for _ in ignored_kwargs)
