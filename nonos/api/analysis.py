@@ -1,7 +1,5 @@
 import dataclasses
-import glob
 import json
-import os
 import warnings
 from collections.abc import ItemsView, KeysView, ValuesView
 from functools import cached_property
@@ -456,8 +454,8 @@ class GasField:
         self.on = on
 
         if directory is None:
-            directory = os.getcwd()
-        self.directory = directory
+            directory = Path.cwd()
+        self.directory = Path(directory)
 
         self._loader = loader_from(
             code=code,
@@ -613,32 +611,32 @@ class GasField:
 
         return Plotable(dict_plotable)
 
-    def save(self, directory: Optional[str] = None, header_only: bool = False) -> None:
+    def save(
+        self,
+        directory: Optional[PathT] = None,
+        header_only: bool = False,
+    ) -> None:
         if directory is None:
-            directory = os.getcwd()
+            directory = Path.cwd()
+        else:
+            directory = Path(directory)
         operation = self.operation or "_"
+        headerdir = directory / "header"
+        subdir = directory / self.field.lower()
         if not header_only:
-            os.makedirs(os.path.join(directory, self.field.lower()), exist_ok=True)
-            filename = os.path.join(
-                directory,
-                self.field.lower(),
-                f"{operation}_{self.field}.{self.on:04d}.npy",
-            )
-            if Path(filename).is_file():
-                logger.info("{} already exists", filename)
+            file = subdir / f"{operation}_{self.field}.{self.on:04d}.npy"
+            if file.is_file():
+                logger.info("{} already exists", file)
             else:
-                with open(filename, "wb") as file:
-                    np.save(file, self.data)
+                subdir.mkdir(exist_ok=True)
+                with open(file, "wb") as fh:
+                    np.save(fh, self.data)
 
-        group_of_files = list(
-            glob.glob1(os.path.join(directory, self.field.lower()), f"{operation}*")
-        )
-        header_file = list(
-            glob.glob1(os.path.join(directory, "header"), f"header{operation}.json")
-        )
-        if (len(group_of_files) > 0 and len(header_file) == 0) or header_only:
-            os.makedirs(os.path.join(directory, "header"), exist_ok=True)
-            headername = os.path.join(directory, "header", f"header{operation}.json")
+        group_of_files = list(subdir.glob(f"{operation}*"))
+        header_file = headerdir / f"header{operation}.json"
+        if (len(group_of_files) > 0 and not header_file.is_file()) or header_only:
+            headerdir.mkdir(exist_ok=True)
+            headername = headerdir / f"header{operation}.json"
             if Path(headername).is_file():
                 logger.info("{} already exists", headername)
             else:
@@ -653,8 +651,8 @@ class GasField:
                 with open(headername, "w") as hfile:
                     json.dump(dictsaved, hfile, indent=2)
 
-        src = os.path.join(self.directory, self.inifile)
-        dest = os.path.join(directory, os.path.basename(self.inifile))
+        src = self.inifile.resolve()
+        dest = directory / self.inifile.name
         if dest != src:
             copyfile(src, dest)
 
@@ -684,7 +682,7 @@ class GasField:
         planet_file = _parse_planet_file(
             planet_number=planet_number, planet_file=planet_file
         )
-        file = os.path.join(self.directory, planet_file)
+        file = self.directory / planet_file
         return self._loader.load_planet_data(file)
 
     def _get_ind_output_number(self, time) -> int:
@@ -1548,19 +1546,21 @@ class GasDataSet:
         operation: Optional[str] = None,
     ) -> None:
         if isinstance(input_dataset, (str, Path)):
-            directory_from_input = os.path.dirname(input_dataset)
+            input_dataset = Path(input_dataset)
+            directory_from_input = input_dataset.parent
             if directory is None:
                 directory = directory_from_input
-            elif os.path.abspath(directory_from_input) != os.path.abspath(directory):
+            elif directory_from_input.resolve() != Path(directory).resolve():
                 raise ValueError(
                     f"directory value {directory!r} does not match "
                     f"directory name from input_dataset ({directory_from_input!r})"
                 )
             del directory_from_input
-            input_dataset = os.path.basename(input_dataset)
 
         if directory is None:
-            directory = os.getcwd()
+            directory = Path.cwd()
+        else:
+            directory = Path(directory)
 
         recipe = recipe_from(
             code=code,

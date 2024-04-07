@@ -1,5 +1,5 @@
-import os
 import warnings
+from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 import numpy as np
@@ -26,9 +26,11 @@ def file_analysis(
     from scipy.ndimage import uniform_filter1d
 
     if directory is None:
-        directory = os.getcwd()
+        directory = Path.cwd()
+    else:
+        directory = Path(directory)
 
-    columns = np.loadtxt(os.path.join(directory, filename), dtype="float64").T
+    columns = np.loadtxt(directory / filename, dtype="float64").T
     if norb is None:
         return columns
 
@@ -245,16 +247,26 @@ def from_data(
     )
 
 
-def from_file(*, field: str, operation: str, on: int, directory=""):
+def from_file(
+    *,
+    field: str,
+    operation: str,
+    on: int,
+    directory: Optional["PathT"] = None,
+):
+    if directory is None:
+        directory = Path.cwd()
+    else:
+        directory = Path(directory)
     repout = field.lower()
-    headername = os.path.join(directory, "header", f"header_{operation}.npy")
+    headername = directory / "header" / f"header_{operation}.npy"
     with open(headername, "rb") as file:
         dict_coords = np.load(file, allow_pickle=True).item()
 
     geometry, coord0, coord1, coord2 = dict_coords.values()
     ret_coords = Coordinates(geometry, coord0, coord1, coord2)
 
-    fileout = os.path.join(directory, repout, f"_{operation}_{field}.{on:04d}.npy")
+    fileout = directory / repout / f"_{operation}_{field}.{on:04d}.npy"
     with open(fileout, "rb") as file:
         ret_data = np.load(file, allow_pickle=True)
 
