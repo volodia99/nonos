@@ -332,11 +332,11 @@ class Coordinates:
         for i in wanted:
             if i not in conversion:
                 raise KeyError(f"{i} not in {tuple(conversion.keys())}")
-        if set(wanted) & {"x", "y", "z"} == set(wanted):
+        if {"x", "y", "z"}.issuperset(wanted):
             target_geometry = "cartesian"
-        elif set(wanted) & {"R", "phi", "z"} == set(wanted):
+        elif {"R", "phi", "z"}.issuperset(wanted):
             target_geometry = "polar"
-        elif set(wanted) & {"r", "theta", "phi"} == set(wanted):
+        elif {"r", "theta", "phi"}.issuperset(wanted):
             target_geometry = "spherical"
         else:
             raise ValueError(f"Unknown wanted plane: {wanted}.")
