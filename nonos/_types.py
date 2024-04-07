@@ -45,7 +45,6 @@ class Geometry(StrEnum):
     CYLINDRICAL = auto()
     POLAR = auto()
     SPHERICAL = auto()
-    UNSET = auto()
 
 
 class FrameType(Enum):
