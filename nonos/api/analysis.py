@@ -522,9 +522,9 @@ class GasField:
             raise ValueError("data has to be 1D or 2D in order to call map.")
         dimension = len(wanted)
 
+        meshgrid_conversion = self.coords._meshgrid_conversion(*wanted)
+
         if dimension == 1:
-            meshgrid_conversion = self.coords._meshgrid_conversion(*wanted)
-            # abscissa = meshgrid_conversion[wanted[0]]
             abscissa_value = list(meshgrid_conversion.values())[0]
             abscissa_key = list(meshgrid_conversion.keys())[0]
             if "phi" in wanted and not _fequal(self._rotate_by, rotate_by):
@@ -535,17 +535,9 @@ class GasField:
                 ):
                     ipi = find_nearest(phicoord, 2 * np.pi)
                 if self.native_geometry == "polar":
-                    self.data = np.roll(
-                        self.data,
-                        -ipi + 1,
-                        axis=1,
-                    )
+                    self.data = np.roll(self.data, -ipi + 1, axis=1)
                 elif self.native_geometry == "spherical":
-                    self.data = np.roll(
-                        self.data,
-                        -ipi + 1,
-                        axis=2,
-                    )
+                    self.data = np.roll(self.data, -ipi + 1, axis=2)
                 else:
                     raise NotImplementedError(
                         f"geometry flag '{self.native_geometry}' not implemented yet if corotation"
@@ -565,7 +557,6 @@ class GasField:
         elif dimension == 2:
             # meshgrid in polar coordinates P, R (if "R", "phi") or R, P (if "phi", "R")
             # idem for all combinations of R,phi,z
-            meshgrid_conversion = self.coords._meshgrid_conversion(*wanted)
             abscissa_value, ordinate_value = (
                 meshgrid_conversion[wanted[0]],
                 meshgrid_conversion[wanted[1]],
@@ -583,17 +574,9 @@ class GasField:
                 ):
                     ipi = find_nearest(phicoord, 2 * np.pi)
                 if self.native_geometry == "polar":
-                    self.data = np.roll(
-                        self.data,
-                        -ipi + 1,
-                        axis=1,
-                    )
+                    self.data = np.roll(self.data, -ipi + 1, axis=1)
                 elif self.native_geometry == "spherical":
-                    self.data = np.roll(
-                        self.data,
-                        -ipi + 1,
-                        axis=2,
-                    )
+                    self.data = np.roll(self.data, -ipi + 1, axis=2)
                 else:
                     raise NotImplementedError(
                         f"geometry flag '{self.native_geometry}' not implemented yet if corotation"
