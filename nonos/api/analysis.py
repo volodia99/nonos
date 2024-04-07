@@ -674,7 +674,8 @@ class GasField:
 
     def find_iphi(self, phi=0):
         if self.native_geometry in ("polar", "spherical"):
-            return find_nearest(self.coords.phi, phi) % self.coords.phimed.shape[0]
+            mod = len(self.coords.phi) - 1
+            return find_nearest(self.coords.phi, phi) % mod
 
     def _load_planet(
         self,
