@@ -618,8 +618,7 @@ class GasField:
             directory = os.getcwd()
         operation = self.operation or "_"
         if not header_only:
-            if not os.path.exists(os.path.join(directory, self.field.lower())):
-                os.makedirs(os.path.join(directory, self.field.lower()))
+            os.makedirs(os.path.join(directory, self.field.lower()), exist_ok=True)
             filename = os.path.join(
                 directory,
                 self.field.lower(),
@@ -638,8 +637,7 @@ class GasField:
             glob.glob1(os.path.join(directory, "header"), f"header{operation}.json")
         )
         if (len(group_of_files) > 0 and len(header_file) == 0) or header_only:
-            if not os.path.exists(os.path.join(directory, "header")):
-                os.makedirs(os.path.join(directory, "header"))
+            os.makedirs(os.path.join(directory, "header"), exist_ok=True)
             headername = os.path.join(directory, "header", f"header{operation}.json")
             if Path(headername).is_file():
                 logger.info("{} already exists", headername)
