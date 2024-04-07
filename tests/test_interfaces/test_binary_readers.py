@@ -1,5 +1,4 @@
 import json
-import os
 
 import numpy as np
 import pytest
@@ -47,7 +46,7 @@ class TestNPYReader:
         # setup a file tree that mocks what you'd get after
         # saving some reductions
         header_dir = tmp_path / "header"
-        os.mkdir(header_dir)
+        header_dir.mkdir()
         fake_grid = {
             "geometry": "cartesian",
             "x": [0, 0.5, 1],
@@ -61,7 +60,7 @@ class TestNPYReader:
         rng = np.random.default_rng(seed=0)
 
         rho_dir = tmp_path / "rho"
-        os.mkdir(rho_dir)
+        rho_dir.mkdir()
         rho_file = rho_dir.joinpath("azimuthal_average_RHO.0001.npy")
         fake_rho = rng.normal(0, 1, size=8).resize(2, 2, 2)
         with open(rho_file, "wb") as fb:
@@ -73,16 +72,16 @@ class TestNPYReader:
             np.save(fb, fake_rho_rr)
 
         foo_dir = tmp_path / "foo"
-        os.mkdir(foo_dir)
+        foo_dir.mkdir()
         foo_file = foo_dir.joinpath("__FOO.0456.npy")
         fake_foo = rng.normal(0, 1, size=8).resize(2, 2, 2)
         with open(foo_file, "wb") as fb:
             np.save(fb, fake_foo)
 
         # sprinkle some "traps" too (files and dirs that *shouldn't* match)
-        os.mkdir(tmp_path / "trap1.0001")
+        tmp_path.joinpath("trap1.0001").mkdir()
         foo_dir.joinpath("trap2.json").touch()
-        os.mkdir(rho_dir / "trap3_RHO.0001.npy")
+        rho_dir.joinpath("trap3_RHO.0001.npy").mkdir()
         rho_file_2 = rho_dir.joinpath("azimuthal_average_RHO.0002.npy")
         rho_file_2.touch()
 

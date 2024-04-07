@@ -12,6 +12,7 @@ import re
 import time
 from collections import ChainMap
 from multiprocessing import Pool
+from pathlib import Path
 from typing import Any, Optional
 
 import cblind  # noqa
@@ -407,12 +408,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     if clargs.pop("isolated"):
         config_file_args: dict[str, Any] = {}
     elif (ifile := clargs.pop("input")) is not None:
-        if not os.path.isfile(ifile):
-            print_err(f"Couldn't find requested input file '{ifile}'.")
+        if not Path(ifile).is_file():
+            print_err(f"Couldn't find requested input file {ifile!r}.")
             return 1
-        print_warn(f"[bold white]Using parameters from '{ifile}'.")
+        print_warn(f"[bold white]Using parameters from {ifile!r}.")
         config_file_args = inifix.load(ifile)
-    elif os.path.isfile("nonos.ini"):
+    elif Path("nonos.ini").is_file():
         print_warn("[bold white]Using parameters from 'nonos.ini'.")
         config_file_args = inifix.load("nonos.ini")
     else:

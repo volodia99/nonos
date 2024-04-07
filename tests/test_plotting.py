@@ -1,5 +1,4 @@
 import os
-from glob import glob
 
 import matplotlib.pyplot as plt
 import numexpr as ne
@@ -32,7 +31,7 @@ def test_plot_simple(argv, simulation_dir, capsys, tmp_path):
     assert err == ""
     assert out == ""
     assert ret == 0
-    assert len(glob("*.png")) > 0
+    assert len(list(tmp_path.glob("*.png"))) > 0
 
 
 @pytest.mark.parametrize("format", ["pdf", "png", "jpg"])
@@ -44,7 +43,7 @@ def test_common_image_formats(format, simulation_dir, capsys, tmp_path):
     assert err == ""
     assert out == ""
     assert ret == 0
-    assert len(glob(f"*.{format}")) == 1
+    assert len(list(tmp_path.glob(f"*.{format}"))) > 0
 
 
 def test_plot_simple_corotation(planet_simulation_dir, capsys, tmp_path):

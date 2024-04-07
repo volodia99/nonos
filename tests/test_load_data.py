@@ -98,14 +98,15 @@ def test_npy_radial_at_r(test_data_dir, tmp_path):
 
 
 def test_save_current_dir(test_data_dir, tmp_path):
-    os.chdir(test_data_dir / "idefix_spherical_planet3d")
-    shutil.copy("idefix.ini", tmp_path / "idefix.ini")
-    shutil.copy("data.0500.vtk", tmp_path / "data.0500.vtk")
-    os.chdir(tmp_path)
-    time_inifile = os.path.getmtime("idefix.ini")
-    gf = GasDataSet(500)["RHO"]
-    gf.save()
-    assert os.path.getmtime("idefix.ini") == time_inifile
+    src_dir = test_data_dir / "idefix_spherical_planet3d"
+    shutil.copy(src_dir / "idefix.ini", tmp_path)
+    shutil.copy(src_dir / "data.0500.vtk", tmp_path)
+
+    inifile = tmp_path / "idefix.ini"
+    time_inifile = inifile.stat().st_mtime
+    gf = GasDataSet(500, directory=tmp_path)["RHO"]
+    gf.save(tmp_path)
+    assert inifile.stat().st_mtime == time_inifile
 
 
 @pytest.mark.parametrize(
