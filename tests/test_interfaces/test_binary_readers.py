@@ -56,6 +56,8 @@ class TestNPYReader:
 
         with open(header_dir / "header_azimuthal_average.json", "w") as fh:
             json.dump(fake_grid, fh)
+        with open(header_dir / "header_vertical_at_midplane.json", "w") as fh:
+            json.dump(fake_grid, fh)
 
         rng = np.random.default_rng(seed=0)
 
@@ -78,6 +80,13 @@ class TestNPYReader:
         with open(foo_file, "wb") as fb:
             np.save(fb, fake_foo)
 
+        vx1_dir = tmp_path / "vx1"
+        vx1_dir.mkdir()
+        vx1_file = vx1_dir.joinpath("_vertical_at_midplane_VX1.1200.npy")
+        fake_vx1 = rng.normal(0, 1, size=8).resize(2, 2, 2)
+        with open(vx1_file, "wb") as fb:
+            np.save(fb, fake_vx1)
+
         # sprinkle some "traps" too (files and dirs that *shouldn't* match)
         tmp_path.joinpath("trap1.0001").mkdir()
         foo_dir.joinpath("trap2.json").touch()
@@ -87,7 +96,7 @@ class TestNPYReader:
 
         rho_dir.joinpath("trap4.npy").touch()
 
-        real_files = sorted([foo_file, rho_file, rho_file_rr, rho_file_2])
+        real_files = sorted([foo_file, rho_file, rho_file_rr, rho_file_2, vx1_file])
         return tmp_path, real_files
 
     def test_get_bin_files(self, initdir):
@@ -103,18 +112,37 @@ class TestNPYReader:
             assert results == expected_files
 
     @pytest.mark.parametrize(
-        "file_or_number",
-        ["azimuthal_average_RHO.0001.npy", 1],
+        "file_or_number, prefix, expected_output_number, expected_filename",
+        [
+            (
+                "azimuthal_average_RHO.0001.npy",
+                "azimuthal_average",
+                1,
+                ("rho", "azimuthal_average_RHO.0001.npy"),
+            ),
+            (1, "azimuthal_average", 1, ("rho", "azimuthal_average_RHO.0001.npy")),
+            ("__FOO.0456.npy", "", 456, ("foo", "__FOO.0456.npy")),
+            (456, "", 456, ("foo", "__FOO.0456.npy")),
+        ],
     )
-    def test_parse_output_number_and_filename(self, initdir, file_or_number):
+    def test_parse_output_number_and_filename(
+        self,
+        initdir,
+        file_or_number,
+        prefix,
+        expected_output_number,
+        expected_filename,
+    ):
         tmp_path, _files = initdir
         directory = tmp_path.resolve()
 
         output_number, filename = NPYReader.parse_output_number_and_filename(
-            file_or_number, directory=directory, prefix="azimuthal_average"
+            file_or_number,
+            directory=directory,
+            prefix=prefix,
         )
-        assert output_number == 1
-        assert filename == directory / "rho" / "azimuthal_average_RHO.0001.npy"
+        assert output_number == expected_output_number
+        assert filename == directory.joinpath(*expected_filename)
 
     def test_parse_output_number_and_filename_invalid_file(self, initdir):
         tmp_path, _files = initdir

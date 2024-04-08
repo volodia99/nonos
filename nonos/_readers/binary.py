@@ -648,7 +648,7 @@ class NPYReader(ReaderMixin):
     # we accept a leading '_' for backward compatibility
     _filename_re = re.compile(
         r"^_?(?P<prefix>[\w\.]*)"
-        r"_(?P<field_name>[A-Z]+)"
+        r"_(?P<field_name>[A-Z\d]+)"
         r"\.(?P<output_number>\d+)"
         r"\.npy$"
     )
@@ -663,24 +663,38 @@ class NPYReader(ReaderMixin):
         directory = Path(directory).resolve()
         if isinstance(file_or_number, (str, Path)):
             file = Path(file_or_number)
-            if file == Path(file.name):
-                file = directory / "rho" / file
-
             if (match := NPYReader._filename_re.fullmatch(file.name)) is None:
                 raise ValueError(f"Filename {file.name!r} is not recognized")
+            if file == Path(file.name):
+                file = directory / match.group("field_name").lower() / file
             output_number = int(match.group("output_number"))
             file_alt = None
         else:
             output_number = file_or_number
-            file = directory / "rho" / f"{prefix}_RHO.{output_number:04d}.npy"
-            file_alt = file.with_name(f"_{file.name}")
+            all_bin_files = NPYReader.get_bin_files(directory / "any")
+            _filter_re = re.compile(rf"^_?{prefix}_[A-Z\d]+.{output_number:04d}.npy")
+            matches = [
+                file for file in all_bin_files if _filter_re.fullmatch(file.name)
+            ]
+            if not matches:
+                raise FileNotFoundError(
+                    "Failed to locate a file matching "
+                    f"{prefix=!r} and {output_number=}"
+                )
+            file = matches[0]
+            file_alt = (
+                None if file.name.startswith("_") else file.with_name(f"_{file.name}")
+            )
 
         if not file.is_file():
-            if file_alt is not None and file_alt.is_file():
-                # backward compatibility
-                file = file_alt
-            else:
-                raise FileNotFoundError(file)
+            if file_alt is None:
+                raise FileNotFoundError(str(file))
+
+            if not file_alt.is_file():
+                raise FileNotFoundError(f"{file} (also tried {file_alt})")
+            # backward compatibility
+            file = file_alt
+
         return output_number, file
 
     @staticmethod
@@ -688,7 +702,7 @@ class NPYReader(ReaderMixin):
         # return *all* loadable files
         # (not just the ones matching a particular prefix)
         directory = Path(directory).resolve()
-        density_file_paths: list[Path] = []
+        file_paths: list[Path] = []
         for subdir in directory.parent.glob("*"):
             if not subdir.is_dir():
                 continue
@@ -699,11 +713,9 @@ class NPYReader(ReaderMixin):
                     continue
                 if NPYReader._filename_re.fullmatch(file.name) is None:
                     continue
-                density_file_paths.append(file)
+                file_paths.append(file)
 
-        if not density_file_paths:  # pragma: no cover
-            raise RuntimeError
-        return sorted(density_file_paths)
+        return sorted(file_paths)
 
     @staticmethod
     def read(file: PathT, /, **meta) -> BinData:
