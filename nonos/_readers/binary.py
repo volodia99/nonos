@@ -671,8 +671,15 @@ class NPYReader(ReaderMixin):
             file_alt = None
         else:
             output_number = file_or_number
-            file = directory / "rho" / f"{prefix}_RHO.{output_number:04d}.npy"
-            file_alt = file.with_name(f"_{file.name}")
+            all_bin_files = NPYReader.get_bin_files(directory / "any")
+            _filter_re = re.compile(rf"^_?{prefix}_[A-Z]+.{output_number:04d}.npy")
+            matches = [
+                file for file in all_bin_files if _filter_re.fullmatch(file.name)
+            ]
+            file = matches[0]
+            file_alt = (
+                None if file.name.startswith("_") else file.with_name(f"_{file.name}")
+            )
 
         if not file.is_file():
             if file_alt is not None and file_alt.is_file():
@@ -687,7 +694,7 @@ class NPYReader(ReaderMixin):
         # return *all* loadable files
         # (not just the ones matching a particular prefix)
         directory = Path(directory).resolve()
-        density_file_paths: list[Path] = []
+        file_paths: list[Path] = []
         for subdir in directory.parent.glob("*"):
             if not subdir.is_dir():
                 continue
@@ -698,11 +705,11 @@ class NPYReader(ReaderMixin):
                     continue
                 if NPYReader._filename_re.fullmatch(file.name) is None:
                     continue
-                density_file_paths.append(file)
+                file_paths.append(file)
 
-        if not density_file_paths:  # pragma: no cover
+        if not file_paths:  # pragma: no cover
             raise RuntimeError
-        return sorted(density_file_paths)
+        return sorted(file_paths)
 
     @staticmethod
     def read(file: PathT, /, **meta) -> BinData:
