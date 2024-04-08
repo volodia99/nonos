@@ -112,8 +112,11 @@ class VTKReader(ReaderMixin):
                         thisgeometry = Geometry.POLAR
                     elif g == 2:
                         thisgeometry = Geometry.SPHERICAL
-                    elif g == 3:
-                        thisgeometry = Geometry.CYLINDRICAL
+                    elif g == 3:  # pragma: co cover
+                        fid.close()
+                        raise NotImplementedError(
+                            "Support for cylindrical geometry is missing"
+                        )
                     else:  # pragma: no cover
                         fid.close()
                         raise ValueError(
@@ -410,9 +413,6 @@ class VTKReader(ReaderMixin):
                         V["x3"] = phi
             else:
                 assert_never(V["geometry"])
-        elif V["geometry"] is Geometry.CYLINDRICAL:  # pragma: co cover
-            fid.close()
-            raise NotImplementedError
         else:
             assert_never(V["geometry"])
 
@@ -543,7 +543,7 @@ class Fargo3DReader(_FargoReader):
             fluid = fluid_option
 
         V = BinData.default_init()
-        V["geometry"] = Geometry(meta["COORDINATES"])
+        geometry_str = meta["COORDINATES"]
         V["data"] = {}
 
         domain_x = np.loadtxt(directory / "domain_x.dat")
@@ -554,25 +554,24 @@ class Fargo3DReader(_FargoReader):
             domain_z = domain_z[3:-3]
 
         V["x1"] = domain_y  # X-Edge
-        if V["geometry"] is Geometry.CYLINDRICAL:
+        if geometry_str == "cylindrical":
+            V["geometry"] = Geometry.POLAR
             V["x2"] = domain_x  # Y-Edge
             V["x3"] = domain_z  # Z-Edge #latitute
-        elif V["geometry"] is Geometry.SPHERICAL:
+            pairs = [("RHO", "dens"), ("VX1", "vy"), ("VX2", "vx"), ("VX3", "vz")]
+        elif geometry_str == "spherical":
+            V["geometry"] = Geometry.SPHERICAL
             V["x2"] = domain_z  # Z-Edge #latitute
             V["x3"] = domain_x  # Y-Edge
+            pairs = [("RHO", "dens"), ("VX1", "vy"), ("VX2", "vz"), ("VX3", "vx")]
+        else:
+            raise NotImplementedError(f"Geometry {geometry_str!r} is not supported")
+
         n1 = len(V["x1"]) - 1
         n2 = len(V["x2"]) - 1
         n3 = len(V["x3"]) - 1
         grid_shape = n3, n1, n2
         shift = n2 // 2
-
-        if V["geometry"] is Geometry.CYLINDRICAL:
-            V["geometry"] = Geometry.POLAR
-            pairs = [("RHO", "dens"), ("VX1", "vy"), ("VX2", "vx"), ("VX3", "vz")]
-        elif V["geometry"] is Geometry.SPHERICAL:
-            pairs = [("RHO", "dens"), ("VX1", "vy"), ("VX2", "vz"), ("VX3", "vx")]
-        else:
-            raise NotImplementedError
 
         def _read_array(file: Path):
             return np.roll(

@@ -37,7 +37,7 @@ class TestVTKReader:
         # this simulation is in cartesian geometry
         file = test_data_dir / "micro_cubes" / "micro_orszagtang.vtk"
         with pytest.raises(ValueError):
-            VTKReader.read(file, geometry="cylindrical")
+            VTKReader.read(file, geometry="polar")
 
 
 class TestNPYReader:
