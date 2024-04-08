@@ -87,3 +87,93 @@ def test_3D_vm_xy(test_data_dir, temp_figure_and_axis):
 
     ds["RHO"].vertical_at_midplane().map("x", "y").plot(fig, ax, log=True, title="rho")
     return fig
+
+
+@pytest.mark.parametrize("method", ["nearest", "linear"])
+@pytest.mark.mpl_image_compare()
+def test_nonoslick_method(method, tmp_path, temp_figure_and_axis):
+    import inifix
+
+    from nonos.api import Coordinates, GasField, NonosLick
+
+    fig, ax = temp_figure_and_axis
+
+    root_size = 2
+    fake_grid = {
+        "geometry": "cartesian",
+        "x1": np.linspace(0, 1, root_size + 1),
+        "x2": np.linspace(0, 1, root_size + 1),
+        "x3": np.array([1]),
+    }
+    fake_coords = Coordinates(**fake_grid)
+
+    xxmed = fake_coords.xmed
+    yymed = fake_coords.ymed
+    xxedge = fake_coords.x
+    yyedge = fake_coords.y
+
+    rng = np.random.default_rng(seed=0)
+    fake_Vx = rng.normal(0, 1, size=root_size**2).reshape(root_size, root_size)
+    fake_Vy = rng.normal(0, 1, size=root_size**2).reshape(root_size, root_size)
+    fake_F = rng.normal(0, 1, size=root_size**2).reshape(root_size, root_size)
+
+    # TODO : mandatory for now to have a idefix.ini file, but should be removed in the future
+    data = {
+        "Output": {"vtk": 1},
+        "Hydro": {},
+    }
+    with open(tmp_path / "idefix.ini", "wb") as fh:
+        inifix.dump(data, fh)
+
+    Vx = GasField(
+        field="Vx",
+        data=fake_Vx,
+        coords=fake_coords,
+        ngeom=fake_coords.geometry,
+        on=0,
+        operation="",
+        directory=tmp_path,
+    )
+    Vy = GasField(
+        field="Vy",
+        data=fake_Vy,
+        coords=fake_coords,
+        ngeom=fake_coords.geometry,
+        on=0,
+        operation="",
+        directory=tmp_path,
+    )
+    F = GasField(
+        field="F",
+        data=fake_F,
+        coords=fake_coords,
+        ngeom=fake_coords.geometry,
+        on=0,
+        operation="",
+        directory=tmp_path,
+    )
+    lick = NonosLick(
+        xxmed,
+        yymed,
+        Vx,
+        Vy,
+        F,
+        xmin=xxedge.min(),
+        xmax=xxedge.max(),
+        ymin=yyedge.min(),
+        ymax=yyedge.max(),
+        niter_lic=1,
+        size_interpolated=50 * root_size,
+        method=method,
+    )
+    fig, ax = plt.subplots()
+    lick.plot(
+        fig, ax, title="F", density_streamlines=1, color_streamlines="w", cmap="inferno"
+    )
+    ax.set(
+        title=f"{method=}",
+        aspect="equal",
+        xlim=(xxedge.min(), xxedge.max()),
+        ylim=(yyedge.min(), yyedge.max()),
+    )
+    return fig
