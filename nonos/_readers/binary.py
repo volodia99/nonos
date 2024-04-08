@@ -682,11 +682,14 @@ class NPYReader(ReaderMixin):
             )
 
         if not file.is_file():
-            if file_alt is not None and file_alt.is_file():
-                # backward compatibility
-                file = file_alt
-            else:
-                raise FileNotFoundError(file)
+            if file_alt is None:
+                raise FileNotFoundError(str(file))
+
+            if not file_alt.is_file():
+                raise FileNotFoundError(f"{file} (also tried {file_alt})")
+            # backward compatibility
+            file = file_alt
+
         return output_number, file
 
     @staticmethod
