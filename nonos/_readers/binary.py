@@ -715,8 +715,6 @@ class NPYReader(ReaderMixin):
                     continue
                 file_paths.append(file)
 
-        if not file_paths:  # pragma: no cover
-            raise RuntimeError
         return sorted(file_paths)
 
     @staticmethod
