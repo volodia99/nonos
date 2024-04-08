@@ -609,7 +609,7 @@ class FargoADSGReader(_FargoReader):
         output_number, directory = _FargoReader._get_output_number_and_dir_from(file)
 
         V = BinData.default_init()
-        V["geometry"] = Geometry.CYLINDRICAL
+        V["geometry"] = Geometry.POLAR
         V["data"] = {}
 
         phi = np.loadtxt(directory / "used_azi.dat")[:, 0]
