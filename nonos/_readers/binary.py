@@ -676,6 +676,11 @@ class NPYReader(ReaderMixin):
             matches = [
                 file for file in all_bin_files if _filter_re.fullmatch(file.name)
             ]
+            if not matches:
+                raise FileNotFoundError(
+                    "Failed to locate a file matching "
+                    f"{prefix=!r} and {output_number=}"
+                )
             file = matches[0]
             file_alt = (
                 None if file.name.startswith("_") else file.with_name(f"_{file.name}")
