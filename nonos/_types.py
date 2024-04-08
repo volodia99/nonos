@@ -42,7 +42,6 @@ FloatArray: TypeAlias = "np.ndarray[Any, np.dtype[np.float32 | np.float64]]"
 
 class Geometry(StrEnum):
     CARTESIAN = auto()
-    CYLINDRICAL = auto()
     POLAR = auto()
     SPHERICAL = auto()
 
