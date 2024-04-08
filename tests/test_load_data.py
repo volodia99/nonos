@@ -92,7 +92,19 @@ def test_save_to_new_dir(header_only, test_data_dir, tmp_path):
     savedir = tmp_path / "savedir"
 
     # exercise saving to a directory that doesn't exist yet
-    gf.save(savedir, header_only=header_only)
+    saved_file = gf.save(savedir, header_only=header_only)
+    assert savedir.exists
+    assert savedir == saved_file.parents[1]
+    if header_only:
+        assert not saved_file.exists()
+    else:
+        assert saved_file.is_file()
+
+        # exercise saving again
+        write_time = saved_file.stat().st_mtime
+        saved_file_2 = gf.save(savedir, header_only=header_only)
+        assert saved_file_2 == saved_file
+        assert saved_file_2.stat().st_mtime == write_time, "File was overwritten"
 
 
 def test_npy_radial_at_r(test_data_dir, tmp_path):
