@@ -615,7 +615,7 @@ class GasField:
         self,
         directory: Optional[PathT] = None,
         header_only: bool = False,
-    ) -> None:
+    ) -> Path:
         if directory is None:
             directory = Path.cwd()
         else:
@@ -623,8 +623,8 @@ class GasField:
         operation = self.operation or "_"
         headerdir = directory / "header"
         subdir = directory / self.field.lower()
+        file = subdir / f"{operation}_{self.field}.{self.on:04d}.npy"
         if not header_only:
-            file = subdir / f"{operation}_{self.field}.{self.on:04d}.npy"
             if file.is_file():
                 logger.info("{} already exists", file)
             else:
@@ -637,7 +637,7 @@ class GasField:
         if (len(group_of_files) > 0 and not header_file.is_file()) or header_only:
             headerdir.mkdir(exist_ok=True, parents=True)
             headername = headerdir / f"header{operation}.json"
-            if Path(headername).is_file():
+            if headername.is_file():
                 logger.info("{} already exists", headername)
             else:
                 dictsaved = self.coords.get_attributes
@@ -655,6 +655,8 @@ class GasField:
         dest = directory / self.inifile.name
         if dest != src:
             copyfile(src, dest)
+
+        return file
 
     def find_ir(self, distance=1.0):
         if self.native_geometry in ("polar"):
