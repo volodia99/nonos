@@ -663,11 +663,10 @@ class NPYReader(ReaderMixin):
         directory = Path(directory).resolve()
         if isinstance(file_or_number, (str, Path)):
             file = Path(file_or_number)
-            if file == Path(file.name):
-                file = directory / "rho" / file
-
             if (match := NPYReader._filename_re.fullmatch(file.name)) is None:
                 raise ValueError(f"Filename {file.name!r} is not recognized")
+            if file == Path(file.name):
+                file = directory / match.group("field_name").lower() / file
             output_number = int(match.group("output_number"))
             file_alt = None
         else:
