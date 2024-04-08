@@ -103,18 +103,37 @@ class TestNPYReader:
             assert results == expected_files
 
     @pytest.mark.parametrize(
-        "file_or_number",
-        ["azimuthal_average_RHO.0001.npy", 1],
+        "file_or_number, prefix, expected_output_number, expected_filename",
+        [
+            (
+                "azimuthal_average_RHO.0001.npy",
+                "azimuthal_average",
+                1,
+                ("rho", "azimuthal_average_RHO.0001.npy"),
+            ),
+            (1, "azimuthal_average", 1, ("rho", "azimuthal_average_RHO.0001.npy")),
+            ("__FOO.0456.npy", "", 456, ("foo", "__FOO.0456.npy")),
+            (456, "", 456, ("foo", "__FOO.0456.npy")),
+        ],
     )
-    def test_parse_output_number_and_filename(self, initdir, file_or_number):
+    def test_parse_output_number_and_filename(
+        self,
+        initdir,
+        file_or_number,
+        prefix,
+        expected_output_number,
+        expected_filename,
+    ):
         tmp_path, _files = initdir
         directory = tmp_path.resolve()
 
         output_number, filename = NPYReader.parse_output_number_and_filename(
-            file_or_number, directory=directory, prefix="azimuthal_average"
+            file_or_number,
+            directory=directory,
+            prefix=prefix,
         )
-        assert output_number == 1
-        assert filename == directory / "rho" / "azimuthal_average_RHO.0001.npy"
+        assert output_number == expected_output_number
+        assert filename == directory.joinpath(*expected_filename)
 
     def test_parse_output_number_and_filename_invalid_file(self, initdir):
         tmp_path, _files = initdir
