@@ -648,7 +648,7 @@ class NPYReader(ReaderMixin):
     # we accept a leading '_' for backward compatibility
     _filename_re = re.compile(
         r"^_?(?P<prefix>[\w\.]*)"
-        r"_(?P<field_name>[A-Z]+)"
+        r"_(?P<field_name>[A-Z\d]+)"
         r"\.(?P<output_number>\d+)"
         r"\.npy$"
     )
@@ -672,7 +672,7 @@ class NPYReader(ReaderMixin):
         else:
             output_number = file_or_number
             all_bin_files = NPYReader.get_bin_files(directory / "any")
-            _filter_re = re.compile(rf"^_?{prefix}_[A-Z]+.{output_number:04d}.npy")
+            _filter_re = re.compile(rf"^_?{prefix}_[A-Z\d]+.{output_number:04d}.npy")
             matches = [
                 file for file in all_bin_files if _filter_re.fullmatch(file.name)
             ]
