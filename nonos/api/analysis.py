@@ -628,14 +628,14 @@ class GasField:
             if file.is_file():
                 logger.info("{} already exists", file)
             else:
-                subdir.mkdir(exist_ok=True)
+                subdir.mkdir(exist_ok=True, parents=True)
                 with open(file, "wb") as fh:
                     np.save(fh, self.data)
 
         group_of_files = list(subdir.glob(f"{operation}*"))
         header_file = headerdir / f"header{operation}.json"
         if (len(group_of_files) > 0 and not header_file.is_file()) or header_only:
-            headerdir.mkdir(exist_ok=True)
+            headerdir.mkdir(exist_ok=True, parents=True)
             headername = headerdir / f"header{operation}.json"
             if Path(headername).is_file():
                 logger.info("{} already exists", headername)
