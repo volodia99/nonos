@@ -85,6 +85,16 @@ def test_roundtrip_other_dir(test_data_dir, tmp_path):
     assert dsnpy.nfields == 1
 
 
+@pytest.mark.parametrize("header_only", [True, False])
+def test_save_to_new_dir(header_only, test_data_dir, tmp_path):
+    gf = GasDataSet(500, directory=test_data_dir / "idefix_spherical_planet3d")["RHO"]
+
+    savedir = tmp_path / "savedir"
+
+    # exercise saving to a directory that doesn't exist yet
+    gf.save(savedir, header_only=header_only)
+
+
 def test_npy_radial_at_r(test_data_dir, tmp_path):
     os.chdir(test_data_dir / "idefix_spherical_planet3d")
     gf = GasDataSet(500)["RHO"].radial_at_r(1.1)
