@@ -1342,7 +1342,7 @@ class GasField:
         ir1 = self.find_ir(distance=distance)
         if self.native_geometry == "cartesian":
             raise NotImplementedError(
-                f"geometry flag '{self._native_geometry}' not implemented yet for radial_at_r"
+                f"geometry flag '{self.native_geometry}' not implemented yet for radial_at_r"
             )
         if self.native_geometry == "polar":
             # self.field = r"%s (R=1)" % self.field
