@@ -724,7 +724,7 @@ class GasField:
         ind_on = self._get_ind_output_number(pd.t)
         return np.arctan2(pd.y, pd.x)[ind_on] % (2 * np.pi)
 
-    def latitudinal_projection(self, theta=None):
+    def latitudinal_projection(self, theta=None) -> "GasField":
         operation = self.operation + "_latitudinal_projection"
         imid = self.find_imid()
         if self.native_geometry == "polar":
@@ -782,7 +782,7 @@ class GasField:
             ).reshape(self.shape[0], 1, self.shape[2])
         return GasField(
             self.field,
-            np.float32(ret_data),
+            ret_data.astype("float32", copy=False),
             ret_coords,
             self.native_geometry,
             self.on,
@@ -1335,7 +1335,7 @@ class GasField:
             rotate_by=self._rotate_by,
         )
 
-    def radial_at_r(self, distance=None):
+    def radial_at_r(self, distance=None) -> "GasField":
         if distance is None:
             distance = 1.0
         operation = self.operation + f"_radial_at_r{distance}"
