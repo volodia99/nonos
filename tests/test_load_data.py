@@ -119,6 +119,29 @@ def test_npy_radial_at_r(test_data_dir, tmp_path):
     assert list(dsnpy.keys()) == ["RHO"]
 
 
+def test_radial_average_interval_vmin_vmax(test_data_dir):
+    os.chdir(test_data_dir / "idefix_spherical_planet3d")
+    with pytest.raises(
+        ValueError,
+        match=r"The radial interval vmin=1 and vmax=None should be defined",
+    ):
+        GasDataSet(500)["RHO"].radial_average_interval(1)
+
+
+def test_default_operation_name(test_data_dir):
+    os.chdir(test_data_dir / "idefix_spherical_planet3d")
+    gf = GasDataSet(500)["RHO"].radial_average_interval(1, 2)
+    assert gf.operation == "radial_average_interval_1_2"
+
+
+def test_custom_operation_name(test_data_dir):
+    os.chdir(test_data_dir / "idefix_spherical_planet3d")
+    gfno = GasDataSet(500)["RHO"].radial_average_interval(
+        1, 2, operation_name="radial_custom"
+    )
+    assert gfno.operation == "radial_custom"
+
+
 def test_save_current_dir(test_data_dir, tmp_path):
     src_dir = test_data_dir / "idefix_spherical_planet3d"
     shutil.copy(src_dir / "idefix.ini", tmp_path)
