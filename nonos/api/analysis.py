@@ -533,16 +533,17 @@ class GasField:
                 ):
                     ipi = find_nearest(phicoord, 2 * np.pi)
                 if self.native_geometry == "polar":
-                    self.data = np.roll(self.data, -ipi + 1, axis=1)
+                    data_view = np.roll(self.data, -ipi + 1, axis=1)
                 elif self.native_geometry == "spherical":
-                    self.data = np.roll(self.data, -ipi + 1, axis=2)
+                    data_view = np.roll(self.data, -ipi + 1, axis=2)
                 else:
                     raise NotImplementedError(
                         f"geometry flag '{self.native_geometry}' not implemented yet if corotation"
                     )
-                self._rotate_by = rotate_by
+            else:
+                data_view = self.data.view()
 
-            datamoved_tmp = np.moveaxis(self.data, self.shape.index(1), 0)
+            datamoved_tmp = np.moveaxis(data_view, self.shape.index(1), 0)
             datamoved = np.moveaxis(
                 datamoved_tmp[0], datamoved_tmp[0].shape.index(1), 0
             )
@@ -572,14 +573,16 @@ class GasField:
                 ):
                     ipi = find_nearest(phicoord, 2 * np.pi)
                 if self.native_geometry == "polar":
-                    self.data = np.roll(self.data, -ipi + 1, axis=1)
+                    data_view = np.roll(self.data, -ipi + 1, axis=1)
                 elif self.native_geometry == "spherical":
-                    self.data = np.roll(self.data, -ipi + 1, axis=2)
+                    data_view = np.roll(self.data, -ipi + 1, axis=2)
                 else:
                     raise NotImplementedError(
                         f"geometry flag '{self.native_geometry}' not implemented yet if corotation"
                     )
-                self._rotate_by = rotate_by
+            else:
+                data_view = self.data.view()
+
             ordered = meshgrid_conversion["ordered"]
             # move the axis of reduction in the front in order to
             # perform the operation 3D(i,j,1) -> 2D(i,j) in a general way,
@@ -588,7 +591,7 @@ class GasField:
             # in practice, this is tricky only if the "1" is in the middle:
             # 3D(i,1,k) -> 2D(i,k) is not a direct triedre anymore, we need to do 2D(i,k).T = 2D(k,i)
             position_of_3d_dimension = self.shape.index(1)
-            datamoved = np.moveaxis(self.data, position_of_3d_dimension, 0)
+            datamoved = np.moveaxis(data_view, position_of_3d_dimension, 0)
             if position_of_3d_dimension == 1:
                 ordered = not ordered
             if ordered:
