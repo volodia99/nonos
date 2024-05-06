@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 from nonos.api import GasDataSet, file_analysis
@@ -74,3 +75,12 @@ def test_find_rhill(test_data_dir):
     rp = ds["RHO"].find_rp()
     rhill = ds["RHO"].find_rhill()
     assert rhill < rp
+
+
+def test_field_map_no_mutation(test_data_dir):
+    ds = GasDataSet(500, directory=test_data_dir / "idefix_spherical_planet3d")
+    f = ds["RHO"].radial_at_r(1.0).vertical_at_midplane()
+    d0 = f.data.copy()
+    f.map("phi", rotate_by=1.0)
+    d1 = f.data.copy()
+    npt.assert_array_equal(d1, d0)
