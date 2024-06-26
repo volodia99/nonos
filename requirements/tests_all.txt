@@ -1,0 +1,2 @@
+-r tests_min.txt
+numexpr>=2.8.3

@@ -1,7 +1,6 @@
 import os
 
 import matplotlib.pyplot as plt
-import numexpr as ne
 import numpy.testing as npt
 import pytest
 from matplotlib.colors import SymLogNorm
@@ -135,6 +134,8 @@ def test_vmin_vmax_api(test_data_dir, temp_figure_and_axis):
 
 
 def test_compute_from_data(test_data_dir):
+    ne = pytest.importorskip("numexpr")
+
     directory = test_data_dir / "idefix_planet3d"
     os.chdir(directory)
 
