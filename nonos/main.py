@@ -126,7 +126,7 @@ def process_field(
             log=log,
             vmin=vmin,
             vmax=vmax,
-            title="$%s$" % title,
+            title=f"${title}$",
             unit_conversion=unit_conversion,
         )
         akey = dsop.map(plane[0], rotate_with=planet_file).dict_plotable["abscissa"]
@@ -142,7 +142,7 @@ def process_field(
             vmin=vmin,
             vmax=vmax,
             cmap=cmap,
-            title="$%s$" % title,
+            title=f"${title}$",
             unit_conversion=unit_conversion,
         )
         akey = dsop.map(plane[0], plane[1], rotate_with=planet_file).dict_plotable[
