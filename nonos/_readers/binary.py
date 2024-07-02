@@ -14,7 +14,8 @@ from typing import Optional, Union, final
 import numpy as np
 
 from nonos._readers._base import ReaderMixin
-from nonos._types import BinData, FloatArray, Geometry, PathT
+from nonos._types import BinData, FloatArray, PathT
+from nonos.api._geometry import Geometry
 
 if sys.version_info >= (3, 11):
     from typing import assert_never
