@@ -157,7 +157,7 @@ class VTKReader(ReaderMixin):
         n2 = int(slist[2])
         n3 = int(slist[3])
 
-        z: Union["np.ndarray", "np.memmap"]
+        z: Union[np.ndarray, np.memmap]
 
         if V["geometry"] is Geometry.CARTESIAN:
             s = fid.readline()  # X_COORDINATES NX float
