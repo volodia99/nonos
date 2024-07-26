@@ -6,6 +6,11 @@ import pytest
 from cogapp import Cog
 
 
+# TODO: remove this marker when Python 3.13 is finalized
+@pytest.mark.skipif(
+    sys.version_info >= (3, 13),
+    reason="argparse --help messages were slightly improved in Python 3.13",
+)
 @pytest.mark.skipif(
     sys.platform.startswith("win"),
     reason="Windows runner may choke on some special chararcters",
