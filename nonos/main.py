@@ -11,6 +11,7 @@ import os
 import re
 import time
 from collections import ChainMap
+from importlib.metadata import version
 from multiprocessing import Pool
 from pathlib import Path
 from typing import Any, Optional
@@ -18,7 +19,7 @@ from typing import Any, Optional
 import cblind  # noqa
 import inifix
 import numpy as np
-from inifix.format import iniformat
+from packaging.version import Version
 
 from nonos.__version__ import __version__
 from nonos.api import GasDataSet
@@ -41,6 +42,8 @@ from nonos.parsing import (
     userval_or_default,
 )
 from nonos.styling import set_mpl_style
+
+INIFIX_GE_5_0 = Version(version("inifix")) >= Version("5.0.0")
 
 
 # process function for parallelisation purpose with progress bar
@@ -433,7 +436,13 @@ def main(argv: Optional[list[str]] = None) -> int:
         for key in DEFAULTS:
             conf_repr[key] = args[key]
         print(f"# Generated with nonos {__version__}")
-        print(iniformat(inifix.dumps(conf_repr)))
+        s = inifix.dumps(conf_repr)
+        if INIFIX_GE_5_0:
+            print(inifix.format_string(s))  # type: ignore [attr-defined]
+        else:
+            from inifix.format import iniformat
+
+            print(iniformat(s))
         return 0
 
     try:
