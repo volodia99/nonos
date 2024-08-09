@@ -26,6 +26,7 @@ dependencies = [
     "loguru>=0.5.3",
     "matplotlib>=3.5.0",
     "numpy>=1.19.3",
+    "packaging>=20.0",
     "rich>=10.13.0",
     "scipy>=1.6.1",
     "typing_extensions >= 4.4.0 ; python_version < '3.12'",
@@ -97,10 +98,10 @@ filterwarnings = [
 ]
 
 [tool.mypy]
-python_version = "3.9"
+# python_version = "3.9" # this can be uncommented (and updated) when Python 3.9 is dropped
 show_error_codes = true
 warn_unused_configs = true
-warn_unused_ignores = true
+# warn_unused_ignores = true # this can be uncommented (and updated) when Python 3.9 is dropped
 warn_unreachable = true
 show_error_context = true
 disallow_untyped_defs = false  # TODO: add missing annotations and switch this option to true
