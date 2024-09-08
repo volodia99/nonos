@@ -23,13 +23,8 @@ jobs:
   tests:
     strategy:
       fail-fast: false
-      matrix:
-        os:
-        - ubuntu-latest
-        - macos-latest
-        # excluding windows for lack of wheels at the tim of writing
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     name: Test nightly dependencies
 
     steps:
@@ -38,17 +33,14 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: 3.13-dev
-
-    - uses: yezz123/setup-uv@v4
+    - uses: astral-sh/setup-uv@v2
       with:
-        uv-version: 0.2.29
-        uv-venv: .venv
+        enable-cache: true
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build
-      # pre-installing kiwisolver (mpl dependency) because it doesn't have
-      # wheels at the time of writing so it collides with `--no-build`
       run: |
-        uv pip install kiwisolver
+        uv venv
         uv pip install numpy matplotlib scipy --pre --no-build --extra-index-url \
           https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
         uv pip install .
@@ -57,4 +49,6 @@ jobs:
     - run: uv pip list
 
     - name: Run pytest
-      run: pytest --color=yes
+      run: |
+        source .venv/bin/activate
+        pytest --color=yes -ra
