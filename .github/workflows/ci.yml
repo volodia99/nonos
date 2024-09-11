@@ -49,7 +49,6 @@ jobs:
     - uses: astral-sh/setup-uv@v2
       with:
         enable-cache: true
-        github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - run: uv sync ${{ matrix.install-args }}
 
@@ -99,7 +98,6 @@ jobs:
     - uses: astral-sh/setup-uv@v2
       with:
         enable-cache: true
-        github-token: ${{ secrets.GITHUB_TOKEN }}
     - name: Run mypy
       run: |
         uvx --with-requirements=requirements/typecheck.txt --with . mypy nonos tests
@@ -117,7 +115,6 @@ jobs:
     - uses: astral-sh/setup-uv@v2
       with:
         enable-cache: true
-        github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build
       run: |
@@ -166,7 +163,6 @@ jobs:
     - uses: astral-sh/setup-uv@v2
       with:
         enable-cache: true
-        github-token: ${{ secrets.GITHUB_TOKEN }}
 
     # Use latest Python, so it understands all syntax.
     - run: uv tool install --python 3.12 'coverage[toml]'
@@ -202,7 +198,6 @@ jobs:
     - uses: astral-sh/setup-uv@v2
       with:
         enable-cache: true
-        github-token: ${{ secrets.GITHUB_TOKEN }}
     - name: Build
       run: |
         uvx --with-requirements=requirements/docs.txt mkdocs build
