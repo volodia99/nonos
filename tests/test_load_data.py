@@ -119,6 +119,14 @@ def test_npy_radial_at_r(test_data_dir, tmp_path):
     assert list(dsnpy.keys()) == ["RHO"]
 
 
+def test_latitudinal_projection(test_data_dir):
+    os.chdir(test_data_dir / "idefix_spherical_planet3d")
+    theta = np.arctan(10 * 0.05)
+    gflpt = GasDataSet(500)["RHO"].latitudinal_projection(theta)
+    gflp = GasDataSet(500)["RHO"].latitudinal_projection()
+    np.testing.assert_equal(gflpt.data, gflp.data)
+
+
 def test_radial_average_interval_vmin_vmax(test_data_dir):
     os.chdir(test_data_dir / "idefix_spherical_planet3d")
     with pytest.raises(
