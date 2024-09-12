@@ -121,7 +121,7 @@ def test_npy_radial_at_r(test_data_dir, tmp_path):
 
 def test_latitudinal_projection(test_data_dir):
     os.chdir(test_data_dir / "idefix_spherical_planet3d")
-    theta = np.arctan(10 * 0.05)
+    theta = np.arctan(5 * 0.1)
     gflpt = GasDataSet(500)["RHO"].latitudinal_projection(theta)
     gflp = GasDataSet(500)["RHO"].latitudinal_projection()
     np.testing.assert_equal(gflpt.data, gflp.data)
