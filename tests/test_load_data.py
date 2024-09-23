@@ -215,3 +215,37 @@ def test_api_fluid_idefix(test_data_dir):
             fluid="dust1",
             directory=test_data_dir / "idefix_spherical_planet3d",
         )
+
+
+def test_api_vtk_slices_idefix(test_data_dir):
+    on = 9
+    ds = GasDataSet(test_data_dir / "idefix_vtk_slices" / f"data.{on:04d}.vtk")
+
+    ds_phi_cut = GasDataSet(
+        test_data_dir / "idefix_vtk_slices" / f"slice1.{on:04d}.vtk"
+    )
+    np.testing.assert_array_equal(
+        ds["RHO"].azimuthal_at_phi(np.pi).data[:, :, 0], ds_phi_cut["RHO"].data[:, :, 0]
+    )
+
+    ds_midplane_cut = GasDataSet(
+        test_data_dir / "idefix_vtk_slices" / f"slice2.{on:04d}.vtk"
+    )
+    np.testing.assert_array_equal(
+        ds["RHO"].vertical_at_midplane().data[:, 0, :],
+        ds_midplane_cut["RHO"].data[:, 0, :],
+    )
+
+    ds_radial_cut = GasDataSet(
+        test_data_dir / "idefix_vtk_slices" / f"slice3.{on:04d}.vtk"
+    )
+    np.testing.assert_array_equal(
+        ds["RHO"].radial_at_r(1.0).data[0, :, :], ds_radial_cut["RHO"].data[0, :, :]
+    )
+
+    ds_phi_avr = GasDataSet(
+        test_data_dir / "idefix_vtk_slices" / f"slice4.{on:04d}.vtk"
+    )
+    np.testing.assert_array_almost_equal(
+        ds["RHO"].azimuthal_average().data[:, :, 0], ds_phi_avr["RHO"].data[:, :, 0]
+    )
