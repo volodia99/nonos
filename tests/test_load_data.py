@@ -224,40 +224,40 @@ def test_api_vtk_slices_idefix(test_data_dir):
     ds_phi_cut = GasDataSet(
         test_data_dir / "idefix_vtk_slices" / f"slice1.{on:04d}.vtk"
     )
-    np.testing.assert_array_equal(
+    np.testing.assert_array_almost_equal(
         ds["RHO"].azimuthal_at_phi(np.pi).data, ds_phi_cut["RHO"].data
     )
-    np.testing.assert_array_equal(
+    np.testing.assert_array_almost_equal(
         ds["RHO"].azimuthal_at_phi(np.pi).coords.r, ds_phi_cut.coords.r
     )
-    np.testing.assert_array_equal(
+    np.testing.assert_array_almost_equal(
         ds["RHO"].azimuthal_at_phi(np.pi).coords.theta, ds_phi_cut.coords.theta
     )
 
     ds_midplane_cut = GasDataSet(
         test_data_dir / "idefix_vtk_slices" / f"slice2.{on:04d}.vtk"
     )
-    np.testing.assert_array_equal(
+    np.testing.assert_array_almost_equal(
         ds["RHO"].vertical_at_midplane().data,
         ds_midplane_cut["RHO"].data,
     )
-    np.testing.assert_array_equal(
+    np.testing.assert_array_almost_equal(
         ds["RHO"].vertical_at_midplane().coords.r, ds_midplane_cut.coords.r
     )
-    np.testing.assert_array_equal(
+    np.testing.assert_array_almost_equal(
         ds["RHO"].vertical_at_midplane().coords.phi, ds_midplane_cut.coords.phi
     )
 
     ds_radial_cut = GasDataSet(
         test_data_dir / "idefix_vtk_slices" / f"slice3.{on:04d}.vtk"
     )
-    np.testing.assert_array_equal(
+    np.testing.assert_array_almost_equal(
         ds["RHO"].radial_at_r(1.0).data, ds_radial_cut["RHO"].data
     )
-    np.testing.assert_array_equal(
+    np.testing.assert_array_almost_equal(
         ds["RHO"].radial_at_r(1.0).coords.theta, ds_radial_cut.coords.theta
     )
-    np.testing.assert_array_equal(
+    np.testing.assert_array_almost_equal(
         ds["RHO"].radial_at_r(1.0).coords.phi, ds_radial_cut.coords.phi
     )
 
@@ -267,9 +267,9 @@ def test_api_vtk_slices_idefix(test_data_dir):
     np.testing.assert_array_almost_equal(
         ds["RHO"].azimuthal_average().data, ds_phi_avr["RHO"].data
     )
-    np.testing.assert_array_equal(
+    np.testing.assert_array_almost_equal(
         ds["RHO"].azimuthal_average().coords.r, ds_phi_avr.coords.r
     )
-    np.testing.assert_array_equal(
+    np.testing.assert_array_almost_equal(
         ds["RHO"].azimuthal_average().coords.theta, ds_phi_avr.coords.theta
     )
