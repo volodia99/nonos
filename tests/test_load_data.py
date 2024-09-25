@@ -217,59 +217,37 @@ def test_api_fluid_idefix(test_data_dir):
         )
 
 
-def test_api_vtk_slices_idefix(test_data_dir):
+# fmt: off
+@pytest.mark.parametrize(
+    "slice_no, operation_name, operation_args, axis",
+    [
+        pytest.param(1, "azimuthal_at_phi", (np.pi,), "r"),
+        pytest.param(1, "azimuthal_at_phi", (np.pi,), "theta"),
+        pytest.param(1, "azimuthal_at_phi", (np.pi,), "phi", marks=pytest.mark.xfail(strict=True, reason="known bug in azimuthal_at_phi")),
+        pytest.param(2, "vertical_at_midplane", (), "r"),
+        pytest.param(2, "vertical_at_midplane", (), "theta", marks=pytest.mark.xfail(strict=True, reason="known bug in vertical_at_midplane")),
+        pytest.param(2, "vertical_at_midplane", (), "phi"),
+        pytest.param(3, "radial_at_r", (1.0,), "r", marks=pytest.mark.xfail(strict=True, reason="known bug in radial_at_r")),
+        pytest.param(3, "radial_at_r", (1.0,), "theta"),
+        pytest.param(3, "radial_at_r", (1.0,), "phi"),
+        pytest.param(4, "azimuthal_average", (), "r"),
+        pytest.param(4, "azimuthal_average", (), "theta"),
+        pytest.param(4, "azimuthal_average", (), "phi", marks=pytest.mark.xfail(strict=True, reason="known bug in azimuthal_average")),
+    ],
+)
+# fmt: on
+def test_api_vtk_slices_idefix(test_data_dir, slice_no, operation_name, operation_args, axis):
     on = 9
     ds = GasDataSet(test_data_dir / "idefix_vtk_slices" / f"data.{on:04d}.vtk")
-
     ds_phi_cut = GasDataSet(
-        test_data_dir / "idefix_vtk_slices" / f"slice1.{on:04d}.vtk"
+        test_data_dir / "idefix_vtk_slices" / f"slice{slice_no}.{on:04d}.vtk"
     )
-    np.testing.assert_array_almost_equal(
-        ds["RHO"].azimuthal_at_phi(np.pi).data, ds_phi_cut["RHO"].data
-    )
-    np.testing.assert_array_almost_equal(
-        ds["RHO"].azimuthal_at_phi(np.pi).coords.r, ds_phi_cut.coords.r
-    )
-    np.testing.assert_array_almost_equal(
-        ds["RHO"].azimuthal_at_phi(np.pi).coords.theta, ds_phi_cut.coords.theta
-    )
+    method = getattr(ds["RHO"], operation_name)
+    rho_slice_pp = method(*operation_args)
+    rho_slice_cut = ds_phi_cut["RHO"]
+    np.testing.assert_array_almost_equal(rho_slice_pp.data, rho_slice_cut.data)
 
-    ds_midplane_cut = GasDataSet(
-        test_data_dir / "idefix_vtk_slices" / f"slice2.{on:04d}.vtk"
-    )
     np.testing.assert_array_almost_equal(
-        ds["RHO"].vertical_at_midplane().data,
-        ds_midplane_cut["RHO"].data,
-    )
-    np.testing.assert_array_almost_equal(
-        ds["RHO"].vertical_at_midplane().coords.r, ds_midplane_cut.coords.r
-    )
-    np.testing.assert_array_almost_equal(
-        ds["RHO"].vertical_at_midplane().coords.phi, ds_midplane_cut.coords.phi
-    )
-
-    ds_radial_cut = GasDataSet(
-        test_data_dir / "idefix_vtk_slices" / f"slice3.{on:04d}.vtk"
-    )
-    np.testing.assert_array_almost_equal(
-        ds["RHO"].radial_at_r(1.0).data, ds_radial_cut["RHO"].data
-    )
-    np.testing.assert_array_almost_equal(
-        ds["RHO"].radial_at_r(1.0).coords.theta, ds_radial_cut.coords.theta
-    )
-    np.testing.assert_array_almost_equal(
-        ds["RHO"].radial_at_r(1.0).coords.phi, ds_radial_cut.coords.phi
-    )
-
-    ds_phi_avr = GasDataSet(
-        test_data_dir / "idefix_vtk_slices" / f"slice4.{on:04d}.vtk"
-    )
-    np.testing.assert_array_almost_equal(
-        ds["RHO"].azimuthal_average().data, ds_phi_avr["RHO"].data
-    )
-    np.testing.assert_array_almost_equal(
-        ds["RHO"].azimuthal_average().coords.r, ds_phi_avr.coords.r
-    )
-    np.testing.assert_array_almost_equal(
-        ds["RHO"].azimuthal_average().coords.theta, ds_phi_avr.coords.theta
+        getattr(rho_slice_pp.coords, axis),
+        getattr(rho_slice_cut.coords, axis),
     )
