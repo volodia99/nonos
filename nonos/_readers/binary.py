@@ -338,13 +338,13 @@ class VTKReader(ReaderMixin):
             # Reconstruct the spherical coordinate system
             elif V["geometry"] is Geometry.SPHERICAL:
                 if is2d:
-                    r = np.sqrt(xcart[:, 0, 0] ** 2 + ycart[:, 0, 0] ** 2)
+                    r = np.sqrt(xcart[:, 0, 0] ** 2 + zcart[:, 0, 0] ** 2)
                     phi = np.unwrap(
-                        np.arctan2(zcart[0, n2 // 2, :], xcart[0, n2 // 2, :])
+                        np.arctan2(ycart[0, n2 // 2, :], xcart[0, n2 // 2, :])
                     )
                     theta = np.arccos(
-                        ycart[0, :, 0]
-                        / np.sqrt(xcart[0, :, 0] ** 2 + ycart[0, :, 0] ** 2)
+                        zcart[0, :, 0]
+                        / np.sqrt(xcart[0, :, 0] ** 2 + zcart[0, :, 0] ** 2)
                     )
                 else:
                     r = np.sqrt(
