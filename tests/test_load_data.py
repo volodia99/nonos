@@ -219,28 +219,41 @@ def test_api_fluid_idefix(test_data_dir):
 
 # fmt: off
 @pytest.mark.parametrize(
-    "slice_no, operation_name, operation_args, axis",
+    "geometry, slice_no, operation_name, operation_args, axis",
     [
-        pytest.param(1, "azimuthal_at_phi", (np.pi,), "r"),
-        pytest.param(1, "azimuthal_at_phi", (np.pi,), "theta"),
-        pytest.param(1, "azimuthal_at_phi", (np.pi,), "phi", marks=pytest.mark.xfail(strict=True, reason="known bug in azimuthal_at_phi")),
-        pytest.param(2, "vertical_at_midplane", (), "r"),
-        pytest.param(2, "vertical_at_midplane", (), "theta", marks=pytest.mark.xfail(strict=True, reason="known bug in vertical_at_midplane")),
-        pytest.param(2, "vertical_at_midplane", (), "phi"),
-        pytest.param(3, "radial_at_r", (1.0,), "r", marks=pytest.mark.xfail(strict=True, reason="known bug in radial_at_r")),
-        pytest.param(3, "radial_at_r", (1.0,), "theta"),
-        pytest.param(3, "radial_at_r", (1.0,), "phi"),
-        pytest.param(4, "azimuthal_average", (), "r"),
-        pytest.param(4, "azimuthal_average", (), "theta"),
-        pytest.param(4, "azimuthal_average", (), "phi", marks=pytest.mark.xfail(strict=True, reason="known bug in azimuthal_average")),
+        pytest.param("spherical_3d", 1, "azimuthal_at_phi", (np.pi,), "r"),
+        pytest.param("spherical_3d", 1, "azimuthal_at_phi", (np.pi,), "theta"),
+        pytest.param("spherical_3d", 1, "azimuthal_at_phi", (np.pi,), "phi", marks=pytest.mark.xfail(strict=True, reason="known bug in azimuthal_at_phi")),
+        pytest.param("spherical_3d", 2, "vertical_at_midplane", (), "r"),
+        pytest.param("spherical_3d", 2, "vertical_at_midplane", (), "theta", marks=pytest.mark.xfail(strict=True, reason="known bug in vertical_at_midplane")),
+        pytest.param("spherical_3d", 2, "vertical_at_midplane", (), "phi"),
+        pytest.param("spherical_3d", 3, "radial_at_r", (1.0,), "r", marks=pytest.mark.xfail(strict=True, reason="known bug in radial_at_r")),
+        pytest.param("spherical_3d", 3, "radial_at_r", (1.0,), "theta"),
+        pytest.param("spherical_3d", 3, "radial_at_r", (1.0,), "phi"),
+        pytest.param("spherical_3d", 4, "azimuthal_average", (), "r"),
+        pytest.param("spherical_3d", 4, "azimuthal_average", (), "theta"),
+        pytest.param("spherical_3d", 4, "azimuthal_average", (), "phi", marks=pytest.mark.xfail(strict=True, reason="known bug in azimuthal_average")),
+
+        pytest.param("polar_3d", 1, "azimuthal_at_phi", (np.pi,), "R"),
+        pytest.param("polar_3d", 1, "azimuthal_at_phi", (np.pi,), "phi", marks=pytest.mark.xfail(strict=True, reason="known bug in azimuthal_at_phi")),
+        pytest.param("polar_3d", 1, "azimuthal_at_phi", (np.pi,), "z"),
+        pytest.param("polar_3d", 2, "vertical_at_midplane", (), "R"),
+        pytest.param("polar_3d", 2, "vertical_at_midplane", (), "phi"),
+        pytest.param("polar_3d", 2, "vertical_at_midplane", (), "z", marks=pytest.mark.xfail(strict=True, reason="known bug in vertical_at_midplane")),
+        pytest.param("polar_3d", 3, "radial_at_r", (2.0078125,), "R", marks=pytest.mark.xfail(strict=True, reason="known bug in radial_at_r")),
+        pytest.param("polar_3d", 3, "radial_at_r", (2.0078125,), "phi"),
+        pytest.param("polar_3d", 3, "radial_at_r", (2.0078125,), "z"),
+        pytest.param("polar_3d", 4, "azimuthal_average", (), "R"),
+        pytest.param("polar_3d", 4, "azimuthal_average", (), "phi", marks=pytest.mark.xfail(strict=True, reason="known bug in azimuthal_average")),
+        pytest.param("polar_3d", 4, "azimuthal_average", (), "z"),
     ],
 )
 # fmt: on
-def test_api_vtk_slices_idefix(test_data_dir, slice_no, operation_name, operation_args, axis):
+def test_api_vtk_slices_idefix(test_data_dir, geometry, slice_no, operation_name, operation_args, axis):
     on = 9
-    ds = GasDataSet(test_data_dir / "idefix_vtk_slices" / f"data.{on:04d}.vtk")
+    ds = GasDataSet(test_data_dir / "idefix_vtk_slices" / geometry / f"data.{on:04d}.vtk")
     ds_phi_cut = GasDataSet(
-        test_data_dir / "idefix_vtk_slices" / f"slice{slice_no}.{on:04d}.vtk"
+        test_data_dir / "idefix_vtk_slices" / geometry / f"slice{slice_no}.{on:04d}.vtk"
     )
     method = getattr(ds["RHO"], operation_name)
     rho_slice_pp = method(*operation_args)
