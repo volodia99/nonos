@@ -46,9 +46,12 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - uses: astral-sh/setup-uv@v2
+    - uses: astral-sh/setup-uv@v3
       with:
         enable-cache: true
+        cache-dependency-glob: |
+          **/requirements/*.txt
+          **/pyproject.toml
 
     - run: uv sync ${{ matrix.install-args }}
 
@@ -95,9 +98,13 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - uses: astral-sh/setup-uv@v2
+    - uses: astral-sh/setup-uv@v3
       with:
         enable-cache: true
+        cache-dependency-glob: |
+          **/requirements/typecheck.txt
+          **/pyproject.toml
+
     - name: Run mypy
       run: |
         uvx --with-requirements=requirements/typecheck.txt --with . mypy nonos tests
@@ -112,9 +119,12 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: 3.x
-    - uses: astral-sh/setup-uv@v2
+    - uses: astral-sh/setup-uv@v3
       with:
         enable-cache: true
+        cache-dependency-glob: |
+          **/requirements/tests_min.txt
+          **/pyproject.toml
 
     - name: Build
       run: |
@@ -160,9 +170,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: astral-sh/setup-uv@v2
-      with:
-        enable-cache: true
+    - uses: astral-sh/setup-uv@v3
 
     # Use latest Python, so it understands all syntax.
     - run: uv tool install --python 3.12 'coverage[toml]'
@@ -195,9 +203,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: astral-sh/setup-uv@v2
+    - uses: astral-sh/setup-uv@v3
       with:
         enable-cache: true
+        cache-dependency-glob: |
+          **/requirements/docs.txt
+          **/pyproject.toml
+
     - name: Build
       run: |
         uvx --with-requirements=requirements/docs.txt mkdocs build
