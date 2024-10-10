@@ -1,5 +1,4 @@
 from .analysis import (
-    Coordinates,
     GasDataSet,
     GasField,
     Plotable,
@@ -14,3 +13,4 @@ from .satellite import (
     planet_analysis,
 )
 from .tools import find_around, find_nearest
+from ._geometry import Coordinates
