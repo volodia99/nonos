@@ -77,6 +77,10 @@ def process_field(
 ):
     import matplotlib.pyplot as plt
 
+    if not show:
+        # ref https://github.com/matplotlib/matplotlib/issues/28957
+        plt.switch_backend("Agg")
+
     configure_logger(level=log_level)
     set_mpl_style(scaling=scaling)
     if geometry == "unset":
