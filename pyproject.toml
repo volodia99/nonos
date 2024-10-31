@@ -95,11 +95,11 @@ source = [
 
 [tool.coverage.run]
 source = [
-    "src",
+    "src/nonos",
     "tests",
 ]
 omit = [
-    "**/nonos/api/from_simulation.py", # deprecated module
+    "src/nonos/api/from_simulation.py", # deprecated module
 ]
 
 [tool.coverage.report]
