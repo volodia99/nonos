@@ -68,6 +68,7 @@ select = [
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
+known-first-party = ["nonos"]
 
 [tool.pytest.ini_options]
 filterwarnings = [
@@ -87,14 +88,8 @@ disallow_untyped_defs = false  # TODO: add missing annotations and switch this o
 ignore_missing_imports = true
 
 [tool.coverage.run]
-source = [
-    "nonos",
-    "tests",
-]
 omit = [
-    "nonos/_backports.py",
-    "nonos/__main__.py",
-    "nonos/api/from_simulation.py", # deprecated module
+    "**/nonos/api/from_simulation.py", # deprecated module
 ]
 
 [tool.coverage.report]

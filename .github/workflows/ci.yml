@@ -121,7 +121,7 @@ jobs:
 
     - name: Run mypy
       run: |
-        uvx --with-requirements=requirements/typecheck.txt --with . mypy nonos tests
+        uvx --with-requirements=requirements/typecheck.txt --with . mypy src/nonos tests
 
   image-tests:
     name: Image tests
