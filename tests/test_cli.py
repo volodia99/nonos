@@ -1,9 +1,9 @@
 import os
 import textwrap
+from importlib.metadata import version
 
 import inifix
 
-from nonos import __version__
 from nonos.main import main
 
 
@@ -32,7 +32,7 @@ def test_version(capsys):
 
     out, err = capsys.readouterr()
     assert err == ""
-    assert out == str(__version__) + "\n"
+    assert out == version("nonos") + "\n"
 
 
 def test_logo(capsys):
@@ -69,6 +69,6 @@ def test_logo(capsys):
         Analysis tool for idefix/pluto/fargo3d simulations (in polar coordinates).
         """.lstrip("\n")
     )
-    expected += f"Version {__version__}\n"
+    expected += f"Version {version('nonos')}\n"
     assert out == expected
     assert err == ""
