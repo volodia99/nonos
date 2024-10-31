@@ -94,6 +94,7 @@ source = [
 ]
 
 [tool.coverage.run]
+branch = true
 source = [
     "src/nonos",
     "tests",
@@ -103,6 +104,8 @@ omit = [
 ]
 
 [tool.coverage.report]
+show_missing = true
+precision = 2
 skip_covered = true
 exclude_lines = [
     # a stricter default pragma
