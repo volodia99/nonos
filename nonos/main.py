@@ -21,7 +21,6 @@ import inifix
 import numpy as np
 from packaging.version import Version
 
-from nonos.__version__ import __version__
 from nonos.api import GasDataSet
 from nonos.api._angle_parsing import _parse_planet_file
 from nonos.config import DEFAULTS
@@ -43,6 +42,7 @@ from nonos.parsing import (
 )
 from nonos.styling import set_mpl_style
 
+NONOS_VERSION = version("nonos")
 INIFIX_GE_5_0 = Version(version("inifix")) >= Version("5.0.0")
 
 
@@ -400,11 +400,11 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if clargs.pop("logo"):
         logo = importlib_resources.files("nonos").joinpath("logo.txt").read_text()
-        print(f"{logo}{__doc__}Version {__version__}")
+        print(f"{logo}{__doc__}Version {NONOS_VERSION}")
         return 0
 
     if clargs.pop("version"):
-        print(__version__)
+        print(NONOS_VERSION)
         return 0
 
     # clargs.pop("verbose")
@@ -439,7 +439,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         conf_repr = {}
         for key in DEFAULTS:
             conf_repr[key] = args[key]
-        print(f"# Generated with nonos {__version__}")
+        print(f"# Generated with nonos {NONOS_VERSION}")
         s = inifix.dumps(conf_repr)
         if INIFIX_GE_5_0:
             print(inifix.format_string(s))  # type: ignore [attr-defined]
