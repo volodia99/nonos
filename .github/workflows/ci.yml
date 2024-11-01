@@ -27,19 +27,15 @@ jobs:
         - '3.11'
         - '3.12'
         - '3.13'
-        venv-loc: [bin]
         include:
         - os: ubuntu-20.04
           python-version: '3.9'
-          venv-loc: bin
           deps: minimal
           install-args: --resolution=lowest-direct
         - os: macos-latest
           python-version: '3.13'
-          venv-loc: bin
         - os: windows-latest
           python-version: '3.13'
-          venv-loc: Scripts
 
     runs-on: ${{ matrix.os }}
     env:
@@ -58,8 +54,6 @@ jobs:
           **/requirements/*.txt
           **/pyproject.toml
 
-    # could in principle be done through uv sync but
-    # env resolution appears buggy as of uv 0.4.20
     - run: |
         uv venv
         uv pip install . ${{ matrix.install-args }}
@@ -74,13 +68,14 @@ jobs:
 
     - run: uv pip list
 
-    - name: Run pytest
-      shell: bash
-      # could in principle be done through uv run coverage
-      # but env resolution appears buggy as of uv 0.4.20
+    - name: Run pytest (without coverage)
+      if: ${{ !startsWith(matrix.os, 'ubuntu') }}
+      run: uv run --no-project pytest --color=yes
+
+    - name: Run pytest (with coverage)
+      if: startsWith(matrix.os, 'ubuntu')
       run: |
-        source .venv/${{matrix.venv-loc}}/activate
-        coverage run --parallel-mode -m pytest --color=yes
+        uv run --no-project coverage run --parallel-mode -m pytest --color=yes
 
     - name: Upload coverage data
       # only using reports from ubuntu because
