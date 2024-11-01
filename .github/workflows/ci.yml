@@ -181,8 +181,9 @@ jobs:
     - uses: actions/checkout@v4
     - uses: astral-sh/setup-uv@v3
 
-    # Use latest Python, so it understands all syntax.
-    - run: uv tool install --python 3.13 coverage
+    - run: |
+        uv venv
+        uv pip install 'coverage[toml]'
 
     - uses: actions/download-artifact@v4
       with:
@@ -191,9 +192,9 @@ jobs:
 
     - name: Check coverage
       run: |
-        coverage combine
-        coverage html --skip-covered --skip-empty
-        coverage report --fail-under=80
+        uv run --no-project coverage combine
+        uv run --no-project coverage html --skip-covered --skip-empty
+        uv run --no-project coverage report --fail-under=80
 
     - name: Upload HTML report
       uses: actions/upload-artifact@v4

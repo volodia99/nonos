@@ -71,12 +71,12 @@ combine-as-imports = true
 known-first-party = ["nonos"]
 
 [tool.pytest.ini_options]
-addopts = "-ra"
 filterwarnings = [
     "error",
     'ignore:datetime\.datetime\.utcfromtimestamp\(\) is deprecated:DeprecationWarning', # https://github.com/dateutil/dateutil/pull/1285
     'ignore:The py23 module has been deprecated and will be removed in a future release:DeprecationWarning',
 ]
+addopts = "-ra"
 
 [tool.mypy]
 # python_version = "3.9" # this can be uncommented (and updated) when Python 3.9 is dropped
@@ -107,10 +107,7 @@ exclude_lines = [
 
     # allow defensive code
     "^\\s*raise NotImplementedError\\b",
-    "^\\s*assert_never\\b",
 
-    # typing-related code
-    "^if TYPE_CHECKING:",
     ": \\.\\.\\.(\\s*#.*)?$",
     "^ +\\.\\.\\.$",
     "-> ['\"]?NoReturn['\"]?:",
