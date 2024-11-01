@@ -68,6 +68,7 @@ select = [
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
+known-first-party = ["nonos"]
 
 [tool.pytest.ini_options]
 filterwarnings = [
@@ -75,6 +76,7 @@ filterwarnings = [
     'ignore:datetime\.datetime\.utcfromtimestamp\(\) is deprecated:DeprecationWarning', # https://github.com/dateutil/dateutil/pull/1285
     'ignore:The py23 module has been deprecated and will be removed in a future release:DeprecationWarning',
 ]
+addopts = "-ra"
 
 [tool.mypy]
 # python_version = "3.9" # this can be uncommented (and updated) when Python 3.9 is dropped
@@ -87,28 +89,25 @@ disallow_untyped_defs = false  # TODO: add missing annotations and switch this o
 ignore_missing_imports = true
 
 [tool.coverage.run]
+# branch = true
 source = [
-    "nonos",
+    "src/nonos",
     "tests",
 ]
 omit = [
-    "nonos/_backports.py",
-    "nonos/__main__.py",
-    "nonos/api/from_simulation.py", # deprecated module
+    "src/nonos/api/from_simulation.py", # deprecated module
 ]
 
 [tool.coverage.report]
-skip_covered = true
+show_missing = true
+skip_covered = false
 exclude_lines = [
     # a stricter default pragma
     "\\# pragma: no cover\\b",
 
     # allow defensive code
     "^\\s*raise NotImplementedError\\b",
-    "^\\s*assert_never\\b",
 
-    # typing-related code
-    "^if TYPE_CHECKING:",
     ": \\.\\.\\.(\\s*#.*)?$",
     "^ +\\.\\.\\.$",
     "-> ['\"]?NoReturn['\"]?:",

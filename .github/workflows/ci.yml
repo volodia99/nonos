@@ -27,19 +27,15 @@ jobs:
         - '3.11'
         - '3.12'
         - '3.13'
-        venv-loc: [bin]
         include:
         - os: ubuntu-20.04
           python-version: '3.9'
-          venv-loc: bin
           deps: minimal
           install-args: --resolution=lowest-direct
         - os: macos-latest
           python-version: '3.13'
-          venv-loc: bin
         - os: windows-latest
           python-version: '3.13'
-          venv-loc: Scripts
 
     runs-on: ${{ matrix.os }}
     env:
@@ -58,8 +54,6 @@ jobs:
           **/requirements/*.txt
           **/pyproject.toml
 
-    # could in principle be done through uv sync but
-    # env resolution appears buggy as of uv 0.4.20
     - run: |
         uv venv
         uv pip install . ${{ matrix.install-args }}
@@ -74,13 +68,14 @@ jobs:
 
     - run: uv pip list
 
-    - name: Run pytest
-      shell: bash
-      # could in principle be done through uv run coverage
-      # but env resolution appears buggy as of uv 0.4.20
+    - name: Run pytest (without coverage)
+      if: ${{ !startsWith(matrix.os, 'ubuntu') }}
+      run: uv run --no-project pytest --color=yes
+
+    - name: Run pytest (with coverage)
+      if: startsWith(matrix.os, 'ubuntu')
       run: |
-        source .venv/${{matrix.venv-loc}}/activate
-        coverage run --parallel-mode -m pytest --color=yes
+        uv run --no-project coverage run --parallel-mode -m pytest --color=yes
 
     - name: Upload coverage data
       # only using reports from ubuntu because
@@ -121,7 +116,7 @@ jobs:
 
     - name: Run mypy
       run: |
-        uvx --with-requirements=requirements/typecheck.txt --with . mypy nonos tests
+        uvx --with-requirements=requirements/typecheck.txt --with . mypy src/nonos tests
 
   image-tests:
     name: Image tests
@@ -186,8 +181,9 @@ jobs:
     - uses: actions/checkout@v4
     - uses: astral-sh/setup-uv@v3
 
-    # Use latest Python, so it understands all syntax.
-    - run: uv tool install --python 3.13 coverage
+    - run: |
+        uv venv
+        uv pip install 'coverage[toml]'
 
     - uses: actions/download-artifact@v4
       with:
@@ -196,9 +192,9 @@ jobs:
 
     - name: Check coverage
       run: |
-        coverage combine
-        coverage html --skip-covered --skip-empty
-        coverage report --fail-under=80
+        uv run --no-project coverage combine
+        uv run --no-project coverage html --skip-covered --skip-empty
+        uv run --no-project coverage report --fail-under=80
 
     - name: Upload HTML report
       uses: actions/upload-artifact@v4
