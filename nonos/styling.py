@@ -42,7 +42,7 @@ def scale_mpl(scaling: float) -> None:
     context_dict = {k: v * scaling for k, v in base_context.items()}
 
     # the reason why the scaling are separated comes
-    # from seaborn where the font sizes are controled
+    # from seaborn where the font sizes are controlled
     # by an independent factor, so I'm keeping the structure
     # in case we want to do that as well later
     font_dict = {k: context_dict[k] * scaling for k in texts_base_context}
