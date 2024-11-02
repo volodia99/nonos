@@ -1,12 +1,13 @@
 from copy import deepcopy
 
+import inifix
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from matplotlib.colors import SymLogNorm
 
-from nonos.api import GasDataSet
+from nonos.api import Coordinates, GasDataSet, GasField, NonosLick
 from nonos.styling import set_mpl_style
 
 
@@ -96,10 +97,6 @@ def test_3D_vm_xy(test_data_dir, temp_figure_and_axis):
 @pytest.mark.parametrize("method", ["nearest", "linear"])
 @pytest.mark.mpl_image_compare()
 def test_nonoslick_method(method, tmp_path, temp_figure_and_axis):
-    import inifix
-
-    from nonos.api import Coordinates, GasField, NonosLick
-
     fig, ax = temp_figure_and_axis
 
     root_size = 2
