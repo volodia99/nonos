@@ -15,7 +15,7 @@ def userval_or_default(userval: T1, /, *, default: T2) -> Union[T1, T2]:
     # it'd be nice to avoid a Union as a return type, however it's not clear
     # how to express what this function does in typing language.
     # In practice this is used in places where it's very hard to constrain T1, so
-    # the infered return type always degrades down to Any anyway.
+    # the inferred return type always degrades down to Any anyway.
     if is_set(userval):
         return userval
     else:
@@ -97,7 +97,7 @@ def range_converter(extent, abscissa, ordinate):
             _ if (_ := extent[1]) is not None else abscissa.max(),
         )
     else:
-        raise TypeError(f"Expected extent to be of lenght 2 or 4, got {len(extent)=}")
+        raise TypeError(f"Expected extent to be of length 2 or 4, got {len(extent)=}")
 
 
 def parse_image_format(s: Optional[str]) -> str:
@@ -113,6 +113,6 @@ def parse_image_format(s: Optional[str]) -> str:
     ):
         raise ValueError(
             f"Received unknown file format '{s}'. "
-            f"Available formated are {available}."
+            f"Available formatted are {available}."
         )
     return ext

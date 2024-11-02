@@ -13,7 +13,7 @@ from cogapp import Cog
 )
 @pytest.mark.skipif(
     sys.platform.startswith("win"),
-    reason="Windows runner may choke on some special chararcters",
+    reason="Windows runner may choke on some special characters",
 )
 @pytest.mark.skipif(
     sys.version_info < (3, 10),

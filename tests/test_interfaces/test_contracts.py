@@ -65,7 +65,7 @@ def test_use_reader_mixin(reader_class):
     assert issubclass(reader_class, ReaderMixin)
 
 
-def test_cannot_instanciate(reader_class):
+def test_cannot_instantiate(reader_class):
     cls = reader_class
     with pytest.raises(TypeError, match=rf"^{cls} is not instantiable$"):
         cls()

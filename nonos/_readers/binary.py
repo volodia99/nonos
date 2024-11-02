@@ -557,11 +557,11 @@ class Fargo3DReader(_FargoReader):
         if geometry_str == "cylindrical":
             V["geometry"] = Geometry.POLAR
             V["x2"] = domain_x  # Y-Edge
-            V["x3"] = domain_z  # Z-Edge #latitute
+            V["x3"] = domain_z  # Z-Edge #latitude
             pairs = [("RHO", "dens"), ("VX1", "vy"), ("VX2", "vx"), ("VX3", "vz")]
         elif geometry_str == "spherical":
             V["geometry"] = Geometry.SPHERICAL
-            V["x2"] = domain_z  # Z-Edge #latitute
+            V["x2"] = domain_z  # Z-Edge #latitude
             V["x3"] = domain_x  # Y-Edge
             pairs = [("RHO", "dens"), ("VX1", "vy"), ("VX2", "vz"), ("VX3", "vx")]
         else:
@@ -622,7 +622,7 @@ class FargoADSGReader(_FargoReader):
 
         V["x1"] = domain_y  # X-Edge
         V["x2"] = domain_x  # Y-Edge
-        V["x3"] = domain_z  # Z-Edge #latitute
+        V["x3"] = domain_z  # Z-Edge #latitude
 
         n1 = len(V["x1"]) - 1
         n2 = len(V["x2"]) - 1

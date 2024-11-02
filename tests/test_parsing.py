@@ -52,7 +52,7 @@ def test_from_maxval():
     assert parse_output_number_range(None, maxval=maxval) == [maxval]
 
 
-def test_unparseable_data():
+def test_unparsable_data():
     with pytest.raises(
         ValueError, match="Can't parse a range from unset values without a max."
     ):
@@ -143,7 +143,7 @@ def test_parse_range(abscissa, ordinate, dim, expected):
 def test_range_converter_error():
     with pytest.raises(
         TypeError,
-        match="Expected extent to be of lenght 2 or 4,",
+        match="Expected extent to be of length 2 or 4,",
     ):
         range_converter(extent=[], abscissa=None, ordinate=None)
 
@@ -172,7 +172,7 @@ def test_invalid_image_format():
     fake_ext = ".pnd"
     with pytest.raises(
         ValueError,
-        match=f"^(Received unknown file format '{fake_ext}'. Available formated are)",
+        match=f"^(Received unknown file format '{fake_ext}'. Available formatted are)",
     ):
         parse_image_format(fake_ext)
 

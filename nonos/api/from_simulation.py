@@ -845,7 +845,7 @@ class CodeReadFormat:
 
         V.x1 = domain_y  # X-Edge
         V.x2 = domain_x  # Y-Edge
-        V.x3 = domain_z  # Z-Edge #latitute
+        V.x3 = domain_z  # Z-Edge #latitude
 
         V.n1 = len(V.x1) - 1  # if len(V.x1)>2 else 2
         V.n2 = len(V.x2) - 1  # if len(V.x2)>2 else 2
@@ -907,7 +907,7 @@ class CodeReadFormat:
             V.geometry = "polar"
             V.x1 = domain_y  # X-Edge
             V.x2 = domain_x  # Y-Edge
-            V.x3 = domain_z  # Z-Edge #latitute
+            V.x3 = domain_z  # Z-Edge #latitude
 
             V.n1 = len(V.x1) - 1  # if len(V.x1)>2 else 2
             V.n2 = len(V.x2) - 1  # if len(V.x2)>2 else 2
@@ -940,7 +940,7 @@ class CodeReadFormat:
                 V.data[key] = np.roll(V.data[key], V.n2 // 2, axis=1)
         elif V.geometry == "spherical":
             V.x1 = domain_y  # X-Edge
-            V.x2 = domain_z  # Z-Edge #latitute
+            V.x2 = domain_z  # Z-Edge #latitude
             V.x3 = domain_x  # Y-Edge
 
             V.n1 = len(V.x1) - 1  # if len(V.x1)>2 else 2
