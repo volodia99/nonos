@@ -52,9 +52,9 @@ def scale_mpl(scaling: float) -> None:
 
 def set_mpl_style(scaling: float) -> None:
     if mpl.__version_info__ >= (3, 7):
-        import matplotlib.pyplot as plt
+        import matplotlib.style
 
-        plt.style.use("nonos.default")
+        matplotlib.style.use("nonos.default")
     else:
         # promise mypy this is a Path to get around a broad return type
         # from importlib_resource.files
