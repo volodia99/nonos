@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,8 +13,10 @@ from nonos.styling import set_mpl_style
 @pytest.fixture
 def tmp_mpl_state():
     # reset matplotlib's state when the test is over
-    style = mpl.rcParams.copy()
+    style = deepcopy(mpl.rcParams)
     yield
+    for k in set(mpl.rcParams.keys()) - set(style.keys()):
+        mpl.rcParams.pop(k)
     mpl.rcParams.update(style)
 
 
