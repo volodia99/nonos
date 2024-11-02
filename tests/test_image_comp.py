@@ -2,10 +2,10 @@ from copy import deepcopy
 
 import inifix
 import matplotlib as mpl
-import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from matplotlib.colors import SymLogNorm
+from matplotlib.figure import Figure
 
 from nonos.api import Coordinates, GasDataSet, GasField, NonosLick
 from nonos.styling import set_mpl_style
@@ -27,7 +27,8 @@ def tmp_mpl_state():
 def test_set_mpl_style(scaling):
     set_mpl_style(scaling)
 
-    fig, ax = plt.subplots()
+    fig = Figure()
+    ax = fig.add_subplot()
 
     x = np.linspace(0, 2 * np.pi)
     for phase in np.linspace(0, np.pi / 2, 5):
@@ -96,9 +97,7 @@ def test_3D_vm_xy(test_data_dir, temp_figure_and_axis):
 
 @pytest.mark.parametrize("method", ["nearest", "linear"])
 @pytest.mark.mpl_image_compare()
-def test_nonoslick_method(method, tmp_path, temp_figure_and_axis):
-    fig, ax = temp_figure_and_axis
-
+def test_nonoslick_method(method, tmp_path):
     root_size = 2
     fake_grid = {
         "geometry": "cartesian",
@@ -167,7 +166,8 @@ def test_nonoslick_method(method, tmp_path, temp_figure_and_axis):
         size_interpolated=50 * root_size,
         method=method,
     )
-    fig, ax = plt.subplots()
+    fig = Figure()
+    ax = fig.add_subplot()
     lick.plot(
         fig, ax, title="F", density_streamlines=1, color_streamlines="w", cmap="inferno"
     )
