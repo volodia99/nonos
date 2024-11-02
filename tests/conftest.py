@@ -1,8 +1,8 @@
 from pathlib import Path
 
 import matplotlib
-import matplotlib.pyplot as plt
 import pytest
+from matplotlib.figure import Figure
 
 
 def pytest_configure(config):  # noqa: ARG001
@@ -26,6 +26,6 @@ def simulation_dir(test_data_dir, request):
 
 @pytest.fixture()
 def temp_figure_and_axis():
-    fig, ax = plt.subplots()
+    fig = Figure()
+    ax = fig.add_subplot()
     yield (fig, ax)
-    plt.close(fig)
