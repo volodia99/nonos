@@ -1,9 +1,9 @@
 import os
 
-import matplotlib.pyplot as plt
 import numpy.testing as npt
 import pytest
 from matplotlib.colors import SymLogNorm
+from matplotlib.figure import Figure
 
 from nonos.api import GasDataSet, compute, find_nearest, from_data
 from nonos.main import main
@@ -104,11 +104,12 @@ def test_plot_planet_corotation(test_data_dir):
     assert find_nearest(azimfieldPlanet, azimfieldPlanet.max()) == 0
 
 
-def test_unit_conversion(test_data_dir, temp_figure_and_axis):
+def test_unit_conversion(test_data_dir):
     os.chdir(test_data_dir / "idefix_planet3d")
 
     ds = GasDataSet(43, geometry="polar")
-    fig, ax = temp_figure_and_axis
+    fig = Figure()
+    ax = fig.add_subplot()
 
     plotfield10 = (
         ds["RHO"]
@@ -121,9 +122,10 @@ def test_unit_conversion(test_data_dir, temp_figure_and_axis):
     npt.assert_allclose(plotfield10.get_array(), 10 * plotfield.get_array())
 
 
-def test_vmin_vmax_api(test_data_dir, temp_figure_and_axis):
+def test_vmin_vmax_api(test_data_dir):
     ds = GasDataSet(1, directory=test_data_dir / "idefix_rwi", geometry="polar")
-    fig, ax = temp_figure_and_axis
+    fig = Figure()
+    ax = fig.add_subplot()
     p = ds["VX1"].vertical_at_midplane().map("R", "phi")
 
     # check that no warning is emitted from matplotlib
@@ -194,5 +196,6 @@ def test_corotation_api_float(test_data_dir):
 )
 def test_reg(test_data_dir, map_args):
     ds = GasDataSet(23, directory=test_data_dir / "idefix_newvtk_planet2d")
-    fig, ax = plt.subplots()
+    fig = Figure()
+    ax = fig.add_subplot()
     ds["RHO"].map(*map_args).plot(fig, ax)
