@@ -2,6 +2,7 @@ import json
 
 import numpy as np
 import pytest
+from numpy.testing import assert_allclose
 
 from nonos._readers.binary import NPYReader, VTKReader
 
@@ -38,6 +39,18 @@ class TestVTKReader:
         file = test_data_dir / "micro_cubes" / "micro_orszagtang.vtk"
         with pytest.raises(ValueError):
             VTKReader.read(file, geometry="polar")
+
+    def test_native_coords(self, test_data_dir):
+        file = test_data_dir / "micro_cubes" / "micro_khi.vtk"
+        bdL = VTKReader.read(file, cell="edges")
+        bdC = VTKReader.read(file, cell="centers")
+        assert len(bdC.x1) == len(bdL.x1) - 1
+        assert len(bdC.x2) == len(bdL.x2) - 1
+        assert len(bdC.x3) == len(bdL.x3) - 1
+
+        assert_allclose(bdL.x1[:-1] + 0.5*np.diff(bdL.x1), bdC.x1)
+        assert_allclose(bdL.x2[:-1] + 0.5*np.diff(bdL.x2), bdC.x2)
+        assert_allclose(bdL.x3[:-1] + 0.5*np.diff(bdL.x3), bdC.x3)
 
 
 class TestNPYReader:
