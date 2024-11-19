@@ -44,6 +44,18 @@ nonos = "nonos.main:main"
 [project.urls]
 Homepage = "https://github.com/volodia99/nonos"
 
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "tests",
+    ".github",
+    "docs",
+    "mkdocs.yml",
+    "_typos.toml",
+    ".readthedocs.yaml",
+    ".pre-commit-config.yaml",
+    ".gitignore",
+]
+
 [tool.ruff.lint]
 exclude = [
     "*__init__.py",
