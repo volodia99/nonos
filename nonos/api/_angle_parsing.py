@@ -1,7 +1,7 @@
 import warnings
 from collections.abc import Callable
 from math import isclose
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     # note that these are documented as deprecated, but the replacement
@@ -10,15 +10,15 @@ if TYPE_CHECKING:
     from mypy_extensions import DefaultArg, DefaultNamedArg
 
     find_phip_T = Callable[
-        [DefaultArg(Optional[int]), DefaultNamedArg(Optional[str], "planet_file")],
+        [DefaultArg(int | None), DefaultNamedArg(str | None, "planet_file")],
         float,
     ]
 
 
 def _parse_planet_file(
     *,
-    planet_file: Optional[str] = None,
-    planet_number: Optional[int] = None,
+    planet_file: str | None = None,
+    planet_number: int | None = None,
 ) -> str:
     if planet_number is not None and planet_file is not None:
         raise TypeError(
@@ -33,9 +33,9 @@ def _parse_planet_file(
 
 def _parse_rotation_angle(
     *,
-    rotate_by: Optional[float],
-    rotate_with: Optional[str],
-    planet_number_argument: tuple[str, Optional[int]],
+    rotate_by: float | None,
+    rotate_with: str | None,
+    planet_number_argument: tuple[str, int | None],
     find_phip: "find_phip_T",
     stacklevel: int,
 ) -> float:
