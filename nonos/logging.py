@@ -1,12 +1,11 @@
 import sys
-from typing import Union
 
 from loguru import logger
 from rich import print as rprint
 from rich.logging import RichHandler
 
 
-def configure_logger(level: Union[int, str] = 30, **kwargs) -> None:
+def configure_logger(level: int | str = 30, **kwargs) -> None:
     logger.remove()  # remove pre-existing handler
     logger.add(
         RichHandler(

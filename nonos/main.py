@@ -16,11 +16,10 @@ from importlib.metadata import version
 from importlib.util import find_spec
 from multiprocessing import Pool
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 import inifix
 import numpy as np
-from packaging.version import Version
 
 from nonos.api import GasDataSet
 from nonos.api._angle_parsing import _parse_planet_file
@@ -49,7 +48,6 @@ if TYPE_CHECKING:
 
 
 NONOS_VERSION = version("nonos")
-INIFIX_GE_5_0 = Version(version("inifix")) >= Version("5.0.0")
 
 KNOWN_CMAP_PACKAGE_PREFIXES = {
     "cb": "cblind",
@@ -94,7 +92,7 @@ def process_field(
     geometry,
     diff,
     log,
-    planet_file: Optional[str],
+    planet_file: str | None,
     extent,
     vmin,
     vmax,
@@ -444,7 +442,7 @@ def get_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = get_parser()
     clargs = vars(parser.parse_args(argv))
 
@@ -493,12 +491,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             conf_repr[key] = args[key]
         print(f"# Generated with nonos {NONOS_VERSION}")
         s = inifix.dumps(conf_repr)
-        if INIFIX_GE_5_0:
-            print(inifix.format_string(s))  # type: ignore [attr-defined]
-        else:
-            from inifix.format import iniformat
-
-            print(iniformat(s))
+        print(inifix.format_string(s))
         return 0
 
     try:
@@ -554,7 +547,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             f"Requested {args['ncpu']}, but the runner only has access to {ncpu}."
         )
 
-    planet_file: Optional[str]
+    planet_file: str | None
     if not is_set(args["corotate"]):
         planet_file = None
     else:

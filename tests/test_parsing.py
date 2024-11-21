@@ -1,6 +1,5 @@
 import re
 from itertools import combinations
-from typing import Optional
 
 import numpy as np
 import pytest
@@ -198,9 +197,9 @@ class TestParsePlanetFile:
 
 
 def mock_find_phip(
-    planet_number: Optional[int] = None,  # noqa: ARG001
+    planet_number: int | None = None,  # noqa: ARG001
     *,
-    planet_file: Optional[str] = None,  # noqa: ARG001
+    planet_file: str | None = None,  # noqa: ARG001
 ) -> float:
     return 0.0
 
