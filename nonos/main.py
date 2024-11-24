@@ -531,17 +531,6 @@ def main(argv: Optional[list[str]] = None) -> int:
             f"Requested {args['ncpu']}, but the runner only has access to {ncpu}."
         )
 
-    if args["progressBar"]:
-        from rich.progress import track
-
-        def mytrack(iterable, *args, **kwargs):
-            return track(iterable, *args, **kwargs)
-
-    else:
-        # replace rich.progress.track with a no-op dummy
-        def mytrack(iterable, *args, **kwargs):  # noqa: ARG001
-            return iterable
-
     planet_file: Optional[str]
     if not is_set(args["corotate"]):
         planet_file = None
@@ -576,21 +565,28 @@ def main(argv: Optional[list[str]] = None) -> int:
         log_level=level,
     )
 
+    if args["progressBar"]:
+        from rich.progress import track
+    else:
+        # replace rich.progress.track with a no-op dummy
+        def track(it, *_args, **_kwargs):  # type: ignore [misc]
+            return it
+
+    progress = functools.partial(
+        track,
+        description="Processing snapshots",
+        total=len(args["on"]),
+    )
+
     logger.info("Starting main loop")
     tstart = time.time()
     if ncpu == 1:
-        for on in args["on"]:
+        for on in progress(args["on"]):
             process_field(on, **func_kwargs)
     else:
         func = functools.partial(process_field, **func_kwargs)
         with Pool(ncpu) as pool:
-            list(
-                mytrack(
-                    pool.imap(func, args["on"]),
-                    description="Processing snapshots",
-                    total=len(args["on"]),
-                )
-            )
+            list(progress(pool.imap(func, args["on"])))
     if not show:
         logger.info("Operation took {:.2f}s", time.time() - tstart)
 
