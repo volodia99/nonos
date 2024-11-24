@@ -1255,8 +1255,6 @@ dependencies = [
     { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "numpy", version = "2.2.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "packaging" },
-    { name = "scipy", version = "1.13.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "scipy", version = "1.15.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "termcolor" },
     { name = "tqdm" },
     { name = "typing-extensions", marker = "python_full_version < '3.12'" },
@@ -1269,6 +1267,8 @@ all = [
     { name = "cmyt", version = "2.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "cmyt", version = "2.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "lick" },
+    { name = "scipy", version = "1.13.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "scipy", version = "1.15.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
 ]
 
 [package.dev-dependencies]
@@ -1307,7 +1307,7 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.5.0" },
     { name = "numpy", specifier = ">=1.19.3" },
     { name = "packaging", specifier = ">=20.0" },
-    { name = "scipy", specifier = ">=1.6.1" },
+    { name = "scipy", marker = "extra == 'all'", specifier = ">=1.6.1" },
     { name = "termcolor", specifier = ">=2.1.0" },
     { name = "tqdm", specifier = ">=4.64.1" },
     { name = "typing-extensions", marker = "python_full_version < '3.12'", specifier = ">=4.4.0" },
