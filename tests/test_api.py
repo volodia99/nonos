@@ -9,15 +9,16 @@ from nonos.api import GasDataSet, file_analysis
 
 class TestFileAnalysis:
     @pytest.mark.parametrize(
-        "directory",
-        ["idefix_planet3d", "fargo_adsg_planet"],
+        "directory, expected_shape",
+        [("idefix_planet3d", (9, 72)), ("fargo_adsg_planet", (11, 451))],
     )
-    def test_simple(self, test_data_dir, directory):
+    def test_simple(self, test_data_dir, directory, expected_shape):
         result = file_analysis(
             "planet0.dat",
             directory=test_data_dir / directory,
         )
         assert isinstance(result, np.ndarray)
+        assert result.shape == expected_shape
 
     def test_norb(self, test_data_dir):
         result = file_analysis(
@@ -26,6 +27,7 @@ class TestFileAnalysis:
             norb=10,
         )
         assert isinstance(result, np.ndarray)
+        assert result.shape == (9, 72)
 
     def test_norb_not_idefix(self, test_data_dir):
         with pytest.raises(NotImplementedError):
@@ -39,6 +41,7 @@ class TestFileAnalysis:
         os.chdir(test_data_dir / "idefix_planet3d")
         result = file_analysis("planet0.dat")
         assert isinstance(result, np.ndarray)
+        assert result.shape == (9, 72)
 
 
 class TestGasDataSetFromNpy:
