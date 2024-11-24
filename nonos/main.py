@@ -9,6 +9,7 @@ import functools
 import importlib.resources as importlib_resources
 import os
 import re
+import sys
 import time
 from collections import ChainMap
 from importlib import import_module
@@ -21,6 +22,7 @@ from typing import TYPE_CHECKING, Any, Optional
 import inifix
 import numpy as np
 from packaging.version import Version
+from tqdm import tqdm
 
 from nonos.api import GasDataSet
 from nonos.api._angle_parsing import _parse_planet_file
@@ -588,17 +590,11 @@ def main(argv: Optional[list[str]] = None) -> int:
         log_level=level,
     )
 
-    if args["progressBar"]:
-        from rich.progress import track
-    else:
-        # replace rich.progress.track with a no-op dummy
-        def track(it, *_args, **_kwargs):  # type: ignore [misc]
-            return it
-
     progress = functools.partial(
-        track,
-        description="Processing snapshots",
+        tqdm if args["progressBar"] else lambda it, *_arg, **_kwargs: it,
+        desc="Processing snapshots",
         total=len(args["on"]),
+        file=sys.stdout,
     )
 
     logger.info("Starting main loop")
