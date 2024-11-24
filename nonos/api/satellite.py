@@ -52,7 +52,7 @@ def file_analysis(
         else:
             # fallback to numpy if scipy isn't available (less performant)
             for i, column in enumerate(columns):
-                columns[i] = np.convolve(column, np.ones_like(column), mode="valid")
+                columns[i] = np.convolve(column, Ntmean, mode="valid")
     else:
         raise NotImplementedError(
             f"moving average on {norb} orbits is not implemented for the recipe {recipe}"
