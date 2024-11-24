@@ -1,4 +1,5 @@
 from copy import deepcopy
+from importlib.util import find_spec
 
 import inifix
 import matplotlib as mpl
@@ -95,6 +96,7 @@ def test_3D_vm_xy(test_data_dir, temp_figure_and_axis):
     return fig
 
 
+@pytest.mark.skipif(find_spec("lick") is None, reason="lick is not installed")
 @pytest.mark.parametrize("method", ["nearest", "linear"])
 @pytest.mark.mpl_image_compare()
 def test_nonoslick_method(method, tmp_path):
