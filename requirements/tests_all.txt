@@ -4,3 +4,4 @@ cmocean>=3.0.3
 cmyt>=2.0.0
 lick>=0.5.1
 numexpr>=2.8.3
+scipy>=1.6.1
