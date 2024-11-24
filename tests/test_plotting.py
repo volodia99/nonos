@@ -1,4 +1,5 @@
 import os
+from importlib.util import find_spec
 
 import numpy.testing as npt
 import pytest
@@ -199,3 +200,80 @@ def test_reg(test_data_dir, map_args):
     fig = Figure()
     ax = fig.add_subplot()
     ds["RHO"].map(*map_args).plot(fig, ax)
+
+
+@pytest.mark.parametrize(
+    "cmap",
+    [
+        pytest.param(
+            cmap_name,
+            marks=pytest.mark.skipif(
+                not find_spec(pkg_name), reason=f"{pkg_name} is not installed"
+            ),
+        )
+        for pkg_name, cmap_name in [
+            ("cblind", "cb.rainbow"),
+            ("cmocean", "cmo.thermal"),
+            ("cmasher", "cmr.dusk"),
+            ("cmyt", "cmyt.arbre"),
+        ]
+    ],
+)
+def test_colormap_extensions_integration(cmap, capsys, test_data_dir, tmp_path):
+    simdir = str(test_data_dir / "idefix_planet3d")
+    os.chdir(tmp_path)
+    ret = main(["-dir", simdir, "-geometry", "polar", "-cmap", cmap])
+    assert ret == 0
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert err == ""
+
+
+@pytest.mark.parametrize(
+    "cmap, pkg",
+    [
+        pytest.param(
+            cmap_name,
+            pkg_name,
+            marks=pytest.mark.skipif(
+                find_spec(pkg_name), reason=f"{pkg_name} is installed"
+            ),
+        )
+        for pkg_name, cmap_name in [
+            ("cblind", "cb.rainbow"),
+            ("cmocean", "cmo.thermal"),
+            ("cmasher", "cmr.dusk"),
+            ("cmyt", "cmyt.arbre"),
+        ]
+    ],
+)
+def test_colormap_extensions_missing_package(
+    cmap, pkg, capsys, test_data_dir, tmp_path
+):
+    simdir = str(test_data_dir / "idefix_planet3d")
+    os.chdir(tmp_path)
+    ret = main(["-dir", simdir, "-geometry", "polar", "-cmap", cmap])
+    assert ret == 0
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert err.replace("\n", "") == (
+        f"🦴 Warning requested colormap {cmap!r}, but {pkg} is not installed. "
+        "The default colormap will be used instead."
+    )
+
+
+def test_unknown_colormap_package_prefix(capsys, test_data_dir, tmp_path):
+    simdir = str(test_data_dir / "idefix_planet3d")
+    os.chdir(tmp_path)
+    ret = main(
+        ["-dir", simdir, "-geometry", "polar", "-cmap", "cmunknown.thismapdoesnexist"]
+    )
+    assert ret == 0
+
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert err.replace("\n", "") == (
+        "🦴 Warning requested colormap 'cmunknown.thismapdoesnexist' "
+        "with the unknown prefix 'cmunknown'. "
+        "The default colormap will be used instead."
+    )

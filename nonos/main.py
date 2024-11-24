@@ -11,12 +11,13 @@ import os
 import re
 import time
 from collections import ChainMap
+from importlib import import_module
 from importlib.metadata import version
+from importlib.util import find_spec
 from multiprocessing import Pool
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
-import cblind  # noqa
 import inifix
 import numpy as np
 from packaging.version import Version
@@ -49,6 +50,13 @@ if TYPE_CHECKING:
 
 NONOS_VERSION = version("nonos")
 INIFIX_GE_5_0 = Version(version("inifix")) >= Version("5.0.0")
+
+KNOWN_CMAP_PACKAGE_PREFIXES = {
+    "cb": "cblind",
+    "cmo": "cmocean",
+    "cmr": "cmasher",
+    "cmyt": "cmyt",
+}
 
 
 def get_non_interactive_figure(fmt: str) -> "Figure":
@@ -91,7 +99,7 @@ def process_field(
     vmin,
     vmax,
     scaling: float,
-    cmap,
+    cmap: str,
     title,
     unit_conversion: int,
     datadir,
@@ -155,17 +163,39 @@ def process_field(
     else:
         fig = get_non_interactive_figure(fmt)
 
+    plot_kwargs = {
+        "log": log,
+        "vmin": vmin,
+        "vmax": vmax,
+        "cmap": cmap,
+        "title": f"${title}$",
+        "unit_conversion": unit_conversion,
+    }
+
+    if cm_prefix := cmap.rpartition(".")[0]:
+        if (cm_package := KNOWN_CMAP_PACKAGE_PREFIXES.get(cm_prefix)) is None:
+            print_warn(
+                f"requested colormap {cmap!r} with the unknown prefix {cm_prefix!r}. "
+                "The default colormap will be used instead."
+            )
+            plot_kwargs.pop("cmap")
+        elif not find_spec(cm_package):
+            print_warn(
+                f"requested colormap {cmap!r}, but {cm_package} is not installed. "
+                "The default colormap will be used instead."
+            )
+            plot_kwargs.pop("cmap")
+        else:
+            # all known colormap packages work by registering their colormaps
+            # at import time.
+            import_module(cm_package)
+
     ax = fig.add_subplot(111, polar=False)
     if dim == 1:
-        dsop.map(plane[0], rotate_with=planet_file).plot(
-            fig,
-            ax,
-            log=log,
-            vmin=vmin,
-            vmax=vmax,
-            title=f"${title}$",
-            unit_conversion=unit_conversion,
-        )
+        if "cmap" in plot_kwargs:
+            plot_kwargs.pop("cmap")
+
+        dsop.map(plane[0], rotate_with=planet_file).plot(fig, ax, **plot_kwargs)
         akey = dsop.map(plane[0], rotate_with=planet_file).dict_plotable["abscissa"]
         avalue = dsop.map(plane[0], rotate_with=planet_file).dict_plotable[akey]
         extent = parse_range(extent, dim=dim)
@@ -173,14 +203,7 @@ def process_field(
         ax.set_xlim(extent[0], extent[1])
     elif dim == 2:
         dsop.map(plane[0], plane[1], rotate_with=planet_file).plot(
-            fig,
-            ax,
-            log=log,
-            vmin=vmin,
-            vmax=vmax,
-            cmap=cmap,
-            title=f"${title}$",
-            unit_conversion=unit_conversion,
+            fig, ax, **plot_kwargs
         )
         akey = dsop.map(plane[0], plane[1], rotate_with=planet_file).dict_plotable[
             "abscissa"
