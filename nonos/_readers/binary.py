@@ -29,6 +29,8 @@ else:
 
 @final
 class VTKReader(ReaderMixin):
+    NATIVE_COORDINATE_REGEXP = re.compile(r"X(1|2|3)(L|C)_NATIVE_COORDINATES")
+
     @staticmethod
     def parse_output_number_and_filename(
         file_or_number: Union[PathT, int],
@@ -80,6 +82,8 @@ class VTKReader(ReaderMixin):
         # initialize geometry
         if meta["geometry"] is not None:
             V["geometry"] = Geometry(meta["geometry"])
+
+        native_coordinates = {}
 
         # datatype we read
         dt = np.dtype(">f")  # Big endian single precision floats
@@ -136,6 +140,11 @@ class VTKReader(ReaderMixin):
                 elif entry == "PERIODICITY":
                     # skip
                     fid.seek(dint.itemsize * 3, os.SEEK_CUR)
+                elif VTKReader.NATIVE_COORDINATE_REGEXP.match(entry):
+                    _ncomp, native_dim, _dtype = slist[1:]
+                    native_coordinates[entry] = np.fromfile(
+                        fid, dtype=dt, count=int(native_dim)
+                    )
                 else:  # pragma: no cover
                     fid.close()
                     raise ValueError(f"Received unknown field: {entry!r}")
@@ -469,6 +478,27 @@ class VTKReader(ReaderMixin):
 
                 fid.readline()  # extra line feed
         fid.close()
+
+        if meta["cell"] == "edges":
+            native2attr = {
+                "X1L_NATIVE_COORDINATES": "x1",
+                "X2L_NATIVE_COORDINATES": "x2",
+                "X3L_NATIVE_COORDINATES": "x3",
+            }
+        elif meta["cell"] == "centers":
+            native2attr = {
+                "X1C_NATIVE_COORDINATES": "x1",
+                "X2C_NATIVE_COORDINATES": "x2",
+                "X3C_NATIVE_COORDINATES": "x3",
+            }
+        else:  # pragma: no cover
+            raise ValueError(
+                f"Unknown cell type {meta['cell']!r}. Expected 'edges' or 'centers'"
+            )
+
+        if native_coordinates:
+            for native_field, attr in native2attr.items():
+                V[attr] = native_coordinates[native_field]
 
         return BinData(**V)
 
