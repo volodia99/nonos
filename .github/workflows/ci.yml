@@ -51,7 +51,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - uses: astral-sh/setup-uv@v3
+    - uses: astral-sh/setup-uv@v4
       with:
         enable-cache: true
         cache-dependency-glob: |
@@ -112,7 +112,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - uses: astral-sh/setup-uv@v3
+    - uses: astral-sh/setup-uv@v4
       with:
         enable-cache: true
         cache-dependency-glob: |
@@ -133,7 +133,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: 3.x
-    - uses: astral-sh/setup-uv@v3
+    - uses: astral-sh/setup-uv@v4
       with:
         enable-cache: true
         cache-dependency-glob: |
@@ -184,7 +184,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: astral-sh/setup-uv@v3
+    - uses: astral-sh/setup-uv@v4
 
     # Use latest Python, so it understands all syntax.
     - run: uv tool install --python 3.13 coverage
@@ -217,7 +217,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: astral-sh/setup-uv@v3
+    - uses: astral-sh/setup-uv@v4
       with:
         enable-cache: true
         cache-dependency-glob: |
