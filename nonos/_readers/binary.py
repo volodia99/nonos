@@ -600,14 +600,22 @@ class Fargo3DReader(_FargoReader):
         n1 = len(V["x1"]) - 1
         n2 = len(V["x2"]) - 1
         n3 = len(V["x3"]) - 1
-        grid_shape = n3, n1, n2
-        shift = n2 // 2
+        if geometry_str == "cylindrical":
+            grid_shape = n3, n1, n2
+            tuple_transposition = (1, 2, 0)
+            shift = n2 // 2
+        elif geometry_str == "spherical":
+            grid_shape = n2, n1, n3
+            tuple_transposition = (1, 0, 2)
+            shift = n3 // 2
+        else:
+            raise NotImplementedError(f"Geometry {geometry_str!r} is not supported")
 
         def _read_array(file: Path):
             return np.roll(
                 np.fromfile(file, dtype="float64")
                 .reshape(grid_shape)
-                .transpose(1, 2, 0),
+                .transpose(tuple_transposition),
                 shift,
                 axis=1,
             )
