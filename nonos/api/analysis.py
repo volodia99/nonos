@@ -3,6 +3,7 @@ import json
 import warnings
 from collections import deque
 from collections.abc import ItemsView, KeysView, ValuesView
+from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
 from shutil import copyfile
@@ -27,18 +28,45 @@ if TYPE_CHECKING:
     from matplotlib.artist import Artist
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
+    from numpy.typing import NDArray
+
+
+@dataclass(frozen=True, eq=False)
+class NamedArray:
+    # TODO: use slots=True in @dataclass when Python 3.9 is dropped
+    __slots__ = ["name", "data"]
+    name: str
+    data: "NDArray[np.floating]"
 
 
 class Plotable:
-    def __init__(self, dict_plotable: dict) -> None:
-        self.dict_plotable = dict_plotable
-        self.data = self.dict_plotable[self.dict_plotable["field"]]
-        self.dimension = len(self.data.shape)
-        if self.dimension > 2:
+    __slots__ = ["abscissa", "ordinate", "field"]
+
+    def __init__(
+        self,
+        *,
+        abscissa: tuple[str, "NDArray[np.floating]"],
+        ordinate: tuple[str, "NDArray[np.floating]"],
+        field: Optional[tuple[str, "NDArray[np.floating]"]] = None,
+    ) -> None:
+        self.abscissa = NamedArray(*abscissa)
+        self.ordinate = NamedArray(*ordinate)
+        self.field = None if field is None else NamedArray(*field)
+        if ndim := self.data.ndim > 2:
             raise TypeError(
-                "Plotable doesn't support data with dimensionality>2, "
-                f"got {self.dimension}"
+                f"Plotable doesn't support data with dimensionality>2, got {ndim}"
             )
+
+    @property
+    def data(self) -> "NDArray[np.floating]":
+        if self.field is not None:
+            arr = self.field.data
+            assert arr.ndim == 2
+        else:
+            arr = self.ordinate.data
+            assert arr.ndim == 1
+
+        return arr
 
     def plot(
         self,
@@ -66,12 +94,13 @@ class Plotable:
         if log:
             data = np.log10(data)
 
+        akey = self.abscissa.name
+        aval = self.abscissa.data
+        okey = self.ordinate.name
+        oval = self.ordinate.data
+
         artist: Artist
-        if self.dimension == 2:
-            self.akey = self.dict_plotable["abscissa"]
-            self.okey = self.dict_plotable["ordinate"]
-            self.avalue = self.dict_plotable[self.akey]
-            self.ovalue = self.dict_plotable[self.okey]
+        if data.ndim == 2:
             kw = {}
             if (norm := kwargs.get("norm")) is not None:
                 if "vmin" in kwargs:
@@ -83,21 +112,13 @@ class Plotable:
                 vmax = kwargs.pop("vmax") if "vmax" in kwargs else np.nanmax(data)
                 kw.update({"vmin": vmin, "vmax": vmax})
 
-            artist = im = ax.pcolormesh(
-                self.avalue,
-                self.ovalue,
-                data,
-                cmap=cmap,
-                **kwargs,
-                **kw,
-            )
+            artist = im = ax.pcolormesh(aval, oval, data, cmap=cmap, **kwargs, **kw)
             ax.set(
-                xlim=(self.avalue.min(), self.avalue.max()),
-                ylim=(self.ovalue.min(), self.ovalue.max()),
+                xlim=(aval.min(), aval.max()),
+                ylim=(oval.min(), oval.max()),
+                xlabel=akey,
+                ylabel=okey,
             )
-
-            ax.set_xlabel(self.akey)
-            ax.set_ylabel(self.okey)
             if title is not None:
                 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -122,24 +143,19 @@ class Plotable:
                             trf, subs=list(range(1, int(trf.base)))
                         )
                         cb_axis.set_minor_locator(locator)
-        elif self.dimension == 1:
+        elif data.ndim == 1:
             vmin = kwargs.pop("vmin") if "vmin" in kwargs else np.nanmin(data)
             vmax = kwargs.pop("vmax") if "vmax" in kwargs else np.nanmax(data)
-            self.akey = self.dict_plotable["abscissa"]
-            self.avalue = self.dict_plotable[self.akey]
             if "norm" in kwargs:
                 logger.info("norm has no meaning in 1D.")
                 kwargs.pop("norm")
-            artist = ax.plot(self.avalue, data, **kwargs)[0]
-            ax.set_ylim(ymin=vmin)
-            ax.set_ylim(ymax=vmax)
-            ax.set_xlabel(self.akey)
+            artist = ax.plot(aval, data, **kwargs)[0]
+            ax.set(ylim=(vmin, vmax), xlabel=akey)
             if title is not None:
                 ax.set_ylabel(title)
         else:
             raise TypeError(
-                "Plotable doesn't support data with dimensionality>2, "
-                f"got {self.dimension}"
+                f"Plotable doesn't support data with dimensionality>2, got {data.ndim}"
             )
         if filename is not None:
             fig.savefig(f"{filename}.{fmt}", bbox_inches="tight", dpi=dpi)
@@ -550,12 +566,11 @@ class GasField:
             else:
                 data_view = self.data.view()
 
-            dict_plotable = {
-                "abscissa": abscissa_key,
-                "field": data_key,
-                abscissa_key: abscissa_value,
-                data_key: data_view.squeeze(),
-            }
+            return Plotable(
+                abscissa=(abscissa_key, abscissa_value),
+                ordinate=(data_key, data_view.squeeze()),
+            )
+
         elif dimension == 2:
             # meshgrid in polar coordinates P, R (if "R", "phi") or R, P (if "phi", "R")
             # idem for all combinations of R,phi,z
@@ -599,20 +614,13 @@ class GasField:
             if meshgrid_conversion["ordered"]:
                 data_view = data_view.T
 
-            dict_plotable = {
-                "abscissa": abscissa_key,
-                "ordinate": ordinate_key,
-                "field": data_key,
-                abscissa_key: abscissa_value,
-                ordinate_key: ordinate_value,
-                data_key: data_view,
-            }
+            return Plotable(
+                abscissa=(abscissa_key, abscissa_value),
+                ordinate=(ordinate_key, ordinate_value),
+                field=(data_key, data_view),
+            )
         else:
             raise RuntimeError
-
-        assert dict_plotable[data_key].ndim == dimension
-
-        return Plotable(dict_plotable)
 
     def save(
         self,

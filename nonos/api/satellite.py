@@ -142,43 +142,32 @@ class NonosLick:
         density_streamlines: Optional[float] = None,
         color_streamlines: str = "black",
     ):
-        dict_background = {}
-        dict_background["field"] = "background"
-        dict_background["abscissa"] = "x"
-        dict_background["ordinate"] = "y"
-        dict_background[dict_background["field"]] = self.F
-        dict_background[dict_background["abscissa"]] = self.X
-        dict_background[dict_background["ordinate"]] = self.Y
-
-        dict_lick = {}
-        dict_lick["field"] = "lick"
-        dict_lick["abscissa"] = "x"
-        dict_lick["ordinate"] = "y"
-        dict_lick[dict_lick["field"]] = self.lick
-        dict_lick[dict_lick["abscissa"]] = self.X
-        dict_lick[dict_lick["ordinate"]] = self.Y
-
-        im = Plotable(dict_background).plot(
+        im = Plotable(
+            abscissa=("x", self.X),
+            ordinate=("y", self.Y),
+            field=("background", self.F),
+        ).plot(
             fig,
             ax,
             vmin=vmin,
             vmax=vmax,
             log=log,
             cmap=cmap,
-            filename=None,
             dpi=500,
             title=title,
             shading="nearest",
             rasterized=True,
         )
-        Plotable(dict_lick).plot(
+        Plotable(
+            abscissa=("x", self.X),
+            ordinate=("y", self.Y),
+            field=("lick", self.lick),
+        ).plot(
             fig,
             ax,
             log=False,
             cmap="binary_r",
-            filename=None,
             dpi=500,
-            title=None,
             alpha=alpha,
             shading="nearest",
             rasterized=True,
