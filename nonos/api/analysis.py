@@ -130,14 +130,14 @@ class Plotable:
             if "norm" in kwargs:
                 logger.info("norm has no meaning in 1D.")
                 kwargs.pop("norm")
-            im = ax.plot(self.avalue, data, **kwargs)
+            retv = ax.plot(self.avalue, data, **kwargs) 
             ax.set_ylim(ymin=vmin)
             ax.set_ylim(ymax=vmax)
             ax.set_xlabel(self.akey)
             if title is not None:
                 ax.set_ylabel(title)
             else:
-                return im
+                return retv 
         else:
             raise TypeError(
                 "Plotable doesn't support data with dimensionality>2, "
