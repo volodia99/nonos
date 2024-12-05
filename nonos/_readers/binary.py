@@ -608,6 +608,8 @@ class Fargo3DReader(_FargoReader):
             grid_shape = n2, n1, n3
             tuple_transposition = (1, 0, 2)
             shift = n3 // 2
+        else:
+            raise NotImplementedError(f"Geometry {geometry_str!r} is not supported")
 
         def _read_array(file: Path):
             return np.roll(
