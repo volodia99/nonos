@@ -24,6 +24,7 @@ from nonos.loaders import Recipe, loader_from, recipe_from
 from nonos.logging import logger
 
 if TYPE_CHECKING:
+    from matplotlib.artist import Artist
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
 
@@ -53,7 +54,7 @@ class Plotable:
         unit_conversion=None,
         nbin=None,  # deprecated
         **kwargs,
-    ):
+    ) -> "Artist":
         if nbin is not None:
             warnings.warn(
                 "The nbin parameter has no effect and is deprecated",
@@ -65,6 +66,7 @@ class Plotable:
         if log:
             data = np.log10(data)
 
+        artist: Artist
         if self.dimension == 2:
             self.akey = self.dict_plotable["abscissa"]
             self.okey = self.dict_plotable["ordinate"]
@@ -81,7 +83,7 @@ class Plotable:
                 vmax = kwargs.pop("vmax") if "vmax" in kwargs else np.nanmax(data)
                 kw.update({"vmin": vmin, "vmax": vmax})
 
-            im = ax.pcolormesh(
+            artist = im = ax.pcolormesh(
                 self.avalue,
                 self.ovalue,
                 data,
@@ -120,8 +122,6 @@ class Plotable:
                             trf, subs=list(range(1, int(trf.base)))
                         )
                         cb_axis.set_minor_locator(locator)
-            else:
-                return im
         elif self.dimension == 1:
             vmin = kwargs.pop("vmin") if "vmin" in kwargs else np.nanmin(data)
             vmax = kwargs.pop("vmax") if "vmax" in kwargs else np.nanmax(data)
@@ -130,7 +130,7 @@ class Plotable:
             if "norm" in kwargs:
                 logger.info("norm has no meaning in 1D.")
                 kwargs.pop("norm")
-            ax.plot(self.avalue, data, **kwargs)
+            artist = ax.plot(self.avalue, data, **kwargs)[0]
             ax.set_ylim(ymin=vmin)
             ax.set_ylim(ymax=vmax)
             ax.set_xlabel(self.akey)
@@ -143,6 +143,8 @@ class Plotable:
             )
         if filename is not None:
             fig.savefig(f"{filename}.{fmt}", bbox_inches="tight", dpi=dpi)
+
+        return artist
 
 
 class Coordinates:
