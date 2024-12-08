@@ -1,9 +1,9 @@
 import warnings
+from importlib.util import find_spec
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 import numpy as np
-from lick.lick import lick_box
 
 from nonos.api.analysis import Coordinates, GasField, Plotable
 from nonos.loaders import Recipe, loader_from, recipe_from
@@ -23,8 +23,6 @@ def file_analysis(
     directory: Optional["PathT"] = None,
     norb: Optional[int] = None,
 ) -> "FloatArray":
-    from scipy.ndimage import uniform_filter1d
-
     if directory is None:
         directory = Path.cwd()
     else:
@@ -46,8 +44,15 @@ def file_analysis(
         analysis = ini["Output"]["analysis"]
         rpini = ini["Planet"]["dpl"]
         Ntmean = round(norb * 2 * np.pi * pow(rpini, 1.5) / analysis)
-        for i in range(1, len(columns) - 1):
-            columns[i] = uniform_filter1d(columns[i], Ntmean)
+        if find_spec("scipy") is not None:
+            from scipy.ndimage import uniform_filter1d
+
+            for i, column in enumerate(columns):
+                columns[i] = uniform_filter1d(column, Ntmean)
+        else:
+            # fallback to numpy if scipy isn't available (less performant)
+            for i, column in enumerate(columns):
+                columns[i] = np.convolve(column, Ntmean, mode="valid")
     else:
         raise NotImplementedError(
             f"moving average on {norb} orbits is not implemented for the recipe {recipe}"
@@ -97,6 +102,13 @@ class NonosLick:
         method_background: str = "nearest",
         light_source: bool = True,
     ):
+        if find_spec("lick") is None:
+            raise ImportError(
+                "NonosLick cannot be instantiated because lick is not installed"
+            )
+
+        from lick.lick import lick_box
+
         self.xmin = xmin
         self.xmax = xmax
         self.ymin = ymin
