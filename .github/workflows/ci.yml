@@ -22,7 +22,6 @@ jobs:
         os:
         - ubuntu-latest
         python-version:
-        - '3.9'
         - '3.10'
         - '3.11'
         - '3.12'
@@ -30,7 +29,7 @@ jobs:
         venv-loc: [bin]
         include:
         - os: ubuntu-20.04
-          python-version: '3.9'
+          python-version: '3.10'
           venv-loc: bin
           deps: minimal
           install-args: --resolution=lowest-direct
@@ -97,7 +96,6 @@ jobs:
     strategy:
       matrix:
         python-version:
-        - '3.9'
         - '3.10'
         - '3.11'
         - '3.12'

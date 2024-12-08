@@ -9,7 +9,7 @@ import re
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Union, final
+from typing import final
 
 import numpy as np
 
@@ -33,12 +33,12 @@ class VTKReader(ReaderMixin):
 
     @staticmethod
     def parse_output_number_and_filename(
-        file_or_number: Union[PathT, int],
+        file_or_number: PathT | int,
         *,
         directory: PathT,
         prefix: str,  # noqa: ARG004
     ) -> tuple[int, Path]:
-        if isinstance(file_or_number, (str, Path)):
+        if isinstance(file_or_number, str | Path):
             file = Path(file_or_number)
             if (m := re.search(r"\d+", file.name)) is None:
                 raise ValueError(
@@ -166,7 +166,7 @@ class VTKReader(ReaderMixin):
         n2 = int(slist[2])
         n3 = int(slist[3])
 
-        z: Union[np.ndarray, np.memmap]
+        z: np.ndarray | np.memmap
 
         if V["geometry"] is Geometry.CARTESIAN:
             s = fid.readline()  # X_COORDINATES NX float
@@ -506,7 +506,7 @@ class VTKReader(ReaderMixin):
 class _FargoReader(ReaderMixin, ABC):
     @staticmethod
     def parse_output_number_and_filename(
-        file_or_number: Union[PathT, int],
+        file_or_number: PathT | int,
         *,
         directory: PathT,
         prefix: str,  # noqa ARG004
@@ -566,7 +566,7 @@ class Fargo3DReader(_FargoReader):
         output_number, directory = _FargoReader._get_output_number_and_dir_from(file)
 
         default_fluid = "gas"
-        fluid_option: Optional[str] = meta.get("fluid", default_fluid)
+        fluid_option: str | None = meta.get("fluid", default_fluid)
         if fluid_option is None:
             fluid = default_fluid
         else:
@@ -685,13 +685,13 @@ class NPYReader(ReaderMixin):
 
     @staticmethod
     def parse_output_number_and_filename(
-        file_or_number: Union[PathT, int],
+        file_or_number: PathT | int,
         *,
         directory: PathT,
         prefix: str,
     ) -> tuple[int, Path]:
         directory = Path(directory).resolve()
-        if isinstance(file_or_number, (str, Path)):
+        if isinstance(file_or_number, str | Path):
             file = Path(file_or_number)
             if (match := NPYReader._filename_re.fullmatch(file.name)) is None:
                 raise ValueError(f"Filename {file.name!r} is not recognized")
