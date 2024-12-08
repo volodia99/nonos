@@ -1,9 +1,9 @@
 import warnings
+from importlib.util import find_spec
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 import numpy as np
-from lick.lick import lick_box
 
 from nonos.api.analysis import Coordinates, GasField, Plotable
 from nonos.loaders import Recipe, loader_from, recipe_from
@@ -97,6 +97,13 @@ class NonosLick:
         method_background: str = "nearest",
         light_source: bool = True,
     ):
+        if find_spec("lick") is None:
+            raise RuntimeError(
+                "NonosLick cannot be instantiated because lick is not installed"
+            )
+
+        from lick.lick import lick_box
+
         self.xmin = xmin
         self.xmax = xmax
         self.ymin = ymin
