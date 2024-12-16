@@ -27,60 +27,41 @@ jobs:
         - '3.11'
         - '3.12'
         - '3.13'
-        venv-loc: [bin]
+        label: ['']
         include:
         - os: ubuntu-20.04
           python-version: '3.9'
-          venv-loc: bin
-          deps: minimal
+          label: (oldest deps, mininmal)
           install-args: --resolution=lowest-direct
+        - os: ubuntu-20.04
+          python-version: '3.9'
+          label: (oldest deps, full)
+          install-args: --resolution=lowest-direct --all-extras --compile-bytecode
+        - os: ubuntu-latest
+          python-version: '3.13'
+          install-args: --all-extras
+          label: (full)
         - os: macos-latest
           python-version: '3.13'
-          venv-loc: bin
         - os: windows-latest
           python-version: '3.13'
-          venv-loc: Scripts
 
+    name: ${{ matrix.os }}-py${{ matrix.python-version }} ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
-    env:
-      TEST_REQ_FILE: ${{ matrix.deps == 'minimal' && 'requirements/tests_min.txt' || 'requirements/tests_all.txt' }}
 
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    - name: Setup Python
-      uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
-      with:
-        python-version: ${{ matrix.python-version }}
     - uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4.2.0
       with:
-        enable-cache: true
-        cache-dependency-glob: |
-          **/requirements/*.txt
-          **/pyproject.toml
-
-    # could in principle be done through uv sync but
-    # env resolution appears buggy as of uv 0.4.20
-    - run: |
-        uv venv
-        uv pip install . ${{ matrix.install-args }}
-
-    - name: Install test dependencies (UNIX)
-      if: matrix.os != 'windows-latest'
-      run: uv pip install --requirement $TEST_REQ_FILE
-
-    - name: Install test dependencies (Windows)
-      if: matrix.os == 'windows-latest'
-      run: uv pip install --requirement $env:TEST_REQ_FILE
-
-    - run: uv pip list
+        python-version: ${{ matrix.python-version }}
 
     - name: Run pytest
       shell: bash
       # could in principle be done through uv run coverage
       # but env resolution appears buggy as of uv 0.4.20
       run: |
-        source .venv/${{matrix.venv-loc}}/activate
-        coverage run --parallel-mode -m pytest --color=yes
+        uv run --no-editable --group covcheck ${{ matrix.install-args }} \
+          coverage run --parallel-mode -m pytest --color=yes
 
     - name: Upload coverage data
       # only using reports from ubuntu because
@@ -88,7 +69,7 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
       with:
-        name: nonos_coverage_data-${{ matrix.os }}-${{ matrix.python-version }}
+        name: nonos_coverage_data-${{ matrix.os }}-${{ matrix.python-version }}${{ matrix.label }}
         path: .coverage.*
         if-no-files-found: ignore
         include-hidden-files: true
@@ -108,20 +89,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    - name: Setup Python
-      uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
-      with:
-        python-version: ${{ matrix.python-version }}
     - uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4.2.0
       with:
-        enable-cache: true
-        cache-dependency-glob: |
-          **/requirements/typecheck.txt
-          **/pyproject.toml
+        python-version: ${{ matrix.python-version }}
 
-    - name: Run mypy
+    - name: Typecheck
       run: |
-        uvx --with-requirements=requirements/typecheck.txt --with . mypy nonos tests
+        uv run --frozen --no-editable --group typecheck mypy nonos tests
 
   image-tests:
     name: Image tests
@@ -129,36 +103,25 @@ jobs:
 
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    - name: Set up Python
-      uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
-      with:
-        python-version: 3.x
     - uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4.2.0
       with:
-        enable-cache: true
-        cache-dependency-glob: |
-          **/requirements/tests_min.txt
-          **/pyproject.toml
+        python-version: '3.13'
 
-    - name: Build
-      run: |
-        uv sync
-        uv pip install --requirement requirements/tests_min.txt
-
-    - run: uv pip list
     - name: Run Image Tests
       run: |
-        uv run pytest --color=yes --mpl -m mpl_image_compare \
-               --mpl-generate-summary=html \
-               --mpl-results-path=nonos_pytest_mpl_results \
-               --mpl-baseline-path=tests/pytest_mpl_baseline
+        uv run --frozen --no-editable --group test \
+          pytest --color=yes --mpl -m mpl_image_compare \
+            --mpl-generate-summary=html \
+            --mpl-results-path=nonos_pytest_mpl_results \
+            --mpl-baseline-path=tests/pytest_mpl_baseline
 
     - name: Generate new image baseline
       if: failure()
       run: |
-        uv run pytest --color=yes --mpl -m mpl_image_compare \
-               --mpl-generate-path=nonos_pytest_mpl_new_baseline \
-               --last-failed
+        uv run --frozen --no-editable --group test \
+          pytest --color=yes --mpl -m mpl_image_compare \
+            --mpl-generate-path=nonos_pytest_mpl_new_baseline \
+            --last-failed
 
     # always attempt to upload artifacts, even
     # (and especially) in case of failure.
@@ -185,9 +148,11 @@ jobs:
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4.2.0
+      with:
+        # Use latest Python, so it understands all syntax.
+        python-version: '3.13'
 
-    # Use latest Python, so it understands all syntax.
-    - run: uv tool install --python 3.13 coverage
+    - run: uv tool install coverage
 
     - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
@@ -218,15 +183,9 @@ jobs:
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4.2.0
-      with:
-        enable-cache: true
-        cache-dependency-glob: |
-          **/requirements/docs.txt
-          **/pyproject.toml
-
     - name: Build
       run: |
-        uvx --with-requirements=requirements/docs.txt mkdocs build
+        uvx --with-requirements=docs/requirements.txt mkdocs build
     - name: Upload artifacts
       uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
       with:

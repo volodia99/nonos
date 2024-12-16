@@ -30,6 +30,14 @@ dependencies = [
     "typing_extensions >= 4.4.0 ; python_version < '3.12'",
 ]
 
+[project.optional-dependencies]
+all = [
+    "cblind>=2.3.0",
+    "cmocean>=3.0.3",
+    "cmyt>=2.0.0",
+    "lick>=0.5.1",
+]
+
 [project.license]
 text = "GPL-3.0"
 
@@ -42,6 +50,23 @@ nonos = "nonos.main:main"
 
 [project.urls]
 Homepage = "https://github.com/volodia99/nonos"
+
+[dependency-groups]
+test = [
+    "cogapp>=3.3.0",
+    "pytest-mpl>=0.15.1",
+    "pytest>=6.1.0",
+
+]
+covcheck = [
+    {include-group = "test"},
+    "coverage[toml]>=7.4.4 ; python_full_version < '3.11'",
+    "coverage>=7.4.4 ; python_full_version >= '3.11'",
+]
+typecheck = [
+    "matplotlib>=3.8.0",
+    "mypy>=1.13.0",
+]
 
 [tool.hatch.build.targets.sdist]
 exclude = [
@@ -81,6 +106,7 @@ select = [
 combine-as-imports = true
 
 [tool.pytest.ini_options]
+addopts = "-ra"
 filterwarnings = [
     "error",
     'ignore:datetime\.datetime\.utcfromtimestamp\(\) is deprecated:DeprecationWarning', # https://github.com/dateutil/dateutil/pull/1285
