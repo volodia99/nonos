@@ -1,19 +1,18 @@
 import sys
+import unicodedata
 from typing import Union
 
 from loguru import logger
-from rich import print as rprint
-from rich.logging import RichHandler
+from termcolor import cprint
+
+_BONE_EMOJI = unicodedata.lookup("BONE")
 
 
 def configure_logger(level: Union[int, str] = 30, **kwargs) -> None:
     logger.remove()  # remove pre-existing handler
     logger.add(
-        RichHandler(
-            log_time_format="[%X] nonos",
-            omit_repeated_times=False,
-        ),
-        format="{message}",
+        sink=sys.stdout,
+        format="[{time:HH:mm:ss}] nonos <level>{level:<8}</level> {message}",
         level=level,
         **kwargs,
     )
@@ -21,18 +20,27 @@ def configure_logger(level: Union[int, str] = 30, **kwargs) -> None:
 
 def print_warn(message) -> None:
     """
-    adapted from idefix_cli (cmt robert)
-    https://github.com/neutrinoceros/idefix_cli
+    Pretty-print a warning.
     """
-    rprint(f":bone: [bold red]Warning[/] {message}", file=sys.stderr)
+    print(_BONE_EMOJI, end=" ", file=sys.stderr)
+    cprint("Warning", color="red", attrs=["bold"], end=" ", file=sys.stderr)
+    print(message, file=sys.stderr)
 
 
 def print_err(message) -> None:
     """
-    adapted from idefix_cli (cmt robert)
-    https://github.com/neutrinoceros/idefix_cli
+    Pretty-print an error message.
     """
-    rprint(f":bone: [bold white on red]Error[/] {message}", file=sys.stderr)
+    print(_BONE_EMOJI, end=" ", file=sys.stderr)
+    cprint(
+        "Error",
+        color="white",
+        on_color="on_red",
+        attrs=["bold"],
+        end=" ",
+        file=sys.stderr,
+    )
+    print(message, file=sys.stderr)
 
 
 def parse_verbose_level(verbose: int) -> str:
@@ -41,4 +49,4 @@ def parse_verbose_level(verbose: int) -> str:
     return level
 
 
-configure_logger(level=30)
+configure_logger(level="WARNING")
