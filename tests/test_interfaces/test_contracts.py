@@ -30,7 +30,7 @@ def get_classes_from(module: ModuleType) -> list[type]:
         if inspect.isclass(obj):
             if obj.__class__ is type:
                 continue
-            if issubclass(obj, (Protocol, Enum)):  # type: ignore [arg-type]
+            if issubclass(obj, Protocol | Enum):  # type: ignore [arg-type]
                 continue
             retv.append(obj)
     return retv
