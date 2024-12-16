@@ -2,4 +2,5 @@
 cblind>=2.3.0
 cmocean>=3.0.3
 cmyt>=2.0.0
+lick>=0.5.1
 numexpr>=2.8.3
