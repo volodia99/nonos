@@ -1,4 +1,0 @@
-cogapp>=3.3.0
-pytest>=6.1
-pytest-mpl>=0.15.1
-coverage[toml]>=7.4.4

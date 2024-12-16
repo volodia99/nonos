@@ -34,23 +34,15 @@ jobs:
       with:
         python-version: 3.13-dev
     - uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4.2.0
-      with:
-        enable-cache: true
-        cache-dependency-glob: |
-          **/requirements/test_all.txt
-          **/pyproject.toml
-
-    - name: Build
+    - name: Configure uv
       run: |
-        uv venv
-        uv pip install numpy matplotlib scipy --pre --no-build --extra-index-url \
-          https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
-        uv pip install .
-        uv pip install --requirement requirements/tests_all.txt
-
-    - run: uv pip list
+        echo "UV_PYTHON_PREFERENCE=only-system" >> $GITHUB_ENV
+        pin=${{ matrix.python-version }}
+        echo "UV_PYTHON=${pin%-dev}" >> $GITHUB_ENV
+        echo "UV_PRERELEASE=allow" >> $GITHUB_ENV
+        echo "UV_EXTRA_INDEX_URL=https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" >> $GITHUB_ENV
 
     - name: Run pytest
       run: |
-        source .venv/bin/activate
-        pytest --color=yes -ra
+        uv run --no-editable --all-extras --group test \
+          pytest --color=yes
