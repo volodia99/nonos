@@ -18,7 +18,7 @@ class IdefixVTKReader(ReaderMixin):
     @staticmethod
     def read(file: PathT, /) -> IniData:
         class IdefixIniOutput:
-            def __init__(self, *, vtk, **_kwargs) -> None:
+            def __init__(self, *, vtk: float | int, **_kwargs) -> None:
                 self.vtk = float(vtk)
 
         class IdefixIniHydro:
@@ -35,7 +35,7 @@ class IdefixVTKReader(ReaderMixin):
                 self.hydro = IdefixIniHydro(**Hydro)
                 self.output = IdefixIniOutput(**Output)
 
-        meta = inifix.load(file)
+        meta = inifix.load(file, sections="require")
         ini = IdefixIni(**meta)
 
         return IniData(
@@ -52,14 +52,14 @@ class PlutoVTKReader(ReaderMixin):
     @staticmethod
     def read(file: PathT, /) -> IniData:
         class PlutoIniOutput:
-            def __init__(self, *, vtk, **_kwargs) -> None:
-                self.vtk = float(list(vtk)[0])
+            def __init__(self, *, vtk: list, **_kwargs) -> None:
+                self.vtk = float(vtk[0])
 
         class PlutoIni:
             def __init__(self, **kwargs) -> None:
                 self.output = PlutoIniOutput(**kwargs["Static Grid Output"])
 
-        meta = inifix.load(file)
+        meta = inifix.load(file, sections="require", parse_scalars_as_lists=True)
         ini = PlutoIni(**meta)
 
         return IniData(
@@ -81,8 +81,8 @@ class Fargo3DReader(ReaderMixin):
                 *,
                 NINTERM,
                 DT,
-                FRAME: str = "F",
-                OMEGAFRAME: float = 0.0,
+                FRAME="F",
+                OMEGAFRAME=0.0,
                 **_kwargs,
             ) -> None:
                 self.NINTERM = int(NINTERM)
@@ -102,7 +102,7 @@ class Fargo3DReader(ReaderMixin):
                 else:
                     raise NotImplementedError
 
-        meta = inifix.load(file)
+        meta = inifix.load(file, sections="forbid")
         ini = Fargo3DIni(**meta)
 
         return IniData(
@@ -124,8 +124,8 @@ class FargoADSGReader(ReaderMixin):
                 *,
                 Ninterm,
                 DT,
-                Frame: str = "F",
-                OmegaFrame: float = 0.0,
+                Frame="F",
+                OmegaFrame=0.0,
                 **_kwargs,
             ) -> None:
                 self.NINTERM = int(Ninterm)
@@ -145,7 +145,7 @@ class FargoADSGReader(ReaderMixin):
                 else:
                     raise NotImplementedError
 
-        meta = inifix.load(file)
+        meta = inifix.load(file, sections="forbid")
         ini = FargoADSGIni(**meta)
 
         return IniData(

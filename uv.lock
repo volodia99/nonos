@@ -262,22 +262,10 @@ wheels = [
 
 [[package]]
 name = "inifix"
-version = "4.5.0"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version < '3.11'",
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f0/04/ac7d5d7581dc759c7dafbc0b67d84808e6c4712aab55d99837b6ceea2495/inifix-4.5.0.tar.gz", hash = "sha256:5a9144767b4c0b9465684cc411f488ed3b1eb8bb40c0ac54869d24492f568e8c", size = 33854 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c0/45/ebb2135c730200257b19c14ca7a1549dc1ea64a8c8dd0316a36a1079266e/inifix-4.5.0-py3-none-any.whl", hash = "sha256:cb23d663048a686ad5d8f91e7a34a60c96829d7aef9f8bbe8bd37a6e7658fc48", size = 27120 },
-]
-
-[[package]]
-name = "inifix"
 version = "5.1.2"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
+dependencies = [
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/8e/7e/b1a9f3e5770d5b7d70edde8d4c2f9a70678f9c8fac8027dbd7eb8df47e00/inifix-5.1.2.tar.gz", hash = "sha256:47d23b58521fb94da31be0f532d51993250e57162dad8c67c6c6b592662c5668", size = 42486 }
 wheels = [
@@ -578,8 +566,7 @@ name = "nonos"
 version = "0.17.0"
 source = { editable = "." }
 dependencies = [
-    { name = "inifix", version = "4.5.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "inifix", version = "5.1.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "inifix" },
     { name = "loguru" },
     { name = "matplotlib" },
     { name = "numpy" },
@@ -621,7 +608,7 @@ requires-dist = [
     { name = "cblind", marker = "extra == 'all'", specifier = ">=2.3.0" },
     { name = "cmocean", marker = "extra == 'all'", specifier = ">=3.0.3" },
     { name = "cmyt", marker = "extra == 'all'", specifier = ">=2.0.0" },
-    { name = "inifix", specifier = ">=3.0.0" },
+    { name = "inifix", specifier = ">=5.1.0" },
     { name = "lick", marker = "extra == 'all'", specifier = ">=0.5.1" },
     { name = "loguru", specifier = ">=0.5.3" },
     { name = "matplotlib", specifier = ">=3.5.0" },
