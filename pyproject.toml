@@ -67,6 +67,12 @@ typecheck = [
     "matplotlib>=3.8.0",
     "mypy>=1.13.0",
 ]
+docs = [
+    "mkdocs>=1.6.1",
+    "mkdocs-include-markdown-plugin>=7.1.2",
+    "mkdocs-material>=9.5.47",
+    "mkdocstrings[python]>=0.27.0",
+]
 
 [tool.hatch.build.targets.sdist]
 exclude = [
