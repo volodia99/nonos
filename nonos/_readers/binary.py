@@ -7,7 +7,6 @@ import json
 import os
 import re
 import sys
-from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional, Union, final
 
@@ -19,11 +18,6 @@ if sys.version_info >= (3, 11):
     from typing import assert_never
 else:
     from typing_extensions import assert_never
-
-if sys.version_info >= (3, 12):
-    from typing import override
-else:
-    from typing_extensions import override
 
 
 @final
@@ -502,7 +496,8 @@ class VTKReader:
         return BinData(**V)
 
 
-class _FargoReader(ABC):
+@final
+class FargoReaderHelper:
     @staticmethod
     def parse_output_number_and_filename(
         file_or_number: Union[PathT, int],
@@ -548,21 +543,33 @@ class _FargoReader(ABC):
 
         return output_number, directory
 
-    @staticmethod
-    @abstractmethod
-    def read(file: PathT, /, **meta) -> BinData: ...
-
 
 @final
-class Fargo3DReader(_FargoReader):
-    @override
+class Fargo3DReader:
+    @staticmethod
+    def parse_output_number_and_filename(
+        file_or_number: Union[PathT, int],
+        *,
+        directory: PathT,
+        prefix: str,
+    ) -> tuple[int, Path]:
+        return FargoReaderHelper.parse_output_number_and_filename(
+            file_or_number, directory=directory, prefix=prefix
+        )
+
+    @staticmethod
+    def get_bin_files(directory: PathT, /) -> list[Path]:
+        return FargoReaderHelper.get_bin_files(directory)
+
     @staticmethod
     def read(
         file: PathT,
         /,
         **meta,
     ) -> BinData:
-        output_number, directory = _FargoReader._get_output_number_and_dir_from(file)
+        output_number, directory = FargoReaderHelper._get_output_number_and_dir_from(
+            file
+        )
 
         default_fluid = "gas"
         fluid_option: Optional[str] = meta.get("fluid", default_fluid)
@@ -634,15 +641,31 @@ class Fargo3DReader(_FargoReader):
 
 
 @final
-class FargoADSGReader(_FargoReader):
-    @override
+class FargoADSGReader:
+    @staticmethod
+    def parse_output_number_and_filename(
+        file_or_number: Union[PathT, int],
+        *,
+        directory: PathT,
+        prefix: str,
+    ) -> tuple[int, Path]:
+        return FargoReaderHelper.parse_output_number_and_filename(
+            file_or_number, directory=directory, prefix=prefix
+        )
+
+    @staticmethod
+    def get_bin_files(directory: PathT, /) -> list[Path]:
+        return FargoReaderHelper.get_bin_files(directory)
+
     @staticmethod
     def read(
         file: PathT,
         /,
         **meta,  # noqa: ARG004
     ) -> BinData:
-        output_number, directory = _FargoReader._get_output_number_and_dir_from(file)
+        output_number, directory = FargoReaderHelper._get_output_number_and_dir_from(
+            file
+        )
 
         V = BinData.default_init()
         V["geometry"] = Geometry.POLAR

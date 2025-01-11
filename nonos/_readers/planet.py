@@ -5,7 +5,6 @@ __all__ = [
     "FargoADSGReader",
 ]
 import re
-from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import final
 
@@ -43,7 +42,8 @@ class IdefixReader:
         return PlanetData(x, y, z, vx, vy, vz, q, t, dt)
 
 
-class FargoReader(ABC):
+@final
+class FargoReaderHelper:
     @staticmethod
     def get_planet_files(directory: Path, /) -> list[Path]:
         return [
@@ -52,13 +52,13 @@ class FargoReader(ABC):
             if re.search(r"planet\d+.dat$", str(fn)) is not None
         ]
 
-    @staticmethod
-    @abstractmethod
-    def read(file: PathT, /) -> PlanetData: ...
-
 
 @final
-class Fargo3DReader(FargoReader):
+class Fargo3DReader:
+    @staticmethod
+    def get_planet_files(directory: Path, /) -> list[Path]:
+        return FargoReaderHelper.get_planet_files(directory)
+
     @staticmethod
     def read(file: PathT, /) -> PlanetData:
         dt, x, y, z, vx, vy, vz, q, t, *_ = np.loadtxt(file).T
@@ -66,7 +66,11 @@ class Fargo3DReader(FargoReader):
 
 
 @final
-class FargoADSGReader(FargoReader):
+class FargoADSGReader:
+    @staticmethod
+    def get_planet_files(directory: Path, /) -> list[Path]:
+        return FargoReaderHelper.get_planet_files(directory)
+
     @staticmethod
     def read(file: PathT, /) -> PlanetData:
         dt, x, y, vx, vy, q, _, _, t, *_ = np.loadtxt(file).T
