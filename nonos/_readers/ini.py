@@ -9,12 +9,11 @@ from typing import final
 
 import inifix
 
-from nonos._readers._base import ReaderMixin
 from nonos._types import FrameType, IniData, PathT
 
 
 @final
-class IdefixVTKReader(ReaderMixin):
+class IdefixVTKReader:
     @staticmethod
     def read(file: PathT, /) -> IniData:
         class IdefixIniOutput:
@@ -48,7 +47,7 @@ class IdefixVTKReader(ReaderMixin):
 
 
 @final
-class PlutoVTKReader(ReaderMixin):
+class PlutoVTKReader:
     @staticmethod
     def read(file: PathT, /) -> IniData:
         class PlutoIniOutput:
@@ -72,7 +71,7 @@ class PlutoVTKReader(ReaderMixin):
 
 
 @final
-class Fargo3DReader(ReaderMixin):
+class Fargo3DReader:
     @staticmethod
     def read(file: PathT, /) -> IniData:
         class Fargo3DIni:
@@ -115,7 +114,7 @@ class Fargo3DReader(ReaderMixin):
 
 
 @final
-class FargoADSGReader(ReaderMixin):
+class FargoADSGReader:
     @staticmethod
     def read(file: PathT, /) -> IniData:
         class FargoADSGIni:

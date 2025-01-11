@@ -20,7 +20,6 @@ import pytest
 
 import nonos._readers as readers
 from nonos import _types
-from nonos._readers._base import ReaderMixin
 
 if sys.version_info < (3, 11):
     pytest.skip(
@@ -42,7 +41,6 @@ def get_classes_from(module: ModuleType) -> list[type]:
 
 _reader_classes: list[type] = []
 for module in [
-    readers._base,
     readers.ini,
     readers.planet,
     readers.binary,
@@ -65,33 +63,14 @@ def interface_class(request):
     return request.param
 
 
-def test_use_reader_mixin(reader_class):
-    assert issubclass(reader_class, ReaderMixin)
-
-
-def test_cannot_instantiate(reader_class):
-    cls = reader_class
-    with pytest.raises(TypeError, match=rf"^{cls} is not instantiable$"):
-        cls()
-
-
-def test_have_slots(interface_class):
-    cls = interface_class
-    assert hasattr(cls, "__slots__")
-    assert isinstance(cls.__slots__, list)
-    assert all(isinstance(k, str) for k in cls.__slots__)
-
-
 def test_abstract_final_pattern(interface_class):
     # check that all interface classes are exactly one of
     # - abstract (ABC)
     # - @final
     # - Protocol
-    # - *Mixin
 
     cls = interface_class
     isabstract = inspect.isabstract(cls)
     isfinal = getattr(cls, "__final__", False)
     isprotocol = issubclass(cls, Protocol)
-    ismixin = cls.__name__.endswith("Mixin")
-    assert isabstract ^ isfinal ^ isprotocol ^ ismixin
+    assert isabstract ^ isfinal ^ isprotocol

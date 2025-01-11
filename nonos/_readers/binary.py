@@ -13,7 +13,6 @@ from typing import Optional, Union, final
 
 import numpy as np
 
-from nonos._readers._base import ReaderMixin
 from nonos._types import BinData, FloatArray, Geometry, PathT
 
 if sys.version_info >= (3, 11):
@@ -28,7 +27,7 @@ else:
 
 
 @final
-class VTKReader(ReaderMixin):
+class VTKReader:
     NATIVE_COORDINATE_REGEXP = re.compile(r"X(1|2|3)(L|C)_NATIVE_COORDINATES")
 
     @staticmethod
@@ -503,7 +502,7 @@ class VTKReader(ReaderMixin):
         return BinData(**V)
 
 
-class _FargoReader(ReaderMixin, ABC):
+class _FargoReader(ABC):
     @staticmethod
     def parse_output_number_and_filename(
         file_or_number: Union[PathT, int],
@@ -682,7 +681,7 @@ class FargoADSGReader(_FargoReader):
         return BinData(**V)
 
 
-class NPYReader(ReaderMixin):
+class NPYReader:
     # we accept a leading '_' for backward compatibility
     _filename_re = re.compile(
         r"^_?(?P<prefix>[\w\.]*)"

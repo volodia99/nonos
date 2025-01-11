@@ -11,12 +11,11 @@ from typing import final
 
 import numpy as np
 
-from nonos._readers._base import ReaderMixin
 from nonos._types import PathT, PlanetData
 
 
 @final
-class NullReader(ReaderMixin):
+class NullReader:
     @staticmethod
     def get_planet_files(directory: Path, /) -> list[Path]:
         raise NotImplementedError(
@@ -33,7 +32,7 @@ class NullReader(ReaderMixin):
 
 
 @final
-class IdefixReader(ReaderMixin):
+class IdefixReader:
     @staticmethod
     def get_planet_files(directory: Path, /) -> list[Path]:
         return sorted(directory.glob("planet*.dat"))
@@ -44,7 +43,7 @@ class IdefixReader(ReaderMixin):
         return PlanetData(x, y, z, vx, vy, vz, q, t, dt)
 
 
-class FargoReader(ReaderMixin, ABC):
+class FargoReader(ABC):
     @staticmethod
     def get_planet_files(directory: Path, /) -> list[Path]:
         return [
