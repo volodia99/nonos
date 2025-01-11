@@ -65,12 +65,10 @@ def interface_class(request):
 
 def test_abstract_final_pattern(interface_class):
     # check that all interface classes are exactly one of
-    # - abstract (ABC)
     # - @final
     # - Protocol
 
     cls = interface_class
-    isabstract = inspect.isabstract(cls)
     isfinal = getattr(cls, "__final__", False)
     isprotocol = issubclass(cls, Protocol)
-    assert isabstract ^ isfinal ^ isprotocol
+    assert isfinal ^ isprotocol
