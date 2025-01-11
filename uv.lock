@@ -1318,7 +1318,7 @@ covcheck = [
     { name = "cogapp", specifier = ">=3.3.0" },
     { name = "coverage", marker = "python_full_version >= '3.11'", specifier = ">=7.4.4" },
     { name = "coverage", extras = ["toml"], marker = "python_full_version < '3.11'", specifier = ">=7.4.4" },
-    { name = "pytest", specifier = ">=6.1.0" },
+    { name = "pytest", specifier = ">=7.0.0" },
     { name = "pytest-mpl", specifier = ">=0.15.1" },
 ]
 docs = [
@@ -1329,7 +1329,7 @@ docs = [
 ]
 test = [
     { name = "cogapp", specifier = ">=3.3.0" },
-    { name = "pytest", specifier = ">=6.1.0" },
+    { name = "pytest", specifier = ">=7.0.0" },
     { name = "pytest-mpl", specifier = ">=0.15.1" },
 ]
 typecheck = [
