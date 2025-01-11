@@ -22,14 +22,18 @@ import nonos._readers as readers
 from nonos import _types
 from nonos._readers._base import ReaderMixin
 
+if sys.version_info < (3, 11):
+    pytest.skip(
+        reason="runtime inspection of final classes requires Python 3.11 or newer",
+        allow_module_level=True,
+    )
+
 
 def get_classes_from(module: ModuleType) -> list[type]:
     retv: list[type] = []
     for objname in module.__all__:
         obj = module.__dict__[objname]
         if inspect.isclass(obj):
-            if obj.__class__ is type:
-                continue
             if issubclass(obj, (Protocol, Enum)):  # type: ignore [arg-type]
                 continue
             retv.append(obj)
@@ -78,10 +82,6 @@ def test_have_slots(interface_class):
     assert all(isinstance(k, str) for k in cls.__slots__)
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 11),
-    reason="runtime inspection of final classes requires Python 3.11 or newer",
-)
 def test_abstract_final_pattern(interface_class):
     # check that all interface classes are exactly one of
     # - abstract (ABC)

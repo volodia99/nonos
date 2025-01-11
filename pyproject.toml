@@ -55,7 +55,7 @@ Homepage = "https://github.com/volodia99/nonos"
 test = [
     "cogapp>=3.3.0",
     "pytest-mpl>=0.15.1",
-    "pytest>=6.1.0",
+    "pytest>=7.0.0",
 
 ]
 covcheck = [
