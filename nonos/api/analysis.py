@@ -46,7 +46,7 @@ class Plotable:
         ax: "Axes",
         *,
         log=False,
-        cmap="inferno",
+        cmap: Optional[str] = "inferno",
         filename=None,
         fmt="png",
         dpi=500,
