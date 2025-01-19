@@ -46,7 +46,7 @@ class Plotable:
         ax: "Axes",
         *,
         log=False,
-        cmap="inferno",
+        cmap: Optional[str] = "inferno",
         filename=None,
         fmt="png",
         dpi=500,
@@ -259,29 +259,33 @@ class Coordinates:
             if i not in self.cube:
                 raise KeyError(f"{i} not in {self.cube}")
         dictcoords = {}
-        if len(reducted) <= 2:
-            for coords in reducted:
-                dictcoords[coords] = vars(self)[coords]
-            axis = list(set(reducted) ^ set(self.cube))
-            dictmesh: dict[str, Any] = {}
-            # 2D map
-            if len(axis) == 1:
-                dictmesh[reducted[0]], dictmesh[reducted[1]] = np.meshgrid(
-                    dictcoords[reducted[0]], dictcoords[reducted[1]]
-                )
-                axismed = "".join([axis[0], "med"])
-                dictmesh[axis[0]] = vars(self)[axismed]
-                # carefule: takes "xy", "yz", "zx" (all combinations)
-                if "".join(reducted) in "".join((*self.cube, self.cube[0])):
-                    ordered = True
-                else:
-                    ordered = False
-                dictmesh["ordered"] = ordered
-            # 1D curve
-            else:
-                dictmesh[reducted[0]] = vars(self)["".join([reducted[0], "med"])]
-        else:
+        if len(reducted) == 0:
+            raise ValueError("Expected one or two coordinates, got none.")
+        if len(reducted) > 2:
             raise ValueError(f"more than 2 coordinates were specified: {reducted}.")
+
+        for coords in reducted:
+            dictcoords[coords] = vars(self)[coords]
+        axis = list(set(reducted) ^ set(self.cube))
+        if len(axis) != 3 - len(reducted):
+            raise RuntimeError
+        dictmesh: dict[str, Any] = {}
+        # 2D map
+        if len(reducted) == 2:
+            dictmesh[reducted[0]], dictmesh[reducted[1]] = np.meshgrid(
+                dictcoords[reducted[0]], dictcoords[reducted[1]]
+            )
+            axismed = "".join([axis[0], "med"])
+            dictmesh[axis[0]] = vars(self)[axismed]
+            # carefule: takes "xy", "yz", "zx" (all combinations)
+            if "".join(reducted) in "".join((*self.cube, self.cube[0])):
+                ordered = True
+            else:
+                ordered = False
+            dictmesh["ordered"] = ordered
+        # 1D curve
+        else:
+            dictmesh[reducted[0]] = vars(self)["".join([reducted[0], "med"])]
         return dictmesh
 
     # on demande 'x','y' et la geometry est cartesian -> 'x','y'
@@ -475,7 +479,7 @@ class GasField:
                 (rotate_grid if rotate_grid >= 0 else None),
             ),
             stacklevel=2,
-            find_phip=self.find_phip,
+            planet_azimuth_finder=self,
         )
 
         # TODO: remove this after deprecation
@@ -513,7 +517,7 @@ class GasField:
             rotate_with=rotate_with,
             planet_number_argument=("planet_corotation", planet_corotation),
             stacklevel=2,
-            find_phip=self.find_phip,
+            planet_azimuth_finder=self,
         )
 
         data_key = self.field
@@ -658,22 +662,28 @@ class GasField:
 
         return file
 
-    def find_ir(self, distance=1.0):
-        if self.native_geometry in ("polar"):
+    def find_ir(self, distance: float = 1.0):
+        if self.native_geometry == "polar":
             return find_nearest(self.coords.Rmed, distance)
-        if self.native_geometry in ("spherical"):
+        elif self.native_geometry == "spherical":
             return find_nearest(self.coords.rmed, distance)
+        else:
+            raise NotImplementedError
 
-    def find_imid(self, altitude=0.0):
+    def find_imid(self, altitude: float = 0.0):
         if self.native_geometry in ("cartesian", "polar"):
             return find_nearest(self.coords.zmed, altitude)
-        if self.native_geometry in ("spherical"):
+        elif self.native_geometry == "spherical":
             return find_nearest(self.coords.thetamed, np.pi / 2 - altitude)
+        else:
+            raise NotImplementedError
 
-    def find_iphi(self, phi=0):
+    def find_iphi(self, phi: float = 0.0):
         if self.native_geometry in ("polar", "spherical"):
             mod = len(self.coords.phi) - 1
             return find_nearest(self.coords.phi, phi) % mod
+        else:
+            raise NotImplementedError
 
     def _load_planet(
         self,
@@ -1524,7 +1534,7 @@ class GasField:
             rotate_by=rotate_by,
             rotate_with=rotate_with,
             planet_number_argument=("planet_corotation", planet_corotation),
-            find_phip=self.find_phip,
+            planet_azimuth_finder=self,
             stacklevel=2,
         )
 

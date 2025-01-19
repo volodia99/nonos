@@ -1,18 +1,15 @@
 import warnings
-from collections.abc import Callable
 from math import isclose
-from typing import TYPE_CHECKING, Optional
+from typing import Optional, Protocol
 
-if TYPE_CHECKING:
-    # note that these are documented as deprecated, but the replacement
-    # (typing.Protocol) isn't flexible enough here (I think)
-    # see https://mypy.readthedocs.io/en/stable/additional_features.html#extended-callable-types
-    from mypy_extensions import DefaultArg, DefaultNamedArg
 
-    find_phip_T = Callable[
-        [DefaultArg(Optional[int]), DefaultNamedArg(Optional[str], "planet_file")],
-        float,
-    ]
+class PlanetAzimuthFinder(Protocol):
+    def find_phip(
+        self,
+        planet_number: Optional[int] = None,
+        *,
+        planet_file: Optional[str] = None,
+    ) -> float: ...
 
 
 def _parse_planet_file(
@@ -36,7 +33,7 @@ def _parse_rotation_angle(
     rotate_by: Optional[float],
     rotate_with: Optional[str],
     planet_number_argument: tuple[str, Optional[int]],
-    find_phip: "find_phip_T",
+    planet_azimuth_finder: PlanetAzimuthFinder,
     stacklevel: int,
 ) -> float:
     planet_number_argname, planet_number = planet_number_argument
@@ -64,7 +61,7 @@ def _parse_rotation_angle(
         rotate_with = _parse_planet_file(planet_number=planet_number)
 
     if rotate_with is not None:
-        rotate_by = find_phip(planet_file=rotate_with)
+        rotate_by = planet_azimuth_finder.find_phip(planet_file=rotate_with)
 
     if rotate_by is None:  # pragma: no cover
         # this is never supposed to happen, but it's needed to convince mypy that

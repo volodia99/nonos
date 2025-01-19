@@ -197,12 +197,14 @@ class TestParsePlanetFile:
         assert _parse_planet_file() == "planet0.dat"
 
 
-def mock_find_phip(
-    planet_number: Optional[int] = None,  # noqa: ARG001
-    *,
-    planet_file: Optional[str] = None,  # noqa: ARG001
-) -> float:
-    return 0.0
+class MockPlanetAzimuthFinder:
+    def find_phip(
+        self,
+        planet_number: Optional[int] = None,  # noqa: ARG002
+        *,
+        planet_file: Optional[str] = None,  # noqa: ARG002
+    ) -> float:
+        return 0.0
 
 
 class TestParseRotationAngle:
@@ -215,7 +217,7 @@ class TestParseRotationAngle:
         "rotate_by": None,
         "rotate_with": None,
         "planet_number_argument": ("test", None),
-        "find_phip": mock_find_phip,
+        "planet_azimuth_finder": MockPlanetAzimuthFinder(),
         "stacklevel": 2,
     }
 
