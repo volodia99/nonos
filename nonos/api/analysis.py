@@ -663,21 +663,27 @@ class GasField:
         return file
 
     def find_ir(self, distance: float = 1.0):
-        if self.native_geometry in ("polar"):
+        if self.native_geometry == "polar":
             return find_nearest(self.coords.Rmed, distance)
-        if self.native_geometry in ("spherical"):
+        elif self.native_geometry == "spherical":
             return find_nearest(self.coords.rmed, distance)
+        else:
+            raise NotImplementedError
 
     def find_imid(self, altitude: float = 0.0):
         if self.native_geometry in ("cartesian", "polar"):
             return find_nearest(self.coords.zmed, altitude)
-        if self.native_geometry in ("spherical"):
+        elif self.native_geometry == "spherical":
             return find_nearest(self.coords.thetamed, np.pi / 2 - altitude)
+        else:
+            raise NotImplementedError
 
     def find_iphi(self, phi: float = 0.0):
         if self.native_geometry in ("polar", "spherical"):
             mod = len(self.coords.phi) - 1
             return find_nearest(self.coords.phi, phi) % mod
+        else:
+            raise NotImplementedError
 
     def _load_planet(
         self,
