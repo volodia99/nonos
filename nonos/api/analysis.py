@@ -479,7 +479,7 @@ class GasField:
                 (rotate_grid if rotate_grid >= 0 else None),
             ),
             stacklevel=2,
-            find_phip=self.find_phip,
+            planet_azimuth_finder=self,
         )
 
         # TODO: remove this after deprecation
@@ -517,7 +517,7 @@ class GasField:
             rotate_with=rotate_with,
             planet_number_argument=("planet_corotation", planet_corotation),
             stacklevel=2,
-            find_phip=self.find_phip,
+            planet_azimuth_finder=self,
         )
 
         data_key = self.field
@@ -1528,7 +1528,7 @@ class GasField:
             rotate_by=rotate_by,
             rotate_with=rotate_with,
             planet_number_argument=("planet_corotation", planet_corotation),
-            find_phip=self.find_phip,
+            planet_azimuth_finder=self,
             stacklevel=2,
         )
 
