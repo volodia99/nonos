@@ -259,29 +259,33 @@ class Coordinates:
             if i not in self.cube:
                 raise KeyError(f"{i} not in {self.cube}")
         dictcoords = {}
-        if len(reducted) <= 2:
-            for coords in reducted:
-                dictcoords[coords] = vars(self)[coords]
-            axis = list(set(reducted) ^ set(self.cube))
-            dictmesh: dict[str, Any] = {}
-            # 2D map
-            if len(axis) == 1:
-                dictmesh[reducted[0]], dictmesh[reducted[1]] = np.meshgrid(
-                    dictcoords[reducted[0]], dictcoords[reducted[1]]
-                )
-                axismed = "".join([axis[0], "med"])
-                dictmesh[axis[0]] = vars(self)[axismed]
-                # carefule: takes "xy", "yz", "zx" (all combinations)
-                if "".join(reducted) in "".join((*self.cube, self.cube[0])):
-                    ordered = True
-                else:
-                    ordered = False
-                dictmesh["ordered"] = ordered
-            # 1D curve
-            else:
-                dictmesh[reducted[0]] = vars(self)["".join([reducted[0], "med"])]
-        else:
+        if len(reducted) == 0:
+            raise ValueError("Expected one or two coordinates, got none.")
+        if len(reducted) > 2:
             raise ValueError(f"more than 2 coordinates were specified: {reducted}.")
+
+        for coords in reducted:
+            dictcoords[coords] = vars(self)[coords]
+        axis = list(set(reducted) ^ set(self.cube))
+        if len(axis) != 3 - len(reducted):
+            raise RuntimeError
+        dictmesh: dict[str, Any] = {}
+        # 2D map
+        if len(reducted) == 2:
+            dictmesh[reducted[0]], dictmesh[reducted[1]] = np.meshgrid(
+                dictcoords[reducted[0]], dictcoords[reducted[1]]
+            )
+            axismed = "".join([axis[0], "med"])
+            dictmesh[axis[0]] = vars(self)[axismed]
+            # carefule: takes "xy", "yz", "zx" (all combinations)
+            if "".join(reducted) in "".join((*self.cube, self.cube[0])):
+                ordered = True
+            else:
+                ordered = False
+            dictmesh["ordered"] = ordered
+        # 1D curve
+        else:
+            dictmesh[reducted[0]] = vars(self)["".join([reducted[0], "med"])]
         return dictmesh
 
     # on demande 'x','y' et la geometry est cartesian -> 'x','y'
