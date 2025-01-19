@@ -662,19 +662,19 @@ class GasField:
 
         return file
 
-    def find_ir(self, distance=1.0):
+    def find_ir(self, distance: float = 1.0):
         if self.native_geometry in ("polar"):
             return find_nearest(self.coords.Rmed, distance)
         if self.native_geometry in ("spherical"):
             return find_nearest(self.coords.rmed, distance)
 
-    def find_imid(self, altitude=0.0):
+    def find_imid(self, altitude: float = 0.0):
         if self.native_geometry in ("cartesian", "polar"):
             return find_nearest(self.coords.zmed, altitude)
         if self.native_geometry in ("spherical"):
             return find_nearest(self.coords.thetamed, np.pi / 2 - altitude)
 
-    def find_iphi(self, phi=0):
+    def find_iphi(self, phi: float = 0.0):
         if self.native_geometry in ("polar", "spherical"):
             mod = len(self.coords.phi) - 1
             return find_nearest(self.coords.phi, phi) % mod
