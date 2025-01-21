@@ -13,6 +13,11 @@ import numpy as np
 from nonos.api._angle_parsing import _parse_planet_file
 from nonos.logging import logger
 
+if sys.version_info >= (3, 10):
+    from typing import TypeAlias
+else:
+    from typing_extensions import TypeAlias
+
 if sys.version_info >= (3, 11):
     from enum import StrEnum
     from typing import assert_never
@@ -20,6 +25,8 @@ else:
     from typing_extensions import assert_never
 
     from nonos._backports import StrEnum
+
+FrameT: TypeAlias = Literal["F", "C", None]
 
 
 class Code(StrEnum):
@@ -88,8 +95,6 @@ class Parameters:
             raise ValueError("both inifile and code have to be given.")
 
     def loadIniFile(self) -> None:
-        FrameT = Literal["F", "C", None]
-
         # inifix.load uses dynamic type inference and doesn't provide type safety at
         # all. Here we define minimal classes that take in arbitrary keyword arguments
         # and store selected values as attributes in a typechecker-friendly way. This
