@@ -197,9 +197,9 @@ def process_field(
         if "cmap" in plot_kwargs:
             plot_kwargs.pop("cmap")
 
-        dsop.map(plane[0], rotate_with=planet_file).plot(fig, ax, **plot_kwargs)
-        akey = dsop.map(plane[0], rotate_with=planet_file).dict_plotable["abscissa"]
-        avalue = dsop.map(plane[0], rotate_with=planet_file).dict_plotable[akey]
+        plotable = dsop.map(plane[0], rotate_with=planet_file)
+        plotable.plot(fig, ax, **plot_kwargs)
+        avalue = plotable.abscissa.data
         extent = parse_range(extent, dim=dim)
         extent = range_converter(extent, abscissa=avalue, ordinate=np.zeros(2))
         ax.set_xlim(extent[0], extent[1])
@@ -207,18 +207,9 @@ def process_field(
         dsop.map(plane[0], plane[1], rotate_with=planet_file).plot(
             fig, ax, **plot_kwargs
         )
-        akey = dsop.map(plane[0], plane[1], rotate_with=planet_file).dict_plotable[
-            "abscissa"
-        ]
-        okey = dsop.map(plane[0], plane[1], rotate_with=planet_file).dict_plotable[
-            "ordinate"
-        ]
-        avalue = dsop.map(plane[0], plane[1], rotate_with=planet_file).dict_plotable[
-            akey
-        ]
-        ovalue = dsop.map(plane[0], plane[1], rotate_with=planet_file).dict_plotable[
-            okey
-        ]
+        plotable = dsop.map(plane[0], plane[1], rotate_with=planet_file)
+        avalue = plotable.abscissa.data
+        ovalue = plotable.ordinate.data
         extent = parse_range(extent, dim=dim)
         extent = range_converter(
             extent,
