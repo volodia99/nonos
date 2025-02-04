@@ -51,13 +51,6 @@ _all_classes: list[type] = _reader_classes.copy()
 _all_classes.extend(get_classes_from(_types))
 
 
-@pytest.fixture(
-    params=_reader_classes, ids=lambda cls: f"{cls.__module__}.{cls.__name__}"
-)
-def reader_class(request):
-    return request.param
-
-
 @pytest.fixture(params=_all_classes, ids=lambda cls: f"{cls.__module__}.{cls.__name__}")
 def interface_class(request):
     return request.param
