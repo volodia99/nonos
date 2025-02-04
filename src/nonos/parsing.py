@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Literal, Optional, TypeVar, Union, overload
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
 
 import numpy as np
 
@@ -14,7 +14,7 @@ T1 = TypeVar("T1")
 T2 = TypeVar("T2")
 
 
-def userval_or_default(userval: T1, /, *, default: T2) -> Union[T1, T2]:
+def userval_or_default(userval: T1, /, *, default: T2) -> T1 | T2:
     # it'd be nice to avoid a Union as a return type, however it's not clear
     # how to express what this function does in typing language.
     # In practice this is used in places where it's very hard to constrain T1, so
@@ -26,8 +26,8 @@ def userval_or_default(userval: T1, /, *, default: T2) -> Union[T1, T2]:
 
 
 def parse_output_number_range(
-    on: Union[list[int], int, Literal["unset"], None],
-    maxval: Optional[int] = None,
+    on: list[int] | int | Literal["unset"] | None,
+    maxval: int | None = None,
 ) -> list[int]:
     if not is_set(on):
         if maxval is None:
@@ -73,12 +73,12 @@ def parse_range(
 def parse_range(
     extent: tuple[str, str],
     dim: Literal[1],
-) -> tuple[Optional[float], Optional[float]]: ...
+) -> tuple[float | None, float | None]: ...
 @overload
 def parse_range(
     extent: tuple[str, str, str, str],
     dim: Literal[2],
-) -> tuple[Optional[float], Optional[float], Optional[float], Optional[float]]: ...
+) -> tuple[float | None, float | None, float | None, float | None]: ...
 
 
 def parse_range(extent, dim):
@@ -94,7 +94,7 @@ def parse_range(extent, dim):
 
 @overload
 def range_converter(
-    extent: tuple[Optional[float], Optional[float]],
+    extent: tuple[float | None, float | None],
     abscissa: "NDArray[np.floating]",
     ordinate: "NDArray[np.floating]",
 ) -> tuple[float, float]: ...
@@ -102,7 +102,7 @@ def range_converter(
 
 @overload
 def range_converter(
-    extent: tuple[Optional[float], Optional[float], Optional[float], Optional[float]],
+    extent: tuple[float | None, float | None, float | None, float | None],
     abscissa: "NDArray[np.floating]",
     ordinate: "NDArray[np.floating]",
 ) -> tuple[float, float, float, float]: ...
@@ -125,7 +125,7 @@ def range_converter(extent, abscissa, ordinate):
         raise TypeError(f"Expected extent to be of length 2 or 4, got {len(extent)=}")
 
 
-def parse_image_format(s: Optional[str]) -> str:
+def parse_image_format(s: str | None) -> str:
     from matplotlib.backend_bases import FigureCanvasBase
 
     if not is_set(s):

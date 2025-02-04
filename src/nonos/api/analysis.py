@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
 from shutil import copyfile
-from typing import TYPE_CHECKING, Any, Optional, Union, overload
+from typing import TYPE_CHECKING, Any, overload
 
 import numpy as np
 from matplotlib.scale import SymmetricalLogTransform
@@ -31,10 +31,8 @@ if TYPE_CHECKING:  # pragma: no cover
     from numpy.typing import NDArray
 
 
-@dataclass(frozen=True, eq=False)
+@dataclass(frozen=True, eq=False, slots=True)
 class NamedArray:
-    # TODO: use slots=True in @dataclass when Python 3.9 is dropped
-    __slots__ = ["name", "data"]
     name: str
     data: "NDArray[np.floating]"
 
@@ -47,7 +45,7 @@ class Plotable:
         *,
         abscissa: tuple[str, "NDArray[np.floating]"],
         ordinate: tuple[str, "NDArray[np.floating]"],
-        field: Optional[tuple[str, "NDArray[np.floating]"]] = None,
+        field: tuple[str, "NDArray[np.floating]"] | None = None,
     ) -> None:
         self.abscissa = NamedArray(*abscissa)
         self.ordinate = NamedArray(*ordinate)
@@ -74,7 +72,7 @@ class Plotable:
         ax: "Axes",
         *,
         log=False,
-        cmap: Optional[str] = "inferno",
+        cmap: str | None = "inferno",
         filename=None,
         fmt="png",
         dpi=500,
@@ -317,7 +315,7 @@ class Coordinates:
         self, _wanted_x1: str, _wanted_x2: None, /
     ) -> tuple[tuple[str], str]: ...
 
-    def native_from_wanted(self, _wanted_x1: str, _wanted_x2: Optional[str] = None, /):
+    def native_from_wanted(self, _wanted_x1: str, _wanted_x2: str | None = None, /):
         if self.geometry == "cartesian":
             conversion = {
                 "x": "x",
@@ -462,11 +460,11 @@ class GasField:
         on: int,
         operation: str,
         *,
-        inifile: Optional[PathT] = None,
-        code: Union[str, Recipe, None] = None,
-        directory: Optional[PathT] = None,
-        rotate_by: Optional[float] = None,
-        rotate_with: Optional[str] = None,
+        inifile: PathT | None = None,
+        code: str | Recipe | None = None,
+        directory: PathT | None = None,
+        rotate_by: float | None = None,
+        rotate_with: str | None = None,
         rotate_grid: int = -1,  # deprecated
     ) -> None:
         self.field = field
@@ -524,9 +522,9 @@ class GasField:
     def map(
         self,
         *wanted,
-        rotate_by: Optional[float] = None,
-        rotate_with: Optional[str] = None,
-        planet_corotation: Optional[int] = None,  # deprecated
+        rotate_by: float | None = None,
+        rotate_with: str | None = None,
+        planet_corotation: int | None = None,  # deprecated
     ) -> Plotable:
         rotate_by = _parse_rotation_angle(
             rotate_by=rotate_by,
@@ -624,7 +622,7 @@ class GasField:
 
     def save(
         self,
-        directory: Optional[PathT] = None,
+        directory: PathT | None = None,
         header_only: bool = False,
     ) -> Path:
         if directory is None:
@@ -696,8 +694,8 @@ class GasField:
     def _load_planet(
         self,
         *,
-        planet_number: Optional[int] = None,
-        planet_file: Optional[str] = None,
+        planet_number: int | None = None,
+        planet_file: str | None = None,
     ) -> PlanetData:
         planet_file = _parse_planet_file(
             planet_number=planet_number, planet_file=planet_file
@@ -712,9 +710,9 @@ class GasField:
 
     def find_rp(
         self,
-        planet_number: Optional[int] = None,
+        planet_number: int | None = None,
         *,
-        planet_file: Optional[str] = None,
+        planet_file: str | None = None,
     ) -> float:
         pd = self._load_planet(planet_number=planet_number, planet_file=planet_file)
         ind_on = self._get_ind_output_number(pd.t)
@@ -722,9 +720,9 @@ class GasField:
 
     def find_rhill(
         self,
-        planet_number: Optional[int] = None,
+        planet_number: int | None = None,
         *,
-        planet_file: Optional[str] = None,
+        planet_file: str | None = None,
     ) -> float:
         ini = self._loader.load_ini_file()
         pd = self._load_planet(planet_number=planet_number, planet_file=planet_file)
@@ -734,9 +732,9 @@ class GasField:
 
     def find_phip(
         self,
-        planet_number: Optional[int] = None,
+        planet_number: int | None = None,
         *,
-        planet_file: Optional[str] = None,
+        planet_file: str | None = None,
     ) -> float:
         pd = self._load_planet(planet_number=planet_number, planet_file=planet_file)
         ind_on = self._get_ind_output_number(pd.t)
@@ -747,7 +745,7 @@ class GasField:
         *,
         prefix: str,
         default_suffix: str,
-        operation_name: Optional[str],
+        operation_name: str | None,
     ) -> str:
         if operation_name == "":
             raise ValueError("operation_name cannot be empty")
@@ -1252,9 +1250,9 @@ class GasField:
 
     def azimuthal_at_planet(
         self,
-        planet_number: Optional[int] = None,
+        planet_number: int | None = None,
         *,
-        planet_file: Optional[str] = None,
+        planet_file: str | None = None,
         operation_name=None,
     ) -> "GasField":
         planet_file = _parse_planet_file(
@@ -1328,9 +1326,9 @@ class GasField:
 
     def remove_planet_hill_band(
         self,
-        planet_number: Optional[int] = None,
+        planet_number: int | None = None,
         *,
-        planet_file: Optional[str] = None,
+        planet_file: str | None = None,
         operation_name=None,
     ) -> "GasField":
         planet_file = _parse_planet_file(
@@ -1533,10 +1531,10 @@ class GasField:
 
     def rotate(
         self,
-        planet_corotation: Optional[int] = None,
+        planet_corotation: int | None = None,
         *,
-        rotate_with: Optional[str] = None,
-        rotate_by: Optional[float] = None,
+        rotate_with: str | None = None,
+        rotate_by: float | None = None,
     ) -> "GasField":
         rotate_by = _parse_rotation_angle(
             rotate_by=rotate_by,
@@ -1622,17 +1620,17 @@ class GasDataSet:
 
     def __init__(
         self,
-        input_dataset: Union[int, PathT],
+        input_dataset: int | PathT,
         /,
         *,
-        inifile: Optional[PathT] = None,
-        code: Union[str, Recipe, None] = None,
-        geometry: Optional[str] = None,
-        directory: Optional[PathT] = None,
-        fluid: Optional[str] = None,
-        operation: Optional[str] = None,
+        inifile: PathT | None = None,
+        code: str | Recipe | None = None,
+        geometry: str | None = None,
+        directory: PathT | None = None,
+        fluid: str | None = None,
+        operation: str | None = None,
     ) -> None:
-        if isinstance(input_dataset, (str, Path)):
+        if isinstance(input_dataset, str | Path):
             input_dataset = Path(input_dataset)
             directory_from_input = input_dataset.parent
             if directory is None:
@@ -1742,9 +1740,9 @@ class GasDataSet:
         cls,
         on: int,
         *,
-        inifile: Optional[PathT] = None,
-        code: Union[str, Recipe, None] = None,
-        directory: Optional[PathT] = None,
+        inifile: PathT | None = None,
+        code: str | Recipe | None = None,
+        directory: PathT | None = None,
         operation: str,
     ) -> "GasDataSet":
         warnings.warn(
