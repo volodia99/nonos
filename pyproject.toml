@@ -139,6 +139,7 @@ source = [
 ]
 omit = [
     "src/nonos/__main__.py",
+    "src/nonos/_backports.py",
     "src/nonos/api/from_simulation.py", # deprecated module
 ]
 
