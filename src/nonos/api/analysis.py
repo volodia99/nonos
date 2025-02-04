@@ -24,7 +24,7 @@ from nonos.api.tools import find_around, find_nearest
 from nonos.loaders import Recipe, loader_from, recipe_from
 from nonos.logging import logger
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from matplotlib.artist import Artist
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure

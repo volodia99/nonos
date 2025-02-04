@@ -1,8 +1,6 @@
 import sys
 
-if sys.version_info >= (3, 11):
-    pass
-else:
+if sys.version_info < (3, 11):
     from enum import Enum
 
     # vendored from Python 3.11.0
