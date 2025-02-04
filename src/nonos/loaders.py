@@ -22,7 +22,7 @@ else:
     from nonos._backports import StrEnum
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from nonos._types import BinData, IniData, PathT, PlanetData
 
 
@@ -213,7 +213,7 @@ def _ingredients_from(recipe: Recipe, /) -> Ingredients:
             "planet_reader": readers.planet.FargoADSGReader,
             "ini_reader": readers.ini.FargoADSGReader,
         }
-    else:
+    else:  # pragma: no cover
         assert_never(recipe)
 
 

@@ -17,7 +17,7 @@ def tmp_mpl_state():
     # reset matplotlib's state when the test is over
     style = deepcopy(mpl.rcParams)
     yield
-    for k in set(mpl.rcParams.keys()) - set(style.keys()):
+    for k in set(mpl.rcParams.keys()) - set(style.keys()):  # pragma: no cover
         mpl.rcParams.pop(k)
     mpl.rcParams.update(style)
 

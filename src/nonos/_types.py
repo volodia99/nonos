@@ -135,7 +135,7 @@ class PlanetData:
         elif frame is FrameType.PLANET_COROTATION:
             # bug-for-bug compat
             return self.get_orbital_elements(FrameType.FIXED_FRAME)
-        else:
+        else:  # pragma: no cover
             assert_never(frame)
 
     def get_rotational_rate(self) -> FloatArray:
