@@ -31,7 +31,7 @@ jobs:
         include:
         - os: ubuntu-20.04
           python-version: '3.9'
-          label: (oldest deps, mininmal)
+          label: (oldest deps, minimal)
           install-args: --resolution=lowest-direct
         - os: ubuntu-20.04
           python-version: '3.9'
