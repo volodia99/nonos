@@ -3,7 +3,7 @@ from pathlib import Path
 
 from nonos.config import DEFAULTS
 
-SOURCE_DIR = Path(__file__).parents[1]
+SOURCE_DIR = Path(__file__).parents[1] / "src"
 with open(SOURCE_DIR.joinpath("nonos", "main.py")) as fh:
     source = fh.read()
 

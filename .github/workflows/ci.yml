@@ -60,7 +60,7 @@ jobs:
       # could in principle be done through uv run coverage
       # but env resolution appears buggy as of uv 0.4.20
       run: |
-        uv run --no-editable --group covcheck ${{ matrix.install-args }} \
+        uv run --group covcheck ${{ matrix.install-args }} \
           coverage run --parallel-mode -m pytest --color=yes
 
     - name: Upload coverage data
@@ -95,7 +95,7 @@ jobs:
 
     - name: Typecheck
       run: |
-        uv run --frozen --no-editable --group typecheck mypy nonos tests
+        uv run --frozen --no-editable --group typecheck mypy src tests
 
   image-tests:
     name: Image tests
@@ -163,7 +163,7 @@ jobs:
       run: |
         coverage combine
         coverage html --skip-covered --skip-empty
-        coverage report --fail-under=80
+        coverage report --fail-under=85
 
     - name: Upload HTML report
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0

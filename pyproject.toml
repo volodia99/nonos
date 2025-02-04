@@ -110,6 +110,7 @@ select = [
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
+known-first-party = ["nonos"]
 
 [tool.pytest.ini_options]
 addopts = "-ra"
@@ -132,27 +133,23 @@ ignore_missing_imports = true
 
 [tool.coverage.run]
 source = [
-    "nonos",
-    "tests",
+    "src",
+    "tests"
 ]
 omit = [
-    "nonos/_backports.py",
-    "nonos/__main__.py",
-    "nonos/api/from_simulation.py", # deprecated module
+    "src/nonos/api/from_simulation.py", # deprecated module
 ]
 
 [tool.coverage.report]
-skip_covered = true
+show_missing = true
+skip_covered = false
 exclude_lines = [
-    # a stricter default pragma
+    # a more strict default pragma
     "\\# pragma: no cover\\b",
 
     # allow defensive code
     "^\\s*raise NotImplementedError\\b",
-    "^\\s*assert_never\\b",
 
-    # typing-related code
-    "^if TYPE_CHECKING:",
     ": \\.\\.\\.(\\s*#.*)?$",
     "^ +\\.\\.\\.$",
     "-> ['\"]?NoReturn['\"]?:",
