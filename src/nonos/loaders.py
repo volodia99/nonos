@@ -34,7 +34,7 @@ class Recipe(StrEnum):
 
 
 @final
-@dataclass(frozen=True, eq=True)
+@dataclass(frozen=True, eq=True, slots=True)
 class Loader:
     r"""
     A composable data loader interface.
@@ -59,13 +59,6 @@ class Loader:
       FileNotFoundError: if `parameter_file` doesn't exist or is a directory.
     """
 
-    # TODO: use slots=True in @dataclass when Python 3.9 is dropped
-    __slots__ = [
-        "parameter_file",
-        "binary_reader",
-        "planet_reader",
-        "ini_reader",
-    ]
     parameter_file: Path
     binary_reader: type["BinReader"]
     planet_reader: type["PlanetReader"]
@@ -91,7 +84,7 @@ class Loader:
 
 def loader_from(
     *,
-    code: Optional[str] = None,
+    code: str | None = None,
     parameter_file: Optional["PathT"] = None,
     directory: Optional["PathT"] = None,
 ) -> Loader:
@@ -219,7 +212,7 @@ def _ingredients_from(recipe: Recipe, /) -> Ingredients:
 
 def recipe_from(
     *,
-    code: Optional[str] = None,
+    code: str | None = None,
     parameter_file: Optional["PathT"] = None,
     directory: Optional["PathT"] = None,
 ) -> Recipe:

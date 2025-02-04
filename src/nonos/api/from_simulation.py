@@ -5,18 +5,13 @@ import sys
 import warnings
 from enum import auto
 from pathlib import Path
-from typing import Any, Literal, Optional, Union, cast
+from typing import Any, Literal, Optional, TypeAlias, Union, cast
 
 import inifix
 import numpy as np
 
 from nonos.api._angle_parsing import _parse_planet_file
 from nonos.logging import logger
-
-if sys.version_info >= (3, 10):
-    from typing import TypeAlias
-else:
-    from typing_extensions import TypeAlias
 
 if sys.version_info >= (3, 11):
     from enum import StrEnum

@@ -10,7 +10,7 @@ import sys
 import warnings
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Optional, Union, final, overload
+from typing import final, overload
 
 import numpy as np
 
@@ -264,10 +264,8 @@ def _deprecated_axis_array_property(attr: str, label: str, replacement: str):
 
 
 @final
-@dataclass(frozen=True, eq=False)
+@dataclass(frozen=True, eq=False, slots=True)
 class Coordinates:
-    __slots__ = ["geometry", "x1", "x2", "x3"]
-
     geometry: Geometry
     x1: FloatArray
     x2: FloatArray
@@ -305,7 +303,7 @@ class Coordinates:
             raise ValueError(f"axis {axis} isn't native to {self.geometry} geometry")
         return axes.index(axis)
 
-    def get_axis_array(self, axis: Union[Axis, str]) -> FloatArray:
+    def get_axis_array(self, axis: Axis | str) -> FloatArray:
         if isinstance(axis, str):
             axis = Axis.from_label(axis)
         idx = self.get_axis_index(axis)
@@ -319,7 +317,7 @@ class Coordinates:
             raise RuntimeError
         return arr.copy()
 
-    def get_axis_array_med(self, axis: Union[Axis, str]) -> FloatArray:
+    def get_axis_array_med(self, axis: Axis | str) -> FloatArray:
         # convenience compatibility shim
         # should probably be removed or refactored
         if isinstance(axis, str):
@@ -370,7 +368,7 @@ class Coordinates:
         return self.target_from_native(target_geometry, native_meshcoords)
 
     def _meshgrid_reduction(
-        self, axis_1: Axis, axis_2: Optional[Axis], /
+        self, axis_1: Axis, axis_2: Axis | None, /
     ) -> dict[Axis, FloatArray]:
         # TODO: this could easily be split into 2 functions (one for each dimensions)
         axes = axis_1, axis_2

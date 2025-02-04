@@ -1,6 +1,5 @@
 import re
 from itertools import combinations
-from typing import Optional
 
 import numpy as np
 import pytest
@@ -200,9 +199,9 @@ class TestParsePlanetFile:
 class MockPlanetAzimuthFinder:
     def find_phip(
         self,
-        planet_number: Optional[int] = None,  # noqa: ARG002
+        planet_number: int | None = None,  # noqa: ARG002
         *,
-        planet_file: Optional[str] = None,  # noqa: ARG002
+        planet_file: str | None = None,  # noqa: ARG002
     ) -> float:
         return 0.0
 

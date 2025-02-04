@@ -1,6 +1,5 @@
 import sys
 import unicodedata
-from typing import Union
 
 from loguru import logger
 from termcolor import cprint
@@ -8,7 +7,7 @@ from termcolor import cprint
 _BONE_EMOJI = unicodedata.lookup("BONE")
 
 
-def configure_logger(level: Union[int, str] = 30, **kwargs) -> None:
+def configure_logger(level: int | str = 30, **kwargs) -> None:
     logger.remove()  # remove pre-existing handler
     logger.add(
         sink=sys.stdout,

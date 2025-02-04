@@ -16,13 +16,13 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Typing :: Typed",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 dependencies = [
     "inifix>=3.0.0",
     "loguru>=0.5.3",
     "matplotlib>=3.5.0",
-    "numpy>=1.19.3",
+    "numpy>=1.21.2",
     "packaging>=20.0",
     "termcolor>=2.1.0",
     "tqdm>=4.64.1",
@@ -35,7 +35,7 @@ all = [
     "cmocean>=3.0.3",
     "cmyt>=2.0.0",
     "lick>=0.5.1",
-    "scipy>=1.6.1",
+    "scipy>=1.7.2",
 ]
 
 [project.readme]
@@ -52,7 +52,7 @@ Homepage = "https://github.com/volodia99/nonos"
 test = [
     "cogapp>=3.3.0",
     "pytest-mpl>=0.15.1",
-    "pytest>=7.0.0",
+    "pytest>=8.0.0",
 
 ]
 covcheck = [
@@ -93,9 +93,6 @@ select = [
     "I",   # isort
     "UP",  # pyupgrade
 ]
-# tweak UP007 for consistency
-# this can be cleaned up when Python 3.9 is dropped
-pyupgrade.keep-runtime-typing = true
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
@@ -111,10 +108,10 @@ filterwarnings = [
 ]
 
 [tool.mypy]
-# python_version = "3.9" # this can be uncommented (and updated) when Python 3.9 is dropped
+python_version = "3.10"
 show_error_codes = true
 warn_unused_configs = true
-# warn_unused_ignores = true # this can be uncommented (and updated) when Python 3.9 is dropped
+warn_unused_ignores = true
 warn_unreachable = true
 show_error_context = true
 disallow_untyped_defs = false  # TODO: add missing annotations and switch this option to true

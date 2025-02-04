@@ -19,10 +19,10 @@ if TYPE_CHECKING:
 def file_analysis(
     filename: "PathT",
     *,
-    inifile: Optional[str] = None,
-    code: Optional[str] = None,
+    inifile: str | None = None,
+    code: str | None = None,
     directory: Optional["PathT"] = None,
-    norb: Optional[int] = None,
+    norb: int | None = None,
 ) -> "FloatArray":
     if directory is None:
         directory = Path.cwd()
@@ -92,10 +92,10 @@ class NonosLick:
         ly: GasField,
         field: GasField,
         *,
-        xmin: Optional[float] = None,
-        xmax: Optional[float] = None,
-        ymin: Optional[float] = None,
-        ymax: Optional[float] = None,
+        xmin: float | None = None,
+        xmax: float | None = None,
+        ymin: float | None = None,
+        ymax: float | None = None,
         size_interpolated: int = 1000,
         niter_lic: int = 6,
         kernel_length: int = 101,
@@ -139,13 +139,13 @@ class NonosLick:
         fig: "Figure",
         ax: "Axes",
         *,
-        vmin: Optional[float] = None,
-        vmax: Optional[float] = None,
+        vmin: float | None = None,
+        vmax: float | None = None,
         alpha: float = 0.45,
         log: bool = False,
         cmap=None,
-        title: Optional[str] = None,
-        density_streamlines: Optional[float] = None,
+        title: str | None = None,
+        density_streamlines: float | None = None,
         color_streamlines: str = "black",
     ):
         im = Plotable(
@@ -224,8 +224,8 @@ def from_data(
     coords: Coordinates,
     on: int,
     operation: str,
-    inifile: Optional[str] = None,
-    code: Optional[str] = None,
+    inifile: str | None = None,
+    code: str | None = None,
     directory: str = "",
     rotate_grid: int = -1,
 ):  # pragma: no cover
