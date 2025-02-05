@@ -57,8 +57,6 @@ jobs:
 
     - name: Run pytest
       shell: bash
-      # could in principle be done through uv run coverage
-      # but env resolution appears buggy as of uv 0.4.20
       run: |
         uv run --group covcheck ${{ matrix.install-args }} \
           coverage run --parallel-mode -m pytest --color=yes
