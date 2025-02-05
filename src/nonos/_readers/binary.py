@@ -109,7 +109,7 @@ class VTKReader:
                         thisgeometry = Geometry.POLAR
                     elif g == 2:
                         thisgeometry = Geometry.SPHERICAL
-                    elif g == 3:  # pragma: co cover
+                    elif g == 3:  # pragma: no cover
                         fid.close()
                         raise NotImplementedError(
                             "Support for cylindrical geometry is missing"
