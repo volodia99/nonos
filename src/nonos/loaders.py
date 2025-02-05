@@ -213,7 +213,7 @@ def _ingredients_from(recipe: Recipe, /) -> Ingredients:
             "planet_reader": readers.planet.FargoADSGReader,
             "ini_reader": readers.ini.FargoADSGReader,
         }
-    else:  # pragma: no cover
+    else:
         assert_never(recipe)
 
 
