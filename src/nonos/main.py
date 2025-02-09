@@ -46,6 +46,8 @@ from nonos.parsing import (
 from nonos.styling import set_mpl_style
 
 if TYPE_CHECKING:  # pragma: no cover
+    from typing import Literal
+
     from matplotlib.backend_bases import FigureCanvasBase
     from matplotlib.figure import Figure
 
@@ -97,7 +99,7 @@ def process_field(
     diff,
     log,
     planet_file: Optional[str],
-    extent,
+    extent: 'Literal["unset"] | tuple[str, str] | tuple[str, str, str, str]',
     vmin,
     vmax,
     scaling: float,
@@ -200,9 +202,14 @@ def process_field(
         plotable = dsop.map(plane[0], rotate_with=planet_file)
         plotable.plot(fig, ax, **plot_kwargs)
         avalue = plotable.abscissa.data
-        extent = parse_range(extent, dim=dim)
-        extent = range_converter(extent, abscissa=avalue, ordinate=np.zeros(2))
-        ax.set_xlim(extent[0], extent[1])
+        # mypy doesn't narrow int to Literal[1] (it should)
+        extent_parsed = parse_range(extent, dim=dim)  # type: ignore [call-overload]
+        extent_parsed = range_converter(
+            extent_parsed,
+            abscissa=avalue,
+            ordinate=np.zeros(2),
+        )
+        ax.set_xlim(extent_parsed[0], extent_parsed[1])
     elif dim == 2:
         dsop.map(plane[0], plane[1], rotate_with=planet_file).plot(
             fig, ax, **plot_kwargs
@@ -210,14 +217,17 @@ def process_field(
         plotable = dsop.map(plane[0], plane[1], rotate_with=planet_file)
         avalue = plotable.abscissa.data
         ovalue = plotable.ordinate.data
-        extent = parse_range(extent, dim=dim)
-        extent = range_converter(
-            extent,
+        # mypy doesn't narrow int to Literal[2] (it should)
+        extent_parsed = parse_range(extent, dim=dim)  # type: ignore [call-overload]
+        extent_parsed = range_converter(
+            extent_parsed,
             abscissa=avalue,
             ordinate=ovalue,
         )
-        ax.set_xlim(extent[0], extent[1])
-        ax.set_ylim(extent[2], extent[3])
+        ax.set_xlim(extent_parsed[0], extent_parsed[1])
+        ax.set_ylim(extent_parsed[2], extent_parsed[3])
+    else:
+        raise ValueError("Got {dim=}, expected 1 or 2")
 
     logger.debug("processed the data before plotting.")
 
@@ -225,6 +235,8 @@ def process_field(
         ax.set_aspect("equal")
 
     if show:
+        import matplotlib.pyplot as plt
+
         plt.show()
         plt.close(fig)
     else:

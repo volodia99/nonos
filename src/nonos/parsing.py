@@ -1,6 +1,9 @@
-from typing import Any, Literal, Optional, TypeVar, Union, overload
+from typing import TYPE_CHECKING, Any, Literal, Optional, TypeVar, Union, overload
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
 
 
 def is_set(x: Any) -> bool:
@@ -56,7 +59,29 @@ def parse_output_number_range(
     return ret
 
 
-def parse_range(extent, dim: int) -> tuple[Optional[float], ...]:
+@overload
+def parse_range(
+    extent: Literal["unset"],
+    dim: Literal[1],
+) -> tuple[None, None]: ...
+@overload
+def parse_range(
+    extent: Literal["unset"],
+    dim: Literal[2],
+) -> tuple[None, None, None, None]: ...
+@overload
+def parse_range(
+    extent: tuple[str, str],
+    dim: Literal[1],
+) -> tuple[Optional[float], Optional[float]]: ...
+@overload
+def parse_range(
+    extent: tuple[str, str, str, str],
+    dim: Literal[2],
+) -> tuple[Optional[float], Optional[float], Optional[float], Optional[float]]: ...
+
+
+def parse_range(extent, dim):
     if not is_set(extent):
         return (None,) * 2 * dim
 
@@ -70,16 +95,16 @@ def parse_range(extent, dim: int) -> tuple[Optional[float], ...]:
 @overload
 def range_converter(
     extent: tuple[Optional[float], Optional[float]],
-    abscissa: np.ndarray,
-    ordinate: np.ndarray,
+    abscissa: "NDArray[np.floating]",
+    ordinate: "NDArray[np.floating]",
 ) -> tuple[float, float]: ...
 
 
 @overload
 def range_converter(
     extent: tuple[Optional[float], Optional[float], Optional[float], Optional[float]],
-    abscissa: np.ndarray,
-    ordinate: np.ndarray,
+    abscissa: "NDArray[np.floating]",
+    ordinate: "NDArray[np.floating]",
 ) -> tuple[float, float, float, float]: ...
 
 
