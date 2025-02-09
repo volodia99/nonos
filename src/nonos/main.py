@@ -604,7 +604,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     tstart = time.time()
     if ncpu == 1:
         for on in progress(args["on"]):
-            process_field(on, **func_kwargs)
+            process_field(on, **func_kwargs)  # pyright: ignore[reportArgumentType]
     else:
         func = functools.partial(process_field, **func_kwargs)
         with Pool(ncpu) as pool:
