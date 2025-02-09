@@ -102,7 +102,7 @@ class Parameters:
         # typecheck time *and* at runtime.
 
         class IdefixIniOutput:
-            def __init__(self, *, vtk, **_kwargs) -> None:
+            def __init__(self, *, vtk) -> None:
                 self.vtk = float(vtk)
 
         class IdefixIniHydro:
@@ -116,7 +116,7 @@ class Parameters:
         class IdefixIni:
             def __init__(self, *, Hydro, Output, **_kwargs) -> None:
                 self.hydro = IdefixIniHydro(**Hydro)
-                self.output = IdefixIniOutput(**Output)
+                self.output = IdefixIniOutput(vtk=Output["vtk"])
 
         class PlutoIniOutput:
             def __init__(self, *, vtk, **_kwargs) -> None:
