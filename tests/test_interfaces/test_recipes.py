@@ -6,7 +6,7 @@ and integration tests.
 """
 
 from contextlib import nullcontext
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import pytest
@@ -42,7 +42,7 @@ class CheckLoader:
     code: str
     loader: Loader
     expected_n_bin_files: int
-    expected_n_planet_files: Optional[int]
+    expected_n_planet_files: int | None
     expected_data_keys: list[str]
     meta: dict[str, Any]
 
