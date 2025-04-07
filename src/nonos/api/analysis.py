@@ -1047,7 +1047,7 @@ class GasField:
     def latitudinal_at_theta(self, theta=0.0, *, operation_name=None) -> "GasField":
         operation = self._parse_operation_name(
             prefix=self.operation,
-            default_suffix=f"latitudinal_at_theta{np.pi/2-theta}",
+            default_suffix=f"latitudinal_at_theta{np.pi / 2 - theta}",
             operation_name=operation_name,
         )
 
@@ -1730,8 +1730,7 @@ class GasDataSet:
         from nonos.api.from_simulation import Parameters
 
         warnings.warn(
-            "GasDataSet.params is deprecated "
-            "and will be removed in a future version.",
+            "GasDataSet.params is deprecated and will be removed in a future version.",
             category=DeprecationWarning,
             stacklevel=2,
         )

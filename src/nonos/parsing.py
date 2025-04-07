@@ -137,7 +137,6 @@ def parse_image_format(s: Optional[str]) -> str:
         available := list(FigureCanvasBase.get_supported_filetypes().keys())
     ):
         raise ValueError(
-            f"Received unknown file format '{s}'. "
-            f"Available formatted are {available}."
+            f"Received unknown file format '{s}'. Available formatted are {available}."
         )
     return ext

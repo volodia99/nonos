@@ -373,8 +373,7 @@ class VTKReader:
                 if data_type != "CELL_DATA":  # pragma: no cover
                     fid.close()
                     raise ValueError(
-                        f"Expected 'CELL DATA' as produced by PLUTO. "
-                        f"Got {data_type!r}"
+                        f"Expected 'CELL DATA' as produced by PLUTO. Got {data_type!r}"
                     )
                 s = fid.readline()  # Line feed
 
@@ -738,8 +737,7 @@ class NPYReader:
             ]
             if not matches:
                 raise FileNotFoundError(
-                    "Failed to locate a file matching "
-                    f"{prefix=!r} and {output_number=}"
+                    f"Failed to locate a file matching {prefix=!r} and {output_number=}"
                 )
             file = matches[0]
             file_alt = (
