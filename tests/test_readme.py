@@ -28,6 +28,6 @@ def test_if_cog_needs_to_be_run():
 
     output = sys.stdout.getvalue()
     sys.stdout = _stdout
-    assert (
-        output == readme.read_text()
-    ), "Run 'cog -r README.md' from the top level of the repo (with Python >= 3.10)"
+    assert output == readme.read_text(), (
+        "Run 'cog -r README.md' from the top level of the repo (with Python >= 3.10)"
+    )
