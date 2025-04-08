@@ -270,38 +270,38 @@ class Coordinates:
         else:
             raise RuntimeError(f"Unknown geometry {self.geometry!r}")
 
-    def _meshgrid_reduction(self, *reducted) -> dict:
-        for i in reducted:
+    def _meshgrid_reduction(self, *target_axes) -> dict:
+        for i in target_axes:
             if i not in self.cube:
                 raise KeyError(f"{i} not in {self.cube}")
         dictcoords = {}
-        if len(reducted) == 0:
+        if len(target_axes) == 0:
             raise ValueError("Expected one or two coordinates, got none.")
-        if len(reducted) > 2:
-            raise ValueError(f"more than 2 coordinates were specified: {reducted}.")
+        if len(target_axes) > 2:
+            raise ValueError(f"more than 2 coordinates were specified: {target_axes}.")
 
-        for coords in reducted:
+        for coords in target_axes:
             dictcoords[coords] = vars(self)[coords]
-        axis = list(set(reducted) ^ set(self.cube))
-        if len(axis) != 3 - len(reducted):
+        axis = list(set(target_axes) ^ set(self.cube))
+        if len(axis) != 3 - len(target_axes):
             raise RuntimeError
         dictmesh: dict[str, Any] = {}
         # 2D map
-        if len(reducted) == 2:
-            dictmesh[reducted[0]], dictmesh[reducted[1]] = np.meshgrid(
-                dictcoords[reducted[0]], dictcoords[reducted[1]]
+        if len(target_axes) == 2:
+            dictmesh[target_axes[0]], dictmesh[target_axes[1]] = np.meshgrid(
+                dictcoords[target_axes[0]], dictcoords[target_axes[1]]
             )
             axismed = "".join([axis[0], "med"])
             dictmesh[axis[0]] = vars(self)[axismed]
             # carefule: takes "xy", "yz", "zx" (all combinations)
-            if "".join(reducted) in "".join((*self.cube, self.cube[0])):
+            if "".join(target_axes) in "".join((*self.cube, self.cube[0])):
                 ordered = True
             else:
                 ordered = False
             dictmesh["ordered"] = ordered
         # 1D curve
         else:
-            dictmesh[reducted[0]] = vars(self)["".join([reducted[0], "med"])]
+            dictmesh[target_axes[0]] = vars(self)["".join([target_axes[0], "med"])]
         return dictmesh
 
     # on demande 'x','y' et la geometry est cartesian -> 'x','y'
