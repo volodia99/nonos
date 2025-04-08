@@ -228,7 +228,7 @@ plt.show()
 ```
 
 
-### Re-using `nonos`' style
+### Reusing `nonos`' style
 *requires matplotlib >= 3.7*
 
 `nonos` CLI uses a custom style that can be reused programmatically, without
