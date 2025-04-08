@@ -18,10 +18,11 @@ repos:
   hooks:
   - id: uv-lock
 
-- repo: https://github.com/crate-ci/typos
-  rev: v1.29.4
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.4.1
   hooks:
-  - id: typos
+  - id: codespell
+    args: [--skip, '*.dat', --ignore-words-list, accreting]
 
 - repo: https://github.com/neutrinoceros/inifix.git
   rev: v5.1.3
