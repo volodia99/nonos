@@ -12,7 +12,8 @@ from typing import Optional, Union, final
 
 import numpy as np
 
-from nonos._types import BinData, FloatArray, Geometry, PathT
+from nonos._geometry import Geometry
+from nonos._types import BinData, FloatArray, PathT
 
 if sys.version_info >= (3, 11):
     from typing import assert_never
