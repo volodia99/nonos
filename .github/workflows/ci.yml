@@ -29,11 +29,11 @@ jobs:
         - '3.13'
         label: ['']
         include:
-        - os: ubuntu-20.04
+        - os: ubuntu-22.04
           python-version: '3.9'
           label: (oldest deps, minimal)
           install-args: --resolution=lowest-direct
-        - os: ubuntu-20.04
+        - os: ubuntu-22.04
           python-version: '3.9'
           label: (oldest deps, full)
           install-args: --resolution=lowest-direct --all-extras --compile-bytecode
