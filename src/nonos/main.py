@@ -252,6 +252,10 @@ def get_parser() -> argparse.ArgumentParser:
         description=__doc__,
     )
 
+    # TODO: pass this as a kwarg when support for Python 3.13 is dropped
+    # https://docs.python.org/3.14/library/argparse.html#color
+    parser.color = True  # type: ignore [attr-defined]
+
     parser.add_argument(
         "-dir",
         dest="datadir",
