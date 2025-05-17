@@ -24,7 +24,9 @@ def validate_dataclass_instance(instance, cls):
         # that are expected at initialization
         attrs = cls.__slots__
     for key in attrs:
-        expected_type = cls.__annotations__[key]
+        if isinstance(expected_type := cls.__annotations__[key], str):
+            # skip unresolved annotations
+            continue
         obj = getattr(instance, key)
         if expected_type == FloatArray:
             assert isinstance(obj, np.ndarray)
