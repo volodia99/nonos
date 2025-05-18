@@ -2,7 +2,6 @@ __all__ = [
     "PathT",
     "StrDict",
     "FloatArray",
-    "Geometry",
     "FrameType",
     "BinData",
     "OrbitalElements",
@@ -16,7 +15,7 @@ import sys
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Protocol, Union, final
+from typing import TYPE_CHECKING, Any, Protocol, Union, final
 
 import numpy as np
 
@@ -26,24 +25,17 @@ else:
     from typing_extensions import TypeAlias
 
 if sys.version_info >= (3, 11):
-    from enum import StrEnum
     from typing import assert_never
 else:
     from typing_extensions import assert_never
 
-    from nonos._backports import StrEnum
-
+if TYPE_CHECKING:
+    from nonos._geometry import Geometry
 
 PathT: TypeAlias = Union[str, Path]
 StrDict: TypeAlias = dict[str, Any]
 
 FloatArray: TypeAlias = "np.ndarray[Any, np.dtype[np.float32 | np.float64]]"
-
-
-class Geometry(StrEnum):
-    CARTESIAN = auto()
-    POLAR = auto()
-    SPHERICAL = auto()
 
 
 class FrameType(Enum):
@@ -58,7 +50,7 @@ class BinData:
     # TODO: use slots=True in @dataclass when Python 3.9 is dropped
     __slots__ = ["data", "geometry", "x1", "x2", "x3"]
     data: StrDict
-    geometry: Geometry
+    geometry: "Geometry"
     x1: FloatArray
     x2: FloatArray
     x3: FloatArray
