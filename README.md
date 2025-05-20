@@ -92,8 +92,7 @@ options:
   -z Z                  if vertical operation (default: unset)
   -phi PHI              if azimuthal operation (default: unset)
   -distance DISTANCE    if radial operation (default: unset)
-  -cpu NCPU, -ncpu NCPU
-                        number of parallel processes (default: 1).
+  -cpu, -ncpu NCPU      number of parallel processes (default: 1).
   -on ON [ON ...]       output number(s) (on) to plot. This can be a single value or a
                         range (start, end, [step]) where both ends are inclusive.
                         (default: last output available).
@@ -104,10 +103,9 @@ options:
   -cmap CMAP            choice of colormap for the 2D maps (default: 'RdYlBu_r').
   -title TITLE          name of the field in the colorbar for the 2D maps (default:
                         'unset').
-  -uc UNIT_CONVERSION, -unit_conversion UNIT_CONVERSION
+  -uc, -unit_conversion UNIT_CONVERSION
                         conversion factor for the considered quantity (default: '1').
-  -fmt FORMAT, -format FORMAT
-                        select output image file format (default: unset)
+  -fmt, -format FORMAT  select output image file format (default: unset)
   -dpi DPI              image file resolution (default: 200)
 
 boolean flags:
@@ -116,8 +114,7 @@ boolean flags:
   -pbar                 display a progress bar
 
 CLI-only options:
-  -input INPUT, -i INPUT
-                        specify a configuration file.
+  -input, -i INPUT      specify a configuration file.
   -isolated             ignore any existing 'nonos.ini' file.
   -d, -display          open a graphic window with the plot (only works with a single
                         image)
