@@ -55,6 +55,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         enable-cache: true
+        prune-cache: false
         cache-suffix: ${{ matrix.label }}
 
     - name: Run pytest
@@ -93,6 +94,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         enable-cache: true
+        prune-cache: false
         cache-suffix: type-check
 
     - name: Typecheck
@@ -109,6 +111,7 @@ jobs:
       with:
         python-version: '3.13'
         enable-cache: true
+        prune-cache: false
         cache-suffix: image-test
 
     - name: Run Image Tests
@@ -156,6 +159,7 @@ jobs:
         # Use latest Python, so it understands all syntax.
         python-version: '3.13'
         enable-cache: true
+        prune-cache: false
         cache-suffix: coverage
 
     - run: uv tool install coverage
@@ -191,6 +195,7 @@ jobs:
     - uses: astral-sh/setup-uv@6b9c6063abd6010835644d4c2e1bef4cf5cd0fca # v6.0.1
       with:
         enable-cache: true
+        prune-cache: false
         cache-suffix: docs
     - name: Build
       run: |
