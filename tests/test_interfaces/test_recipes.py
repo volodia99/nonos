@@ -8,10 +8,9 @@ and integration tests.
 from contextlib import nullcontext
 from typing import Any, Optional
 
-import numpy as np
 import pytest
 
-from nonos._types import BinData, FloatArray, IniData, PlanetData
+from nonos._types import BinData, IniData, PlanetData
 from nonos.loaders import Loader, loader_from
 
 
@@ -28,11 +27,7 @@ def validate_dataclass_instance(instance, cls):
             # skip unresolved annotations
             continue
         obj = getattr(instance, key)
-        if expected_type == FloatArray:
-            assert isinstance(obj, np.ndarray)
-            assert obj.dtype.kind == "f"
-            assert obj.dtype.itemsize in (4, 8)
-        elif key in ("data", "meta"):
+        if key in ("data", "meta"):
             assert isinstance(obj, dict)
             assert all(isinstance(_, str) for _ in obj.keys())
         else:
