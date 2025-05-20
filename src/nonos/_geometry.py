@@ -380,8 +380,6 @@ class Coordinates:
         if axis_2 is not None and axis_2 not in gaxes:
             raise ValueError(f"expected one of {gaxes}, got {axis_2}")
 
-        # TODO: do we really want to use str as key type here ?
-        # (we could probably get rid of the "ordered" key)
         dictmesh: dict[Axis, FloatArray] = {}
         if axis_2 is None:
             # 1D case
