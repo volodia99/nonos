@@ -21,6 +21,7 @@ jobs:
     - uses: astral-sh/setup-uv@6b9c6063abd6010835644d4c2e1bef4cf5cd0fca # v6.0.1
       with:
         python-version: '3.13'
+        enable-cache: false
     - name: Build distributions
       shell: bash -l {0}
       run: uv build
