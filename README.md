@@ -22,10 +22,18 @@ Fargo3D: same as Fargo-adsg + gasvz\*.dat
 
 ## Installation
 
-:warning: Nonos requires Python 3.8 or newer. The easiest installation method is
+:warning: Nonos requires Python 3.10 or newer.
 
-```bash
+Get nonos and its minimal set of dependencies as
+
+```shell
 $ pip install nonos
+```
+
+or, to also get all optional dependencies
+
+```shell
+$ pip install "nonos[all]"
 ```
 
 ## Usage
