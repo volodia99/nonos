@@ -15,14 +15,9 @@ import sys
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol, Union, final
+from typing import TYPE_CHECKING, Any, Protocol, TypeAlias, final
 
 import numpy as np
-
-if sys.version_info >= (3, 10):
-    from typing import TypeAlias
-else:
-    from typing_extensions import TypeAlias
 
 if sys.version_info >= (3, 11):
     from typing import assert_never
@@ -32,7 +27,7 @@ else:
 if TYPE_CHECKING:
     from nonos._geometry import Geometry
 
-PathT: TypeAlias = Union[str, Path]
+PathT: TypeAlias = str | Path
 StrDict: TypeAlias = dict[str, Any]
 
 FloatArray: TypeAlias = "np.ndarray[Any, np.dtype[np.float32 | np.float64]]"
@@ -45,10 +40,8 @@ class FrameType(Enum):
 
 
 @final
-@dataclass(frozen=True, eq=False)
+@dataclass(frozen=True, eq=False, slots=True)
 class BinData:
-    # TODO: use slots=True in @dataclass when Python 3.9 is dropped
-    __slots__ = ["data", "geometry", "x1", "x2", "x3"]
     data: StrDict
     geometry: "Geometry"
     x1: FloatArray
@@ -63,10 +56,8 @@ class BinData:
 
 
 @final
-@dataclass(frozen=True, eq=False)
+@dataclass(frozen=True, eq=False, slots=True)
 class OrbitalElements:
-    # TODO: use slots=True in @dataclass when Python 3.9 is dropped
-    __slots__ = ["i", "e", "a"]
     i: FloatArray
     e: FloatArray
     a: FloatArray
@@ -140,16 +131,8 @@ for key in PlanetData._post_init_attrs:
 
 
 @final
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class IniData:
-    # TODO: use slots=True in @dataclass when Python 3.9 is dropped
-    __slots__ = [
-        "file",
-        "frame",
-        "rotational_rate",
-        "output_time_interval",
-        "meta",
-    ]
     file: Path
     frame: FrameType
     rotational_rate: float
@@ -160,7 +143,7 @@ class IniData:
 class BinReader(Protocol):
     @staticmethod
     def parse_output_number_and_filename(
-        file_or_number: Union[PathT, int],
+        file_or_number: PathT | int,
         *,
         directory: PathT,
         prefix: str,

@@ -1,21 +1,21 @@
 import warnings
 from math import isclose
-from typing import Optional, Protocol
+from typing import Protocol
 
 
 class PlanetAzimuthFinder(Protocol):
     def find_phip(
         self,
-        planet_number: Optional[int] = None,
+        planet_number: int | None = None,
         *,
-        planet_file: Optional[str] = None,
+        planet_file: str | None = None,
     ) -> float: ...
 
 
 def _parse_planet_file(
     *,
-    planet_file: Optional[str] = None,
-    planet_number: Optional[int] = None,
+    planet_file: str | None = None,
+    planet_number: int | None = None,
 ) -> str:
     if planet_number is not None and planet_file is not None:
         raise TypeError(
@@ -30,9 +30,9 @@ def _parse_planet_file(
 
 def _parse_rotation_angle(
     *,
-    rotate_by: Optional[float],
-    rotate_with: Optional[str],
-    planet_number_argument: tuple[str, Optional[int]],
+    rotate_by: float | None,
+    rotate_with: str | None,
+    planet_number_argument: tuple[str, int | None],
     planet_azimuth_finder: PlanetAzimuthFinder,
     stacklevel: int,
 ) -> float:
